@@ -86,6 +86,34 @@ String? cleanReleaseNotes(String? notes) {
 
   var text = notes;
 
+  // GitHub releases carry a brand banner, downloads and verification metadata.
+  // The TV changelog presents the user-facing changes using the lean text view.
+  final changesHeader = RegExp(
+    r"^##\s+What['’]s new\s*$",
+    multiLine: true,
+    caseSensitive: false,
+  ).firstMatch(text);
+  if (changesHeader != null) {
+    text = text.substring(changesHeader.end);
+    final publicationFooter = RegExp(
+      r'^##\s+(?:Downloads|Source and verification)\s*$',
+      multiLine: true,
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (publicationFooter != null) {
+      text = text.substring(0, publicationFooter.start);
+    }
+    text = text.replaceAll(RegExp(r'!\[[^\]]*\]\([^)]+\)'), '');
+    text = text.replaceAllMapped(
+      RegExp(r'\[([^\]]+)\]\([^)]+\)'),
+      (match) => match[1]!,
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'\*\*([^\n]+?)\*\*'),
+      (match) => match[1]!,
+    );
+  }
+
   final vtIndex = text.indexOf("<!-- virustotal-report -->");
   if (vtIndex != -1) {
     text = text.substring(0, vtIndex);
@@ -168,7 +196,10 @@ class UpdateService {
     try {
       final request = await httpClient.getUrl(uri);
       request.headers.set(HttpHeaders.acceptHeader, "application/octet-stream");
-      request.headers.set(HttpHeaders.userAgentHeader, "BackdropLauncher-Updater");
+      request.headers.set(
+        HttpHeaders.userAgentHeader,
+        "BackdropLauncher-Updater",
+      );
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -213,7 +244,10 @@ class UpdateService {
         HttpHeaders.acceptHeader,
         "application/vnd.github+json",
       );
-      request.headers.set(HttpHeaders.userAgentHeader, "BackdropLauncher-Updater");
+      request.headers.set(
+        HttpHeaders.userAgentHeader,
+        "BackdropLauncher-Updater",
+      );
 
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {

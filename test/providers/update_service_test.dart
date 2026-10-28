@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flauncher/providers/update_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -114,6 +115,30 @@ void main() {
   });
 
   group("cleanReleaseNotes", () {
+    test('branded release notes show changes without publication chrome', () {
+      final raw = File(
+        'test/fixtures/branded_release_notes.md',
+      ).readAsStringSync();
+      final cleaned = cleanReleaseNotes(raw)!;
+      expect(cleaned, startsWith('## Your TV. Your way.'));
+      expect(cleaned, contains('- Your apps, your rows.'));
+      expect(cleaned, contains('Continue Watching.'));
+      expect(cleaned, isNot(contains('release-banner.png')));
+      expect(cleaned, isNot(contains('## Downloads')));
+      expect(cleaned, isNot(contains('Source and verification')));
+      expect(cleaned, isNot(contains('**')));
+      expect(cleaned, isNot(contains('https://github.com')));
+    });
+
+    test(
+      'plain apostrophe section preserves readable labels and omits images',
+      () {
+        const raw =
+            "## What's new\n- **Readable** [details](https://example.com/details)\n![Preview](https://example.com/preview.png)\n## Downloads\nAPK table";
+        expect(cleanReleaseNotes(raw), '- Readable details');
+      },
+    );
+
     test("returns null for null or whitespace", () {
       expect(cleanReleaseNotes(null), isNull);
       expect(cleanReleaseNotes("   \n\n  "), isNull);
