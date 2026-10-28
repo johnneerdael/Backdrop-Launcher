@@ -136,8 +136,8 @@ jobs:
             --dart-define-from-file=.dart_tool/trakt-config.json \
             --dart-define=ENABLE_SELF_UPDATER=true \
             --build-name "$VERSION" --build-number "$VERSION_CODE"
-      - name: Install APK signature verifier
-        run: sdkmanager 'build-tools;36.0.0'
+      - name: Prepare APK signature verifier
+        run: bash tool/release/prepare_android_verifier.sh
       - name: Verify signatures and prepare distribution
         run: |
           python3 tool/release/release.py package \
