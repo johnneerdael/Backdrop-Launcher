@@ -1,6 +1,6 @@
 # Status bar and date formats
 
-The status bar holds the Settings gear and optional date, time and network information. Open **Settings → Interface → Status bar** to choose what appears.
+The Settings gear sits beside the clock at the top right. The optional date appears before the gear; the optional network indicator sits on the left. The gear remains available when date and time are hidden. Open **Settings → Interface → Status bar** to choose what appears.
 
 ![Current Status bar settings with automatic hiding, Date, Time and Network Indicator](../assets/screenshots/status-bar.webp){ width="1280" height="720" loading="lazy" }
 

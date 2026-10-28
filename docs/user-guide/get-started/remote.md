@@ -12,9 +12,11 @@ Backdrop Launcher is designed for the remote’s **D-pad**, **Select / OK** and 
 | **Hold Select** | After about half a second on an app, open its action menu. |
 | **Back** | Close a menu or return to its parent. On Home, use the configured Back action when this is the default launcher. |
 
-From the first app row, press **Up** to reach Continue Watching if it is visible, then **Up** again to reach the status bar. Move to the **gear** and press Select to open Settings. If Continue Watching is absent, Up goes directly to the status bar. An automatically hidden status bar reappears when you focus it.
+From the first app row, press **Up** to reach Continue Watching if it is visible, then **Up** again to reach the **Settings gear beside the clock at the top right**. Press Select to open Settings. If Continue Watching is absent, Up goes directly to the status bar. An automatically hidden status bar reappears when you focus it. Press Down to return to the active Home section.
 
-![Home with Continue Watching above the app row and Settings in the top-left corner](../assets/screenshots/home.webp){ width="1280" height="720" loading="lazy" }
+![Home with Continue Watching above the app row](../assets/screenshots/home.webp){ width="1280" height="720" loading="lazy" }
+
+Settings moved beside the clock in version 1.3.4. Earlier screenshots in this guide show the gear on the left.
 
 ## Use Settings
 

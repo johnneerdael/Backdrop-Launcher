@@ -1,5 +1,6 @@
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/network_service.dart';
@@ -9,7 +10,9 @@ import 'date_time_widget.dart';
 import 'network_widget.dart';
 
 class FocusAwareAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const FocusAwareAppBar({Key? key}) : super(key: key);
+  final VoidCallback? onDown;
+
+  const FocusAwareAppBar({Key? key, this.onDown}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -44,11 +47,20 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
   Widget build(BuildContext context) {
     return Selector<SettingsService, bool>(
       selector: (_, settings) => settings.autoHideAppBarEnabled,
-      builder: (context, autoHide, widget) {
+      builder: (context, autoHide, child) {
         final isVisible = focused || !autoHide;
 
         return Focus(
           canRequestFocus: false,
+          onKeyEvent: (_, event) {
+            if (widget.onDown != null &&
+                event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              widget.onDown!();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           onFocusChange: (hasFocus) {
             setState(() {
               focused = hasFocus;
@@ -69,7 +81,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
                     minHeight: 0,
                     maxHeight: kToolbarHeight,
                     alignment: Alignment.topCenter,
-                    child: widget!,
+                    child: child!,
                   ),
                 ),
               ),
@@ -82,29 +94,10 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
           elevation: 0,
           scrolledUnderElevation: 0,
           backgroundColor: Colors.transparent,
-          // Left side: Settings and network connection indicator.
+          // Left side: optional network connection indicator.
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Settings button
-              AppBarFocusRing(
-                focusNode: _settingsFocusNode,
-                onPressed: () => SettingsPanel.show(context),
-                semanticLabel: 'Settings',
-                child: const Icon(
-                  Icons.settings_outlined,
-                  size: 20,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black54,
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
               // Network indicator (conditionally shown)
               Selector<SettingsService, bool>(
                 selector: (_, settings) =>
@@ -123,7 +116,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
               ),
             ],
           ),
-          // Right side: Date/Time only
+          // Right side: optional date, then Settings beside the clock.
           actions: [
             Padding(
               padding: const EdgeInsets.only(left: 16, right: 32),
@@ -169,10 +162,29 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
                               updateInterval: const Duration(minutes: 1),
                               textStyle: textStyle,
                             ),
-
-                          if (dateTimeSettings.showDateInStatusBar &&
-                              dateTimeSettings.showTimeInStatusBar)
+                          if (dateTimeSettings.showDateInStatusBar)
                             const SizedBox(width: 16),
+
+                          // Settings button
+                          AppBarFocusRing(
+                            focusNode: _settingsFocusNode,
+                            onPressed: () => SettingsPanel.show(context),
+                            semanticLabel: 'Settings',
+                            child: const Icon(
+                              Icons.settings_outlined,
+                              size: 20,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (dateTimeSettings.showTimeInStatusBar)
+                            const SizedBox(width: 12),
 
                           // Clock
                           if (dateTimeSettings.showTimeInStatusBar)

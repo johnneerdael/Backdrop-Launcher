@@ -75,6 +75,18 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     }
   }
 
+  void _focusHomeFromToolbar() {
+    final watchNext = _watchNextKey.currentState;
+    final appRows = _appRowsKey.currentState;
+    if (watchNext != null) {
+      watchNext.requestFocus();
+    } else if (appRows != null) {
+      appRows.requestActiveRowFocus();
+    } else {
+      _emptyRowsFocus.requestFocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!context.select<AppsService, bool>((apps) => apps.initialized)) {
@@ -171,7 +183,10 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
               ),
               child: Scaffold(
                 backgroundColor: Colors.transparent,
-                appBar: FocusAwareAppBar(key: _appBarKey),
+                appBar: FocusAwareAppBar(
+                  key: _appBarKey,
+                  onDown: _focusHomeFromToolbar,
+                ),
                 // (initialized (data.$1), layoutVersion (data.$2), showAppNamesBelowIcons (data.$3))
                 body:
                     Selector2<AppsService, SettingsService, (bool, int, bool)>(
@@ -232,6 +247,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: TextButton.icon(
+            focusNode: _emptyRowsFocus,
             autofocus: true,
             onPressed: () => _appBarKey.currentState?.focusSettings(),
             icon: const Icon(Icons.add),
