@@ -39,13 +39,15 @@ void _playFocusSound(BuildContext context) {
   }
 }
 
-const double _kWatchNextHeroHorizontalPadding = kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
+const double _kWatchNextHeroHorizontalPadding =
+    kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
 
 class WatchNextHero extends StatelessWidget {
   final List<WatchNextItem> items;
   final bool isFirstSection;
   final bool handleUpNavigationToSettings;
   final VoidCallback? onItemFocused;
+  final bool ensureVerticalOnFocus;
 
   const WatchNextHero({
     super.key,
@@ -53,6 +55,7 @@ class WatchNextHero extends StatelessWidget {
     this.isFirstSection = false,
     this.handleUpNavigationToSettings = false,
     this.onItemFocused,
+    this.ensureVerticalOnFocus = true,
   });
 
   @override
@@ -63,10 +66,15 @@ class WatchNextHero extends StatelessWidget {
 
     final watchNextService = context.watch<WatchNextService>();
     final activeItem = watchNextService.activeHeroItem ?? items.first;
-    final activeIndex = watchNextService.activeHeroIndex.clamp(0, items.length - 1);
+    final activeIndex = watchNextService.activeHeroIndex.clamp(
+      0,
+      items.length - 1,
+    );
 
     final appsService = context.watch<AppsService>();
-    final app = activeItem.packageName != null ? appsService.getApplication(activeItem.packageName) : null;
+    final app = activeItem.packageName != null
+        ? appsService.getApplication(activeItem.packageName)
+        : null;
     final appName = app?.name;
     final localizations = AppLocalizations.of(context)!;
     final sourceBadge = appName != null
@@ -74,7 +82,9 @@ class WatchNextHero extends StatelessWidget {
         : localizations.watchNextSectionTitle.toUpperCase();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _kWatchNextHeroHorizontalPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kWatchNextHeroHorizontalPadding,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -97,13 +107,17 @@ class WatchNextHero extends StatelessWidget {
                 autofocus: isFirstSection,
                 handleUpNavigationToSettings: handleUpNavigationToSettings,
                 onItemFocused: onItemFocused,
+                ensureVerticalOnFocus: ensureVerticalOnFocus,
                 onPrev: watchNextService.prevHeroItem,
                 onNext: watchNextService.nextHeroItem,
                 totalItems: items.length,
               ),
               if (items.length > 1) ...[
                 const SizedBox(width: 20),
-                _HeroPaginationIndicator(currentIndex: activeIndex, totalItems: items.length),
+                _HeroPaginationIndicator(
+                  currentIndex: activeIndex,
+                  totalItems: items.length,
+                ),
               ],
             ],
           ),
@@ -142,13 +156,21 @@ class _HeroInfo extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.22), width: 1),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.22),
+              width: 1,
+            ),
           ),
           child: Text(
             sourceBadge,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -163,7 +185,13 @@ class _HeroInfo extends StatelessWidget {
             fontSize: 34,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
-            shadows: [Shadow(color: Colors.black87, offset: Offset(0, 2), blurRadius: 10)],
+            shadows: [
+              Shadow(
+                color: Colors.black87,
+                offset: Offset(0, 2),
+                blurRadius: 10,
+              ),
+            ],
           ),
         ),
 
@@ -182,7 +210,13 @@ class _HeroInfo extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 14,
                       height: 1.35,
-                      shadows: const [Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 6)],
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black87,
+                          offset: Offset(0, 1),
+                          blurRadius: 6,
+                        ),
+                      ],
                     ),
                   ),
                 )
@@ -197,12 +231,18 @@ class _HeroInfo extends StatelessWidget {
               ? Container(
                   width: 140,
                   height: 4,
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                   alignment: Alignment.centerLeft,
                   child: FractionallySizedBox(
                     widthFactor: (progressPercent! / 100).clamp(0.0, 1.0),
                     child: Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                 )
@@ -218,6 +258,7 @@ class _HeroWatchButton extends StatefulWidget {
   final bool autofocus;
   final bool handleUpNavigationToSettings;
   final VoidCallback? onItemFocused;
+  final bool ensureVerticalOnFocus;
   final VoidCallback onPrev;
   final VoidCallback onNext;
   final int totalItems;
@@ -227,6 +268,7 @@ class _HeroWatchButton extends StatefulWidget {
     required this.autofocus,
     required this.handleUpNavigationToSettings,
     this.onItemFocused,
+    this.ensureVerticalOnFocus = true,
     required this.onPrev,
     required this.onNext,
     required this.totalItems,
@@ -309,8 +351,11 @@ class _HeroWatchButtonState extends State<_HeroWatchButton> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    final isResume = widget.item.progressPercent != null && widget.item.progressPercent! > 0;
-    final label = isResume ? localizations.watchNextResume : localizations.watchNextWatch;
+    final isResume =
+        widget.item.progressPercent != null && widget.item.progressPercent! > 0;
+    final label = isResume
+        ? localizations.watchNextResume
+        : localizations.watchNextWatch;
 
     final double scale = _clicked ? 0.96 : 1.0;
 
@@ -325,6 +370,12 @@ class _HeroWatchButtonState extends State<_HeroWatchButton> {
           if (focused) {
             _playFocusSound(context);
             widget.onItemFocused?.call();
+            if (widget.ensureVerticalOnFocus)
+              Scrollable.ensureVisible(
+                context,
+                alignment: 0.5,
+                duration: Duration.zero,
+              );
           }
         },
         child: GestureDetector(
@@ -341,18 +392,41 @@ class _HeroWatchButtonState extends State<_HeroWatchButton> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               decoration: ShapeDecoration(
                 shape: StadiumBorder(
-                  side: BorderSide(color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.35), width: 1.0),
+                  side: BorderSide(
+                    color: _isHovered
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.35),
+                    width: 1.0,
+                  ),
                 ),
-                color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.22),
+                color: _isHovered
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.22),
                 shadows: _isHovered
-                    ? const [BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 3))]
-                    : const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                    ? const [
+                        BoxShadow(
+                          color: Colors.black38,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ]
+                    : const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.play_arrow_rounded, size: 24, color: _isHovered ? Colors.black87 : Colors.white),
+                  Icon(
+                    Icons.play_arrow_rounded,
+                    size: 24,
+                    color: _isHovered ? Colors.black87 : Colors.white,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     label,
@@ -377,7 +451,10 @@ class _HeroPaginationIndicator extends StatelessWidget {
   final int currentIndex;
   final int totalItems;
 
-  const _HeroPaginationIndicator({required this.currentIndex, required this.totalItems});
+  const _HeroPaginationIndicator({
+    required this.currentIndex,
+    required this.totalItems,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +472,14 @@ class _HeroPaginationIndicator extends StatelessWidget {
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.white38,
             borderRadius: BorderRadius.circular(3),
-            boxShadow: isActive ? [BoxShadow(color: Colors.white.withValues(alpha: 0.6), blurRadius: 6)] : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      blurRadius: 6,
+                    ),
+                  ]
+                : null,
           ),
         );
       }),

@@ -1,0 +1,303 @@
+{
+  "generated": "2026-10-28",
+  "notes": [
+    "Real native TV screenshots; no brand-kit interface studies.",
+    "Selected older captures retain current controls without retired features or old launcher-name strings.",
+    "No pending Trakt QR/code, private tokens or authentication screens.",
+    "Marketing clock source is verified against corrected native Elegant follow-up capture; provider selection was fixed before this capture."
+  ],
+  "screenshots": [
+    {
+      "file": "assets/screenshots/home.webp",
+      "source": "docs/feature-removal/2026-10-28/final-home.png",
+      "source_sha256": "3f59ff6ec779cfe7566dafbbdf6d7b74eac29ca97572403641c7ccf25e709b2d",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 67554,
+      "output_sha256": "4652e0a14a4b8be97cbce979f401ab2f550cf4f452dbf3d9417f8c4aeee1946a",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/cinematic-home.webp",
+      "source": "marketing/screenshots/03-cinematic-backdrops.png",
+      "source_sha256": "04131483664bcb4361275192336d6c11cae36c8515907d7163431417ad3a6b84",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 261038,
+      "output_sha256": "198d50944db63fc0a0c0f37bf00244bfe478349042ed34c205f7f141846ce92a",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/continue-watching.webp",
+      "source": "marketing/screenshots/02-continue-watching.png",
+      "source_sha256": "f3a206f27bcbd490f55c67339435181ba0c3d5f55c32556fe1187462f330ea39",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 53888,
+      "output_sha256": "e208c41c6245a6e00d433aa88867f6a8c279e2663119b59c6256b56bf86a3ec7",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/app-rows.webp",
+      "source": "marketing/screenshots/04-custom-app-rows.png",
+      "source_sha256": "5ae7f08535de64475460c8ca80ddd2f248e168da0d46466a2c10037ab684ae1d",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 47284,
+      "output_sha256": "089d6aa86e0a60739663d3b729dc5d646b8089cbf008544ae8d9f6580d4eb6f2",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/manage-apps.webp",
+      "source": "marketing/screenshots/05-hide-and-manage-apps.png",
+      "source_sha256": "2d6dfed12235ec2d4f4055700a460da196ddc8755280f9b29559e72b607d8f09",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 41770,
+      "output_sha256": "b69c966835459e8e009e71760bb3069efd23b6be1a06f00212a6928cbcc1c636",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/app-artwork.webp",
+      "source": "marketing/screenshots/06-custom-app-artwork.png",
+      "source_sha256": "648b8e904ae6b3753d146729694779ded06d4b2308da3424ef362e8e12fc918f",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 23792,
+      "output_sha256": "f36d7fd74be3089b00b4a26a70e6687f2bb7bf42cd296bf4d2556551bef9e6e5",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/accent-colours.webp",
+      "source": "marketing/screenshots/07-accent-colors.png",
+      "source_sha256": "c29548880626cb378096a3caca5a81d10281fa2f55e4ef0a3b5b854e2c644cb1",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 48650,
+      "output_sha256": "3c3b763a184cebb24e6c6693b20b51d581b0fedf1ce24ed3ed2599a93fbec25f",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/card-backgrounds.webp",
+      "source": "marketing/screenshots/08-background-opacity.png",
+      "source_sha256": "284172cb05214f3b0c52eb68d5acdac46131646d5fa3aa6bd529c7a50ddfc7ae",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 37992,
+      "output_sha256": "9badac4d344bb9ede7d73ddc4de551c937fb0c95bcfb7f2d3f186fdf229b0627",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/trakt-sources.webp",
+      "source": "marketing/screenshots/09-trakt-backdrop-sources.png",
+      "source_sha256": "40cbbc9851b42340131ac25a00328bc88406d20cead2f9f45c39ca7ba9684825",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 56392,
+      "output_sha256": "dff1d0957e83e3b4a5237dd4334b931615b139531d2f634ddf3b919b764d3ff5",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/clock.webp",
+      "source": "marketing/screenshots/10-elegant-clock-screensaver.png",
+      "source_sha256": "f77308ec5d35696f59be3087003939588bad265706f429d64da13b5e21cb6cd9",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 7760,
+      "output_sha256": "be2ef8f137aa864d06d4a84e88110d1c57f456d9af5c262b3f633c633cf29a42",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/status-bar.webp",
+      "source": "docs/feature-removal/2026-10-28/status-bar-settings.png",
+      "source_sha256": "eda0d90db167501132a72f20441f966ba16b171ee1590e26473b0d6f0408edce",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 30122,
+      "output_sha256": "edcb1f9a6a82541ac2dc3115659bedaa3aafba9a110e4af3f6c5595b4439f3ad",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/system.webp",
+      "source": "docs/feature-removal/2026-10-28/system-settings.png",
+      "source_sha256": "4298444a3493bb81e8ee8b92612ecf58b508e4c8cd4446d1f361525810814810",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 31094,
+      "output_sha256": "fcfeac7f5c6ae8037f29fd35ba94778d259f6308eb369f1f2b7315beeb016799",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/row-editor.webp",
+      "source": "docs/user-guide-capture/2026-10-27/screenshots/153-row-editor-empty.png",
+      "source_sha256": "64f3d9a0c50ae8e8f82ff73d1532cc8de10ebfefc91b3e53705e77879eebdac4",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 32616,
+      "output_sha256": "ac744052e5b84d92f9ad1254c715f0595187f6a54a49f9935a501d3299c82819",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/watch-next-settings.webp",
+      "source": "docs/user-guide-capture/2026-10-27/screenshots/227-watch-next-enabled.png",
+      "source_sha256": "73584e73360916d6395897f3c90f3913a79e2d6162b8c1c70f34d25046f984c9",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 44070,
+      "output_sha256": "9b711f274ede1f7d9ec3d4b1518b0c4cab6ce2a39b7d1a65116463b69dd27404",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/backdrops.webp",
+      "source": "docs/user-guide-capture/2026-10-27/screenshots/271-backdrops-connected-top.png",
+      "source_sha256": "1248bbe866233d6fdfd799843a0eb943fa2d3e2166a4b636321dae284a0e3008",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 40658,
+      "output_sha256": "fbb511b29c7fce72123ed377e4fe0fdbb0d4aa234e2bde4b846f41ce3e9554bd",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/date-formats.webp",
+      "source": "docs/user-guide-capture/2026-10-27/screenshots/072-date-time-format-top.png",
+      "source_sha256": "993761288c4610f129327c1ac07d81dcbb824425d2fbd0f4e0dd49da3cb113c2",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 58972,
+      "output_sha256": "1ce465fb480634d7ede37b6988db47953a0ce109fb2787a7de8416c01593a66e",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+    },
+    {
+      "file": "assets/screenshots/settings.webp",
+      "source": "docs/branding-verification/2026-10-28/settings.png",
+      "source_sha256": "87fd75fd4d81964b46735ac9010daca8e1638197bc889a42f1ef54a1d5a48877",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 70038,
+      "output_sha256": "68dfb768126f4eeaabd9d25e09ebcb2fc863228a55d98f00bb3b8e14da242ed5",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127)"
+    },
+    {
+      "file": "assets/screenshots/about.webp",
+      "source": "docs/branding-verification/2026-10-28/about.png",
+      "source_sha256": "0798196eac4d5572c4cda20386bb577a9a2f320d18ef3cb507ea96a4c3ede5a9",
+      "source_dimensions": [
+        1920,
+        1080
+      ],
+      "output_dimensions": [
+        1280,
+        720
+      ],
+      "output_bytes": 42950,
+      "output_sha256": "ec6327c69809a737b6736000e9609530934d16af5da35e616d2d9810560a7f31",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127)"
+    }
+  ]
+}

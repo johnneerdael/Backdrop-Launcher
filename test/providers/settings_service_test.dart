@@ -26,13 +26,27 @@ import 'package:shared_preferences_platform_interface/shared_preferences_platfor
 //import '../mocks.mocks.dart';
 
 void main() async {
-  SharedPreferencesStorePlatform.instance = InMemorySharedPreferencesStore.empty();
+  SharedPreferencesStorePlatform.instance =
+      InMemorySharedPreferencesStore.empty();
   final sharedPreferences = await SharedPreferences.getInstance();
   final settingsService = SettingsService(sharedPreferences);
 
   setUp(() async {
     await sharedPreferences.clear();
   });
+
+  test(
+    'icon background opacity is clamped and persisted in ten percent steps',
+    () async {
+      expect(settingsService.appIconBackgroundOpacity, .1);
+      await settingsService.setAppIconBackgroundOpacity(.26);
+      expect(SettingsService(sharedPreferences).appIconBackgroundOpacity, .3);
+      await settingsService.setAppIconBackgroundOpacity(-1);
+      expect(settingsService.appIconBackgroundOpacity, 0);
+      await settingsService.setAppIconBackgroundOpacity(2);
+      expect(settingsService.appIconBackgroundOpacity, 1);
+    },
+  );
 
   test("watchNextBigPictureMode default and update", () async {
     final sharedPreferences = await SharedPreferences.getInstance();
@@ -65,20 +79,31 @@ void main() async {
     final settingsService = SettingsService(sharedPreferences);
 
     expect(settingsService.watchNextExcludedPackages, isEmpty);
-    expect(settingsService.isWatchNextPackageExcluded("com.plexapp.android"), isFalse);
+    expect(
+      settingsService.isWatchNextPackageExcluded("com.plexapp.android"),
+      isFalse,
+    );
 
     await settingsService.toggleWatchNextExcludedPackage("com.plexapp.android");
     expect(settingsService.watchNextExcludedPackages, ["com.plexapp.android"]);
-    expect(settingsService.isWatchNextPackageExcluded("com.plexapp.android"), isTrue);
+    expect(
+      settingsService.isWatchNextPackageExcluded("com.plexapp.android"),
+      isTrue,
+    );
 
     await settingsService.toggleWatchNextExcludedPackage("com.netflix.ninja");
-    expect(settingsService.watchNextExcludedPackages, ["com.plexapp.android", "com.netflix.ninja"]);
+    expect(settingsService.watchNextExcludedPackages, [
+      "com.plexapp.android",
+      "com.netflix.ninja",
+    ]);
 
     await settingsService.toggleWatchNextExcludedPackage("com.plexapp.android");
     expect(settingsService.watchNextExcludedPackages, ["com.netflix.ninja"]);
-    expect(settingsService.isWatchNextPackageExcluded("com.plexapp.android"), isFalse);
+    expect(
+      settingsService.isWatchNextPackageExcluded("com.plexapp.android"),
+      isFalse,
+    );
   });
-
 
   test("setUse24HourTimeFormat", () async {
     final sharedPreferences = await SharedPreferences.getInstance();
@@ -90,40 +115,7 @@ void main() async {
     expect(settingsService.timeFormat, expected);
   });
 
-  test("setGradientUuid", () async {
-    final sharedPreferences = await SharedPreferences.getInstance();
-    final settingsService = SettingsService(sharedPreferences);
-
-    await settingsService.setGradientUuid("4730aa2d-1a90-49a6-9942-ffe82f470e26");
-
-    expect(sharedPreferences.getString("gradient_uuid"), "4730aa2d-1a90-49a6-9942-ffe82f470e26");
-  });
-
-
-  group("getGradientUuid", () {
-    test("without uuid from shared preferences", () async {
-      final sharedPreferences = await SharedPreferences.getInstance();
-      await sharedPreferences.clear();
-      final settingsService = SettingsService(sharedPreferences);
-
-      final gradientUuid = settingsService.gradientUuid;
-
-      expect(gradientUuid, null);
-    });
-
-    test("with uuid from shared preferences", () async {
-      final sharedPreferences = await SharedPreferences.getInstance();
-      await sharedPreferences.clear();
-      sharedPreferences.setString("gradient_uuid", "4730aa2d-1a90-49a6-9942-ffe82f470e26");
-      final settingsService = SettingsService(sharedPreferences);
-
-      final gradientUuid = settingsService.gradientUuid;
-
-      expect(gradientUuid, "4730aa2d-1a90-49a6-9942-ffe82f470e26");
-    });
-  });
-
-  group("getDateFormat", ()  {
+  group("getDateFormat", () {
     test("with default", () async {
       expect(settingsService.dateFormat, SettingsService.defaultDateFormat);
     });
@@ -137,49 +129,6 @@ void main() async {
     });
   });
 
-  group("unsplash slideshow", () {
-    test("stays disabled without an access key", () async {
-      await settingsService.setUnsplashSlideshowEnabled(true);
-
-      expect(settingsService.unsplashSlideshowEnabled, isFalse);
-    });
-
-    test("runs once a key is set, and clearing the key disables it", () async {
-      await settingsService.setUnsplashAccessKey("  abc  ");
-      await settingsService.setUnsplashSlideshowEnabled(true);
-
-      expect(settingsService.unsplashAccessKey, "abc");
-      expect(settingsService.unsplashSlideshowEnabled, isTrue);
-
-      await settingsService.setUnsplashAccessKey("");
-      await settingsService.setUnsplashAccessKey("abc");
-
-      expect(settingsService.unsplashSlideshowEnabled, isFalse);
-    });
-
-    test("has defaults for interval and sources", () {
-      expect(settingsService.unsplashIntervalMinutes, 10);
-      expect(settingsService.unsplashDaySources, ['nature', 'wallpapers', '3d-renders']);
-      expect(settingsService.unsplashNightSources, ['milkyway']);
-    });
-  });
-
-  group("hideStatusBarInGrid", () {
-    test("defaults to false", () {
-      expect(settingsService.hideStatusBarInGrid, isFalse);
-    });
-
-    test("persists value", () async {
-      await settingsService.setHideStatusBarInGrid(true);
-      expect(settingsService.hideStatusBarInGrid, isTrue);
-      expect(sharedPreferences.getBool("hide_status_bar_in_grid"), isTrue);
-
-      await settingsService.setHideStatusBarInGrid(false);
-      expect(settingsService.hideStatusBarInGrid, isFalse);
-      expect(sharedPreferences.getBool("hide_status_bar_in_grid"), isFalse);
-    });
-  });
-
   group("watchNextHideProgramsWithoutImages", () {
     test("defaults to false", () {
       expect(settingsService.watchNextHideProgramsWithoutImages, isFalse);
@@ -188,11 +137,17 @@ void main() async {
     test("persists value", () async {
       await settingsService.setWatchNextHideProgramsWithoutImages(true);
       expect(settingsService.watchNextHideProgramsWithoutImages, isTrue);
-      expect(sharedPreferences.getBool("watch_next_hide_programs_without_images"), isTrue);
+      expect(
+        sharedPreferences.getBool("watch_next_hide_programs_without_images"),
+        isTrue,
+      );
 
       await settingsService.setWatchNextHideProgramsWithoutImages(false);
       expect(settingsService.watchNextHideProgramsWithoutImages, isFalse);
-      expect(sharedPreferences.getBool("watch_next_hide_programs_without_images"), isFalse);
+      expect(
+        sharedPreferences.getBool("watch_next_hide_programs_without_images"),
+        isFalse,
+      );
     });
   });
 }

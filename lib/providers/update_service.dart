@@ -8,7 +8,9 @@ import 'package:path_provider/path_provider.dart';
 class UpdateResult {
   final bool updateAvailable;
   final String currentVersion;
-  final String latestVersion;
+
+  /// Null when GitHub has no published stable release with an installable APK.
+  final String? latestVersion;
   final String? releaseNotes;
   final String? apkUrl;
   final String? apkName;
@@ -30,8 +32,8 @@ class DownloadedApk {
   const DownloadedApk({required this.path, required this.version});
 }
 
-/// ABI-split APKs are named like `arclauncher-1.0.5-arm64-v8a.apk`.
-/// Universal builds omit the ABI suffix (`arclauncher-1.0.5.apk`).
+/// ABI-split APKs are named like `backdrop-launcher-1.3.0-arm64-v8a.apk`.
+/// Universal builds omit the ABI suffix (`backdrop-launcher-1.3.0.apk`).
 bool isAbiSplitApk(String name) {
   return RegExp(
     r"-(arm64-v8a|armeabi-v7a|armeabi|x86_64|x86)\.apk$",
@@ -89,8 +91,9 @@ String? cleanReleaseNotes(String? notes) {
     text = text.substring(0, vtIndex);
   }
 
-  final vtHeaderIndex =
-      text.indexOf(RegExp(r"^##\s*VirusTotal", multiLine: true));
+  final vtHeaderIndex = text.indexOf(
+    RegExp(r"^##\s*VirusTotal", multiLine: true),
+  );
   if (vtHeaderIndex != -1) {
     text = text.substring(0, vtHeaderIndex);
   }
@@ -120,17 +123,24 @@ String? cleanReleaseNotes(String? notes) {
 }
 
 class UpdateService {
-  static const String _owner = "meddouribadis";
-  static const String _repo = "arclauncher";
+  static const String _owner = "johnneerdael";
+  static const String _repo = "Backdrop-Launcher";
   final FLauncherChannel _fLauncherChannel;
 
   UpdateService({FLauncherChannel? fLauncherChannel})
-      : _fLauncherChannel = fLauncherChannel ?? FLauncherChannel();
+    : _fLauncherChannel = fLauncherChannel ?? FLauncherChannel();
 
   Future<UpdateResult> checkForUpdate() async {
     final packageInfo = await PackageInfo.fromPlatform();
     final currentVersion = packageInfo.version;
     final release = await _fetchLatestStableRelease();
+    if (release == null) {
+      return UpdateResult(
+        updateAvailable: false,
+        currentVersion: currentVersion,
+        latestVersion: null,
+      );
+    }
 
     final latestVersion = _normalizeVersion(release.tagName);
     final updateAvailable = _compareVersions(latestVersion, currentVersion) > 0;
@@ -146,7 +156,10 @@ class UpdateService {
   }
 
   Future<DownloadedApk> downloadApk(UpdateResult update) async {
-    if (!update.updateAvailable || update.apkUrl == null) {
+    final latestVersion = update.latestVersion;
+    if (!update.updateAvailable ||
+        update.apkUrl == null ||
+        latestVersion == null) {
       throw StateError("No update APK available to download.");
     }
 
@@ -155,7 +168,7 @@ class UpdateService {
     try {
       final request = await httpClient.getUrl(uri);
       request.headers.set(HttpHeaders.acceptHeader, "application/octet-stream");
-      request.headers.set(HttpHeaders.userAgentHeader, "ArcLauncher-Updater");
+      request.headers.set(HttpHeaders.userAgentHeader, "BackdropLauncher-Updater");
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -171,11 +184,10 @@ class UpdateService {
         await updatesDirectory.create(recursive: true);
       }
 
-      final fileName =
-          update.apkName ?? "arclauncher-${update.latestVersion}.apk";
+      final fileName = update.apkName ?? "backdrop-launcher-$latestVersion.apk";
       final file = File("${updatesDirectory.path}/$fileName");
       await response.pipe(file.openWrite());
-      return DownloadedApk(path: file.path, version: update.latestVersion);
+      return DownloadedApk(path: file.path, version: latestVersion);
     } finally {
       httpClient.close();
     }
@@ -189,16 +201,19 @@ class UpdateService {
     return _fLauncherChannel.requestInstallUnknownAppsPermission();
   }
 
-  Future<_GitHubRelease> _fetchLatestStableRelease() async {
-    final uri =
-        Uri.parse("https://api.github.com/repos/$_owner/$_repo/releases");
+  Future<_GitHubRelease?> _fetchLatestStableRelease() async {
+    final uri = Uri.parse(
+      "https://api.github.com/repos/$_owner/$_repo/releases",
+    );
     final httpClient = HttpClient();
 
     try {
       final request = await httpClient.getUrl(uri);
-      request.headers
-          .set(HttpHeaders.acceptHeader, "application/vnd.github+json");
-      request.headers.set(HttpHeaders.userAgentHeader, "ArcLauncher-Updater");
+      request.headers.set(
+        HttpHeaders.acceptHeader,
+        "application/vnd.github+json",
+      );
+      request.headers.set(HttpHeaders.userAgentHeader, "BackdropLauncher-Updater");
 
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
@@ -245,7 +260,7 @@ class UpdateService {
         );
       }
 
-      throw StateError("No stable release with an APK asset was found.");
+      return null;
     } finally {
       httpClient.close();
     }
@@ -279,7 +294,8 @@ class UpdateService {
     return _normalizeVersion(version)
         .split(".")
         .map(
-            (part) => int.tryParse(part.replaceAll(RegExp(r"[^0-9]"), "")) ?? 0)
+          (part) => int.tryParse(part.replaceAll(RegExp(r"[^0-9]"), "")) ?? 0,
+        )
         .toList();
   }
 }

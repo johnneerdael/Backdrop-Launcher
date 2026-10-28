@@ -9,13 +9,10 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get aboutFlauncher => 'Giới thiệu Arc Launcher';
+  String get aboutFlauncher => 'Giới thiệu Backdrop Launcher';
 
   @override
   String get addCategory => 'Thêm danh mục';
-
-  @override
-  String get addSection => 'Thêm mục';
 
   @override
   String get alphabetical => 'Theo bảng chữ cái';
@@ -54,22 +51,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backgroundBlur => 'Làm mờ hình nền';
 
   @override
-  String get dockBlur => 'Làm mờ thanh yêu thích';
-
-  @override
-  String get dockDarkBackground => 'Nền tối cho thanh yêu thích';
-
-  @override
-  String get dockShadow => 'Đổ bóng thanh yêu thích';
-
-  @override
   String get applications => 'Ứng dụng';
 
   @override
   String get autoHideAppBar => 'Tự động ẩn thanh trạng thái';
-
-  @override
-  String get hideStatusBarInGrid => 'Ẩn thanh trạng thái khi xem lưới ứng dụng';
 
   @override
   String get backButtonAction => 'Chức năng nút Quay lại';
@@ -128,12 +113,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get gradient => 'Màu chuyển sắc';
 
   @override
-  String get favoriteApps => 'Ứng dụng yêu thích';
-
-  @override
-  String get grid => 'Lưới';
-
-  @override
   String get height => 'Chiều cao';
 
   @override
@@ -141,9 +120,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get hiddenApplications => 'Ứng dụng đã ẩn';
-
-  @override
-  String get launcherSections => 'Các mục trên màn hình chính';
 
   @override
   String get layout => 'Bố cục';
@@ -155,16 +131,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get manual => 'Thủ công';
 
   @override
-  String get modifySection => 'Chỉnh sửa mục';
-
-  @override
   String get mustNotBeEmpty => 'Không được để trống';
 
   @override
   String get name => 'Tên';
-
-  @override
-  String get newSection => 'Mục mới';
 
   @override
   String get noDateFormatSpecified => 'Chưa chọn định dạng ngày';
@@ -185,9 +155,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get orSelectFormatSpecifiers => 'Hoặc chọn các thành phần định dạng';
 
   @override
-  String get picture => 'Ảnh';
-
-  @override
   String removeFrom(String name) {
     return 'Xóa khỏi $name';
   }
@@ -206,13 +173,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get save => 'Lưu';
-
-  @override
-  String get spacer => 'Khoảng trống';
-
-  @override
-  String get spacerMaxHeightRequirement =>
-      'Phải lớn hơn 0 và không vượt quá 500';
 
   @override
   String get statusBar => 'Thanh trạng thái';
@@ -273,7 +233,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get updateInstallPermissionBody =>
-      'Cho phép Arc Launcher cài ứng dụng không rõ nguồn gốc, rồi thử cập nhật lại.';
+      'Cho phép Backdrop Launcher cài ứng dụng không rõ nguồn gốc, rồi thử cập nhật lại.';
 
   @override
   String get updateOpenPermissionSettingsButton => 'Mở cài đặt quyền';
@@ -284,7 +244,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String textAboutDialog(String repoUrl) {
-    return 'Arc Launcher là ứng dụng màn hình chính mã nguồn mở dành cho Android TV, được tùy chỉnh từ FLauncher.\n\nDo Meddouri Badis phát triển.\nMã nguồn tại $repoUrl.';
+    return 'Backdrop Launcher là ứng dụng màn hình chính mã nguồn mở dành cho Android TV, được tùy chỉnh từ FLauncher.\n\nĐược John Neerdael tùy chỉnh. Dựa trên Arc Launcher, LTvLauncher và FLauncher.\nMã nguồn tại $repoUrl.';
   }
 
   @override
@@ -319,62 +279,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get withEllipsisAddTo => 'Thêm vào...';
 
   @override
-  String get timeBasedWallpaper => 'Đổi hình nền theo thời gian';
-
-  @override
-  String get unsplashSlideshow => 'Trình chiếu ảnh Unsplash';
-
-  @override
-  String get unsplashEnable => 'Hiện ảnh từ Unsplash';
-
-  @override
-  String get unsplashAccessKey => 'Khóa truy cập Unsplash';
-
-  @override
-  String get unsplashAccessKeyHelp =>
-      'Tạo ứng dụng miễn phí tại unsplash.com/developers rồi dán khóa truy cập (Access Key) vào đây.';
-
-  @override
-  String get unsplashNotSet => 'Chưa thiết lập';
-
-  @override
-  String get unsplashInterval => 'Đổi ảnh sau mỗi';
-
-  @override
-  String unsplashIntervalMinutes(int minutes) {
-    return '$minutes phút';
-  }
-
-  @override
-  String get slideshowCategories => 'Chủ đề';
-
-  @override
-  String get slideshowDay => 'Ban ngày (6:00–18:00)';
-
-  @override
-  String get slideshowNight => 'Ban đêm (18:00–6:00)';
-
-  @override
-  String unsplashPhotoCredit(String author) {
-    return 'Ảnh: $author / Unsplash';
-  }
-
-  @override
-  String get pickDayWallpaper => 'Chọn hình nền ban ngày';
-
-  @override
-  String get pickNightWallpaper => 'Chọn hình nền ban đêm';
-
-  @override
-  String get video => 'Video';
-
-  @override
-  String get pickDayVideoWallpaper => 'Chọn video nền ban ngày';
-
-  @override
-  String get pickNightVideoWallpaper => 'Chọn video nền ban đêm';
-
-  @override
   String get watchNextSectionTitle => 'Xem tiếp';
 
   @override
@@ -406,22 +310,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get miscellaneous => 'Tùy chọn khác';
 
   @override
-  String get brightnessScheduler => 'Lịch điều chỉnh độ sáng';
-
-  @override
   String get screensaverSettings => 'Cài đặt trình bảo vệ màn hình';
 
   @override
   String get screensaverClockStyle => 'Kiểu đồng hồ bảo vệ màn hình';
 
   @override
-  String get wifiUsagePeriod => 'Chu kỳ thống kê Wi-Fi';
-
-  @override
   String get showAppNamesBelowIcons => 'Hiện tên ứng dụng dưới biểu tượng';
-
-  @override
-  String get wifiUsage => 'Dung lượng Wi-Fi đã dùng';
 
   @override
   String get networkIndicator => 'Trạng thái mạng';
@@ -431,21 +326,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get lastUsed => 'Dùng gần đây';
-
-  @override
-  String get daily => 'Hằng ngày';
-
-  @override
-  String get weekly => 'Hằng tuần';
-
-  @override
-  String get monthly => 'Hằng tháng';
-
-  @override
-  String get grantPermission => 'Cấp quyền';
-
-  @override
-  String get checkStatus => 'Kiểm tra trạng thái';
 
   @override
   String get watchNextBigPictureMode => 'Chế độ chìm đắm';
@@ -502,96 +382,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get watchNextMaxItemsUnlimited => 'Không giới hạn';
 
   @override
-  String get redditWallpaper => 'Hình nền Reddit';
-
-  @override
-  String get redditWallpaperEnable => 'Hiện hình nền từ Reddit';
-
-  @override
-  String get redditSubreddits => 'Cộng đồng Reddit';
-
-  @override
-  String get redditSort => 'Sắp xếp theo';
-
-  @override
-  String get redditSortHot => 'Nổi bật';
-
-  @override
-  String get redditSortTopDay => 'Hàng đầu hôm nay';
-
-  @override
-  String get redditSortTopWeek => 'Hàng đầu tuần này';
-
-  @override
-  String get redditSortTopMonth => 'Hàng đầu tháng này';
-
-  @override
-  String get redditSortTopAll => 'Hàng đầu từ trước đến nay';
-
-  @override
-  String get redditSortNew => 'Mới nhất';
-
-  @override
-  String get redditInterval => 'Đổi ảnh sau mỗi';
-
-  @override
-  String redditIntervalMinutes(int minutes) {
-    return '$minutes phút';
-  }
-
-  @override
-  String get redditInterval1Hour => '1 giờ';
-
-  @override
-  String redditIntervalHours(int hours) {
-    return '$hours giờ';
-  }
-
-  @override
-  String get redditInterval1Day => '1 ngày';
-
-  @override
-  String redditIntervalDays(int days) {
-    return '$days ngày';
-  }
-
-  @override
-  String get redditClientId => 'Mã ứng dụng Reddit (không bắt buộc)';
-
-  @override
-  String get redditClientIdHelp =>
-      'Không bắt buộc. Nếu mạng của bạn yêu cầu, hãy tạo ứng dụng loại installed app tại reddit.com/prefs/apps rồi dán mã ứng dụng vào đây.';
-
-  @override
-  String get redditChangeNow => 'Đổi hình nền ngay';
-
-  @override
-  String get redditAddSubreddit => 'Thêm cộng đồng Reddit';
-
-  @override
-  String get redditSubredditName => 'Tên cộng đồng (không có r/)';
-
-  @override
-  String get redditSubredditAdded => 'Đã thêm cộng đồng Reddit';
-
-  @override
-  String get redditSubredditInvalid =>
-      'Vui lòng nhập tên cộng đồng Reddit hợp lệ';
-
-  @override
-  String get redditWallpaperUpdated => 'Đã đổi hình nền';
-
-  @override
-  String get redditWallpaperFailed =>
-      'Không thể tải hình nền. Nếu lỗi tiếp diễn, hãy thiết lập mã ứng dụng Reddit trong phần cài đặt.';
-
-  @override
-  String get addToFavorites => 'Thêm vào yêu thích';
-
-  @override
-  String get removeFromFavorites => 'Bỏ khỏi yêu thích';
-
-  @override
   String get addToCategory => 'Thêm vào danh mục';
 
   @override
@@ -609,37 +399,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String customBannerClearFailed(String error) {
     return 'Không thể xóa ảnh đại diện: $error';
   }
-
-  @override
-  String get selectImage => 'Chọn ảnh';
-
-  @override
-  String get selectVideo => 'Chọn video';
-
-  @override
-  String mediaItemCount(int count) {
-    return '$count mục';
-  }
-
-  @override
-  String get noImagesFound => 'Không tìm thấy ảnh trên thiết bị';
-
-  @override
-  String get noVideosFound => 'Không tìm thấy video trên thiết bị';
-
-  @override
-  String get mediaNavigationHint =>
-      'Phím điều hướng: di chuyển  •  Quay lại: hủy';
-
-  @override
-  String get mediaSelectionHint =>
-      'Phím điều hướng: di chuyển  •  OK: đặt hình nền  •  Quay lại: hủy';
-
-  @override
-  String get mediaPermissionRequired => 'Cần quyền truy cập ảnh và video';
-
-  @override
-  String get mediaPermissionHelp => 'Cấp quyền để duyệt ảnh và video';
 
   @override
   String get preview => 'Xem trước';
@@ -735,40 +494,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get clockStyleDigitalDescription => 'Chữ đơn cách rõ ràng';
 
   @override
-  String get brightnessPermissionRequired => 'Cần cấp quyền';
+  String get updateNoReleaseTitle => 'Chưa có bản phát hành';
 
   @override
-  String get brightnessPermissionHelp =>
-      'Để điều chỉnh độ sáng trên thiết bị này, bạn cần cấp quyền qua ADB:';
-
-  @override
-  String get brightnessExperimentalNotice =>
-      'THỬ NGHIỆM: Tính năng này chưa được kiểm chứng và có thể bị loại bỏ trong các phiên bản sau tùy theo phản hồi của người dùng.';
-
-  @override
-  String get brightnessDeviceSupportNote =>
-      'Lưu ý: Một số thiết bị Android TV có thể không hỗ trợ điều chỉnh độ sáng từ ứng dụng.';
-
-  @override
-  String get enableBrightnessScheduler => 'Bật lịch điều chỉnh độ sáng';
-
-  @override
-  String currentBrightnessSlot(String slot) {
-    return 'Hiện tại: $slot';
-  }
-
-  @override
-  String get brightnessSlotMorning => '6:00–9:00';
-
-  @override
-  String get brightnessSlotDay => '9:00–15:00';
-
-  @override
-  String get brightnessSlotAfternoon => '15:00–18:00';
-
-  @override
-  String get brightnessSlotEvening => '18:00–22:00';
-
-  @override
-  String get brightnessSlotNight => '22:00–6:00';
+  String get updateNoReleaseBody =>
+      'Chưa có bản phát hành ổn định với APK có thể cài đặt. Vui lòng thử lại sau.';
 }

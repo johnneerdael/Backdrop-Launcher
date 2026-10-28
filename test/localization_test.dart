@@ -60,10 +60,8 @@ void main() {
               body: Column(
                 children: [
                   Text(strings.settings),
-                  Text(strings.addToFavorites),
-                  Text(strings.redditIntervalHours(2)),
+                  Text(strings.addToCategory),
                   Text(strings.removeFrom('Phim')),
-                  Text(strings.mediaItemCount(3)),
                   Text(strings.updateAvailableBody('1.2.0', '1.1.0')),
                 ],
               ),
@@ -75,10 +73,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cài đặt'), findsOneWidget);
-    expect(find.text('Thêm vào yêu thích'), findsOneWidget);
-    expect(find.text('2 giờ'), findsOneWidget);
+    expect(find.text('Thêm vào danh mục'), findsOneWidget);
     expect(find.text('Xóa khỏi Phim'), findsOneWidget);
-    expect(find.text('3 mục'), findsOneWidget);
     expect(
       find.text('Đã có phiên bản 1.2.0 (hiện tại: 1.1.0).'),
       findsOneWidget,
@@ -91,8 +87,6 @@ void main() {
     () async {
       for (final code in ['en', 'es', 'tr']) {
         final strings = await AppLocalizations.delegate.load(Locale(code));
-        expect(strings.addToFavorites, 'Add to Fav');
-        expect(strings.mediaItemCount(3), '3 items');
         expect(
           strings.customBannerSetFailed('example'),
           'Failed to set banner: example',

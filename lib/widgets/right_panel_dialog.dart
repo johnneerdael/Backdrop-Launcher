@@ -23,24 +23,26 @@ class RightPanelDialog extends StatelessWidget {
   final Widget child;
   final double width;
 
-  const RightPanelDialog({
-    required this.child,
-    this.width = 250,
-  });
+  const RightPanelDialog({required this.child, this.width = 250});
 
   @override
   Widget build(BuildContext context) => Dialog(
-        backgroundColor: Theme.of(context).primaryColor,
-        insetPadding: EdgeInsets.only(left: MediaQuery.of(context).size.width - width),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(left: Radius.circular(28))
+    backgroundColor: Theme.of(context).primaryColor,
+    insetPadding: EdgeInsets.only(
+      left: MediaQuery.of(context).size.width - width,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.horizontal(left: Radius.circular(28)),
+    ),
+    child: Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: Actions(
+          actions: {BackIntent: BackAction(context)},
+          child: child,
         ),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Container(
-            padding: EdgeInsets.all(16),
-            child: Actions(actions: { BackIntent: BackAction(context) }, child: child),
-          ),
-        ),
-      );
+      ),
+    ),
+  );
 }

@@ -15,9 +15,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addCategory => 'Agregar categoría';
 
   @override
-  String get addSection => 'Agregar sección';
-
-  @override
   String get alphabetical => 'Alfabético';
 
   @override
@@ -54,22 +51,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get backgroundBlur => 'Desenfoque de fondo';
 
   @override
-  String get dockBlur => 'Desenfoque del dock';
-
-  @override
-  String get dockDarkBackground => 'Fondo oscuro del dock';
-
-  @override
-  String get dockShadow => 'Sombra del dock';
-
-  @override
   String get applications => 'Aplicaciones';
 
   @override
   String get autoHideAppBar => 'Ocultar barra de estado automáticamente';
-
-  @override
-  String get hideStatusBarInGrid => 'Ocultar barra de estado en la cuadrícula';
 
   @override
   String get backButtonAction => 'Acción del botón \'Atrás\'';
@@ -129,12 +114,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get gradient => 'Gradiente';
 
   @override
-  String get favoriteApps => 'Favoritas';
-
-  @override
-  String get grid => 'Cuadrícula';
-
-  @override
   String get height => 'Altura';
 
   @override
@@ -142,9 +121,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get hiddenApplications => 'Aplicaciones ocultas';
-
-  @override
-  String get launcherSections => 'Secciones';
 
   @override
   String get layout => 'Distribución';
@@ -156,16 +132,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manual => 'Manual';
 
   @override
-  String get modifySection => 'Modificar sección';
-
-  @override
   String get mustNotBeEmpty => 'No debe estar vacío';
 
   @override
   String get name => 'Nombre';
-
-  @override
-  String get newSection => 'Nueva sección';
 
   @override
   String get noDateFormatSpecified => 'Sin formato de fecha';
@@ -187,9 +157,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'O seleccione especificadores de formato';
 
   @override
-  String get picture => 'Imagen';
-
-  @override
   String removeFrom(String name) {
     return 'Remover de $name';
   }
@@ -208,13 +175,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get save => 'Guardar';
-
-  @override
-  String get spacer => 'Espaciador';
-
-  @override
-  String get spacerMaxHeightRequirement =>
-      'Debe ser mayor a cero y menor o igual a 500';
 
   @override
   String get statusBar => 'Barra de estado';
@@ -276,7 +236,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateInstallPermissionBody =>
-      'Permite que Arc Launcher instale apps desconocidas y vuelve a intentar la actualización.';
+      'Permite que Backdrop Launcher instale apps desconocidas y vuelve a intentar la actualización.';
 
   @override
   String get updateOpenPermissionSettingsButton => 'Abrir ajustes de permisos';
@@ -287,7 +247,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String textAboutDialog(String repoUrl) {
-    return 'Arc Launcher es un lanzador de código abierto personalizado para Android TV, basado en FLauncher.\n\nDesarrollado por Meddouri Badis.\nCódigo fuente disponible en $repoUrl.';
+    return 'Backdrop Launcher es un lanzador de código abierto personalizado para Android TV, basado en FLauncher.\n\nPersonalizado por John Neerdael. Basado en Arc Launcher, LTvLauncher y FLauncher.\nCódigo fuente disponible en $repoUrl.';
   }
 
   @override
@@ -322,62 +282,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get withEllipsisAddTo => 'Añadir a...';
 
   @override
-  String get timeBasedWallpaper => 'Fondo de pantalla según la hora';
-
-  @override
-  String get unsplashSlideshow => 'Presentación de Unsplash';
-
-  @override
-  String get unsplashEnable => 'Mostrar fotos de Unsplash';
-
-  @override
-  String get unsplashAccessKey => 'Clave de acceso de Unsplash';
-
-  @override
-  String get unsplashAccessKeyHelp =>
-      'Crea una app gratuita en unsplash.com/developers y pega su Access Key.';
-
-  @override
-  String get unsplashNotSet => 'Sin configurar';
-
-  @override
-  String get unsplashInterval => 'Cambiar cada';
-
-  @override
-  String unsplashIntervalMinutes(int minutes) {
-    return '$minutes min';
-  }
-
-  @override
-  String get slideshowCategories => 'Categorías';
-
-  @override
-  String get slideshowDay => 'Día (6:00 - 18:00)';
-
-  @override
-  String get slideshowNight => 'Noche (18:00 - 6:00)';
-
-  @override
-  String unsplashPhotoCredit(String author) {
-    return 'Foto: $author / Unsplash';
-  }
-
-  @override
-  String get pickDayWallpaper => 'Elegir fondo de día';
-
-  @override
-  String get pickNightWallpaper => 'Elegir fondo de noche';
-
-  @override
-  String get video => 'Vídeo';
-
-  @override
-  String get pickDayVideoWallpaper => 'Elegir vídeo de día';
-
-  @override
-  String get pickNightVideoWallpaper => 'Elegir vídeo de noche';
-
-  @override
   String get watchNextSectionTitle => 'Ver después';
 
   @override
@@ -409,22 +313,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get miscellaneous => 'Varios';
 
   @override
-  String get brightnessScheduler => 'Programador de brillo';
-
-  @override
   String get screensaverSettings => 'Ajustes del salvapantallas';
 
   @override
   String get screensaverClockStyle => 'Estilo del reloj del salvapantallas';
 
   @override
-  String get wifiUsagePeriod => 'Período de uso de WiFi';
-
-  @override
   String get showAppNamesBelowIcons => 'Mostrar nombres bajo los iconos';
-
-  @override
-  String get wifiUsage => 'Uso de WiFi';
 
   @override
   String get networkIndicator => 'Indicador de red';
@@ -434,21 +329,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lastUsed => 'Último uso';
-
-  @override
-  String get daily => 'Diario';
-
-  @override
-  String get weekly => 'Semanal';
-
-  @override
-  String get monthly => 'Mensual';
-
-  @override
-  String get grantPermission => 'Conceder permiso';
-
-  @override
-  String get checkStatus => 'Comprobar estado';
 
   @override
   String get watchNextBigPictureMode => 'Modo inmersivo';
@@ -506,98 +386,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get watchNextMaxItemsUnlimited => 'Ilimitado';
 
   @override
-  String get redditWallpaper => 'Fondo de Reddit';
-
-  @override
-  String get redditWallpaperEnable => 'Mostrar fotos de Reddit';
-
-  @override
-  String get redditSubreddits => 'Subreddits';
-
-  @override
-  String get redditSort => 'Ordenar por';
-
-  @override
-  String get redditSortHot => 'Popular';
-
-  @override
-  String get redditSortTopDay => 'Destacados (Hoy)';
-
-  @override
-  String get redditSortTopWeek => 'Destacados (Semana)';
-
-  @override
-  String get redditSortTopMonth => 'Destacados (Mes)';
-
-  @override
-  String get redditSortTopAll => 'Destacados (Siempre)';
-
-  @override
-  String get redditSortNew => 'Nuevos';
-
-  @override
-  String get redditInterval => 'Cambiar cada';
-
-  @override
-  String redditIntervalMinutes(int minutes) {
-    return '$minutes min';
-  }
-
-  @override
-  String get redditInterval1Hour => '1 hora';
-
-  @override
-  String redditIntervalHours(int hours) {
-    return '$hours horas';
-  }
-
-  @override
-  String get redditInterval1Day => '1 día';
-
-  @override
-  String redditIntervalDays(int days) {
-    return '$days días';
-  }
-
-  @override
-  String get redditClientId => 'ID de cliente de Reddit (opcional)';
-
-  @override
-  String get redditClientIdHelp =>
-      'Opcional. Crea una app instalada en reddit.com/prefs/apps y pega su ID.';
-
-  @override
-  String get redditChangeNow => 'Cambiar fondo ahora';
-
-  @override
-  String get redditAddSubreddit => 'Añadir subreddit personalizado';
-
-  @override
-  String get redditSubredditName => 'Nombre del subreddit (sin r/)';
-
-  @override
-  String get redditSubredditAdded => 'Subreddit añadido';
-
-  @override
-  String get redditSubredditInvalid =>
-      'Introduce un nombre de subreddit válido';
-
-  @override
-  String get redditWallpaperUpdated =>
-      'Fondo de pantalla actualizado con éxito';
-
-  @override
-  String get redditWallpaperFailed =>
-      'Error al obtener el fondo. Si persiste, añade un ID de cliente de Reddit en los ajustes.';
-
-  @override
-  String get addToFavorites => 'Add to Fav';
-
-  @override
-  String get removeFromFavorites => 'Remove from Fav';
-
-  @override
-  String get addToCategory => 'Add to Category';
+  String get addToCategory => 'Add to row';
 
   @override
   String get setCustomBanner => 'Set Custom Banner';
@@ -614,37 +403,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String customBannerClearFailed(String error) {
     return 'Failed to clear banner: $error';
   }
-
-  @override
-  String get selectImage => 'Select Image';
-
-  @override
-  String get selectVideo => 'Select Video';
-
-  @override
-  String mediaItemCount(int count) {
-    return '$count items';
-  }
-
-  @override
-  String get noImagesFound => 'No images found on device';
-
-  @override
-  String get noVideosFound => 'No videos found on device';
-
-  @override
-  String get mediaNavigationHint => 'D-pad: navigate  •  Back: cancel';
-
-  @override
-  String get mediaSelectionHint =>
-      'D-pad: navigate  •  Select: set wallpaper  •  Back: cancel';
-
-  @override
-  String get mediaPermissionRequired => 'Media access permission is required';
-
-  @override
-  String get mediaPermissionHelp =>
-      'Grant permission to browse photos and videos';
 
   @override
   String get preview => 'Preview';
@@ -737,40 +495,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get clockStyleDigitalDescription => 'Clean monospaced display';
 
   @override
-  String get brightnessPermissionRequired => 'Permission Required';
+  String get updateNoReleaseTitle => 'Aún no hay versiones disponibles';
 
   @override
-  String get brightnessPermissionHelp =>
-      'To control brightness on this device, you must grant permission via ADB:';
-
-  @override
-  String get brightnessExperimentalNotice =>
-      'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.';
-
-  @override
-  String get brightnessDeviceSupportNote =>
-      'Note: Some Android TV devices may not support app-level brightness control.';
-
-  @override
-  String get enableBrightnessScheduler => 'Enable Scheduler';
-
-  @override
-  String currentBrightnessSlot(String slot) {
-    return 'Current: $slot';
-  }
-
-  @override
-  String get brightnessSlotMorning => '6 AM - 9 AM';
-
-  @override
-  String get brightnessSlotDay => '9 AM - 3 PM';
-
-  @override
-  String get brightnessSlotAfternoon => '3 PM - 6 PM';
-
-  @override
-  String get brightnessSlotEvening => '6 PM - 10 PM';
-
-  @override
-  String get brightnessSlotNight => '10 PM - 6 AM';
+  String get updateNoReleaseBody =>
+      'Todavía no se ha publicado una versión estable con un APK instalable. Vuelve a intentarlo más tarde.';
 }

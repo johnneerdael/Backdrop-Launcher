@@ -51,46 +51,82 @@ class SettingsPanelPage extends StatelessWidget {
                   autofocus: true,
                   showChevron: true,
                   leading: const Icon(Icons.apps),
-                  title: Text(localizations.applications, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(ApplicationsPanelPage.routeName),
+                  title: Text(
+                    localizations.applications,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(ApplicationsPanelPage.routeName),
                 ),
                 FocusableSettingsTile(
                   showChevron: true,
                   leading: const Icon(Icons.auto_awesome_mosaic_outlined),
-                  title: Text(localizations.interface, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(InterfaceSettingsPage.routeName),
+                  title: Text(
+                    localizations.interface,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(InterfaceSettingsPage.routeName),
                 ),
                 FocusableSettingsTile(
                   showChevron: true,
                   leading: const Icon(Icons.settings_suggest_outlined),
-                  title: Text(localizations.system, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(GeneralSettingsPage.routeName),
+                  title: Text(
+                    localizations.system,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(GeneralSettingsPage.routeName),
                 ),
                 const SettingsSectionDivider(),
                 FocusableSettingsTile(
                   leading: const Icon(Icons.settings_outlined),
-                  title: Text(localizations.systemSettings, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => context.read<AppsService>().openSettings(),
+                  title: Text(
+                    localizations.systemSettings,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () {
+                    final appsService = context.read<AppsService>();
+                    Navigator.of(context, rootNavigator: true).pop();
+                    appsService.openSettings();
+                  },
                 ),
                 if (kEnableSelfUpdater)
                   FocusableSettingsTile(
                     leading: const Icon(Icons.system_update_alt),
-                    title: Text(localizations.updateCheck, style: Theme.of(context).textTheme.bodyMedium),
+                    title: Text(
+                      localizations.updateCheck,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     onPressed: () => _checkForUpdates(context),
                   ),
                 FocusableSettingsTile(
                   leading: const Icon(Icons.info_outline),
-                  title: Text(localizations.aboutFlauncher, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    localizations.aboutFlauncher,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   onPressed: () => showDialog(
                     context: context,
                     builder: (_) => FutureBuilder<PackageInfo>(
                       future: PackageInfo.fromPlatform(),
-                      builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done && snapshot.hasData
+                      builder: (context, snapshot) =>
+                          snapshot.connectionState == ConnectionState.done &&
+                              snapshot.hasData
                           ? LTvLauncherAboutDialog(packageInfo: snapshot.data!)
                           : Container(),
-                    )))
-      ])))
-    ]);
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -103,10 +139,7 @@ Future<void> _checkForUpdates(BuildContext context) async {
   final updateService = UpdateService();
   final navigator = Navigator.of(context, rootNavigator: true);
 
-  showUpdateProgressDialog(
-    context,
-    label: localizations.updateCheck,
-  );
+  showUpdateProgressDialog(context, label: localizations.updateCheck);
 
   try {
     final update = await updateService.checkForUpdate();
@@ -114,6 +147,12 @@ Future<void> _checkForUpdates(BuildContext context) async {
       navigator.pop();
     }
     if (!context.mounted) {
+      return;
+    }
+
+    final latestVersion = update.latestVersion;
+    if (latestVersion == null) {
+      await showNoPublishedReleaseDialog(context, localizations);
       return;
     }
 
@@ -130,7 +169,7 @@ Future<void> _checkForUpdates(BuildContext context) async {
     final download = await showUpdateAvailableDialog(
       context,
       localizations,
-      latestVersion: update.latestVersion,
+      latestVersion: latestVersion,
       currentVersion: update.currentVersion,
       changelog: update.releaseNotes,
     );
@@ -180,8 +219,8 @@ Future<void> _checkForUpdates(BuildContext context) async {
     if (!context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(localizations.updateErrorGeneric)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(localizations.updateErrorGeneric)));
   }
 }

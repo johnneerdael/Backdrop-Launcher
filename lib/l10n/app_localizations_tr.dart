@@ -9,13 +9,10 @@ class AppLocalizationsTr extends AppLocalizations {
   AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
-  String get aboutFlauncher => 'Arc Launcher Hakkında';
+  String get aboutFlauncher => 'Backdrop Launcher Hakkında';
 
   @override
   String get addCategory => 'Kategori ekle';
-
-  @override
-  String get addSection => 'Bölüm ekle';
 
   @override
   String get alphabetical => 'Alfabetik';
@@ -54,22 +51,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get backgroundBlur => 'Arka plan bulanıklığı';
 
   @override
-  String get dockBlur => 'Dock bulanıklığı';
-
-  @override
-  String get dockDarkBackground => 'Koyu dock arka planı';
-
-  @override
-  String get dockShadow => 'Dock gölgesi';
-
-  @override
   String get applications => 'Uygulamalar';
 
   @override
   String get autoHideAppBar => 'Durum çubuğunu otomatik gizle';
-
-  @override
-  String get hideStatusBarInGrid => 'Durum çubuğunu ızgarada gizle';
 
   @override
   String get backButtonAction => 'Geri tuşu eylemi';
@@ -128,12 +113,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gradient => 'Gradyan';
 
   @override
-  String get favoriteApps => 'Favori Uygulamalar';
-
-  @override
-  String get grid => 'Izgara';
-
-  @override
   String get height => 'Yükseklik';
 
   @override
@@ -141,9 +120,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get hiddenApplications => 'Gizli Uygulamalar';
-
-  @override
-  String get launcherSections => 'Bölümler';
 
   @override
   String get layout => 'Düzen';
@@ -155,16 +131,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get manual => 'Manuel';
 
   @override
-  String get modifySection => 'Bölümü düzenle';
-
-  @override
   String get mustNotBeEmpty => 'Boş olmamalıdır';
 
   @override
   String get name => 'Ad';
-
-  @override
-  String get newSection => 'Yeni bölüm';
 
   @override
   String get noDateFormatSpecified => 'Tarih biçimi belirtilmedi';
@@ -185,9 +155,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get orSelectFormatSpecifiers => 'Veya biçim belirteçlerini seçin';
 
   @override
-  String get picture => 'Resim';
-
-  @override
   String removeFrom(String name) {
     return '$name içinden kaldır';
   }
@@ -206,13 +173,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get save => 'Kaydet';
-
-  @override
-  String get spacer => 'Boşluk';
-
-  @override
-  String get spacerMaxHeightRequirement =>
-      '0\'dan büyük ve 500\'e eşit veya küçük olmalıdır';
 
   @override
   String get statusBar => 'Durum çubuğu';
@@ -273,7 +233,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get updateInstallPermissionBody =>
-      'Arc Launcher\'ın bilinmeyen uygulamaları yüklemesine izin verin, ardından güncellemeyi yeniden deneyin.';
+      'Backdrop Launcher\'ın bilinmeyen uygulamaları yüklemesine izin verin, ardından güncellemeyi yeniden deneyin.';
 
   @override
   String get updateOpenPermissionSettingsButton => 'İzin ayarlarını aç';
@@ -284,7 +244,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String textAboutDialog(String repoUrl) {
-    return 'Arc Launcher, FLauncher tabanlı, Android TV için özelleştirilmiş açık kaynaklı bir başlatıcıdır.\n\nGeliştiren: Meddouri Badis.\nKaynak kodu $repoUrl adresinde mevcuttur.';
+    return 'Backdrop Launcher, FLauncher tabanlı, Android TV için özelleştirilmiş açık kaynaklı bir başlatıcıdır.\n\nJohn Neerdael tarafından özelleştirilmiştir. Arc Launcher, LTvLauncher ve FLauncher temel alınmıştır.\nKaynak kodu $repoUrl adresinde mevcuttur.';
   }
 
   @override
@@ -319,62 +279,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get withEllipsisAddTo => 'Şuna ekle...';
 
   @override
-  String get timeBasedWallpaper => 'Zamana dayalı duvar kağıdı';
-
-  @override
-  String get unsplashSlideshow => 'Unsplash slayt gösterisi';
-
-  @override
-  String get unsplashEnable => 'Unsplash fotoğraflarını göster';
-
-  @override
-  String get unsplashAccessKey => 'Unsplash erişim anahtarı';
-
-  @override
-  String get unsplashAccessKeyHelp =>
-      'unsplash.com/developers adresinde ücretsiz bir uygulama oluşturun ve Access Key\'i yapıştırın.';
-
-  @override
-  String get unsplashNotSet => 'Ayarlanmadı';
-
-  @override
-  String get unsplashInterval => 'Değiştirme sıklığı';
-
-  @override
-  String unsplashIntervalMinutes(int minutes) {
-    return '$minutes dk';
-  }
-
-  @override
-  String get slideshowCategories => 'Kategoriler';
-
-  @override
-  String get slideshowDay => 'Gündüz (6:00 - 18:00)';
-
-  @override
-  String get slideshowNight => 'Gece (18:00 - 6:00)';
-
-  @override
-  String unsplashPhotoCredit(String author) {
-    return 'Fotoğraf: $author / Unsplash';
-  }
-
-  @override
-  String get pickDayWallpaper => 'Gündüz duvar kağıdını seç';
-
-  @override
-  String get pickNightWallpaper => 'Gece duvar kağıdını seç';
-
-  @override
-  String get video => 'Video';
-
-  @override
-  String get pickDayVideoWallpaper => 'Gündüz videosunu seç';
-
-  @override
-  String get pickNightVideoWallpaper => 'Gece videosunu seç';
-
-  @override
   String get watchNextSectionTitle => 'Sıradaki İzlenecek';
 
   @override
@@ -406,22 +310,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get miscellaneous => 'Çeşitli';
 
   @override
-  String get brightnessScheduler => 'Parlaklık zamanlayıcı';
-
-  @override
   String get screensaverSettings => 'Ekran koruyucu ayarları';
 
   @override
   String get screensaverClockStyle => 'Ekran koruyucu saat stili';
 
   @override
-  String get wifiUsagePeriod => 'Wi-Fi kullanım dönemi';
-
-  @override
   String get showAppNamesBelowIcons => 'Simge altında uygulama adlarını göster';
-
-  @override
-  String get wifiUsage => 'Wi-Fi kullanımı';
 
   @override
   String get networkIndicator => 'Ağ göstergesi';
@@ -431,21 +326,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get lastUsed => 'Son kullanım';
-
-  @override
-  String get daily => 'Günlük';
-
-  @override
-  String get weekly => 'Haftalık';
-
-  @override
-  String get monthly => 'Aylık';
-
-  @override
-  String get grantPermission => 'İzin ver';
-
-  @override
-  String get checkStatus => 'Durumu denetle';
 
   @override
   String get watchNextBigPictureMode => 'Sürükleyici mod';
@@ -502,96 +382,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get watchNextMaxItemsUnlimited => 'Sınırsız';
 
   @override
-  String get redditWallpaper => 'Reddit duvar kağıdı';
-
-  @override
-  String get redditWallpaperEnable => 'Reddit fotoğraflarını göster';
-
-  @override
-  String get redditSubreddits => 'Subreddit\'ler';
-
-  @override
-  String get redditSort => 'Sırala';
-
-  @override
-  String get redditSortHot => 'Popüler';
-
-  @override
-  String get redditSortTopDay => 'En İyiler (Bugün)';
-
-  @override
-  String get redditSortTopWeek => 'En İyiler (Bu Hafta)';
-
-  @override
-  String get redditSortTopMonth => 'En İyiler (Bu Ay)';
-
-  @override
-  String get redditSortTopAll => 'En İyiler (Tüm Zamanlar)';
-
-  @override
-  String get redditSortNew => 'Yeni';
-
-  @override
-  String get redditInterval => 'Değiştirme sıklığı';
-
-  @override
-  String redditIntervalMinutes(int minutes) {
-    return '$minutes dk';
-  }
-
-  @override
-  String get redditInterval1Hour => '1 saat';
-
-  @override
-  String redditIntervalHours(int hours) {
-    return '$hours saat';
-  }
-
-  @override
-  String get redditInterval1Day => '1 gün';
-
-  @override
-  String redditIntervalDays(int days) {
-    return '$days gün';
-  }
-
-  @override
-  String get redditClientId => 'Reddit İstemci Kimliği (İsteğe bağlı)';
-
-  @override
-  String get redditClientIdHelp =>
-      'İsteğe bağlı. reddit.com/prefs/apps adresinden yüklü uygulama oluşturup kimliğini yapıştırın.';
-
-  @override
-  String get redditChangeNow => 'Duvar kağıdını şimdi değiştir';
-
-  @override
-  String get redditAddSubreddit => 'Özel subreddit ekle';
-
-  @override
-  String get redditSubredditName => 'Subreddit adı (r/ olmadan)';
-
-  @override
-  String get redditSubredditAdded => 'Subreddit eklendi';
-
-  @override
-  String get redditSubredditInvalid => 'Lütfen geçerli bir subreddit adı girin';
-
-  @override
-  String get redditWallpaperUpdated => 'Duvar kağıdı başarıyla güncellendi';
-
-  @override
-  String get redditWallpaperFailed =>
-      'Duvar kağıdı alınamadı. Sorun devam ederse ayarlardan bir Reddit İstemci Kimliği girin.';
-
-  @override
-  String get addToFavorites => 'Add to Fav';
-
-  @override
-  String get removeFromFavorites => 'Remove from Fav';
-
-  @override
-  String get addToCategory => 'Add to Category';
+  String get addToCategory => 'Add to row';
 
   @override
   String get setCustomBanner => 'Set Custom Banner';
@@ -608,37 +399,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String customBannerClearFailed(String error) {
     return 'Failed to clear banner: $error';
   }
-
-  @override
-  String get selectImage => 'Select Image';
-
-  @override
-  String get selectVideo => 'Select Video';
-
-  @override
-  String mediaItemCount(int count) {
-    return '$count items';
-  }
-
-  @override
-  String get noImagesFound => 'No images found on device';
-
-  @override
-  String get noVideosFound => 'No videos found on device';
-
-  @override
-  String get mediaNavigationHint => 'D-pad: navigate  •  Back: cancel';
-
-  @override
-  String get mediaSelectionHint =>
-      'D-pad: navigate  •  Select: set wallpaper  •  Back: cancel';
-
-  @override
-  String get mediaPermissionRequired => 'Media access permission is required';
-
-  @override
-  String get mediaPermissionHelp =>
-      'Grant permission to browse photos and videos';
 
   @override
   String get preview => 'Preview';
@@ -731,40 +491,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clockStyleDigitalDescription => 'Clean monospaced display';
 
   @override
-  String get brightnessPermissionRequired => 'Permission Required';
+  String get updateNoReleaseTitle => 'Henüz sürüm yok';
 
   @override
-  String get brightnessPermissionHelp =>
-      'To control brightness on this device, you must grant permission via ADB:';
-
-  @override
-  String get brightnessExperimentalNotice =>
-      'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.';
-
-  @override
-  String get brightnessDeviceSupportNote =>
-      'Note: Some Android TV devices may not support app-level brightness control.';
-
-  @override
-  String get enableBrightnessScheduler => 'Enable Scheduler';
-
-  @override
-  String currentBrightnessSlot(String slot) {
-    return 'Current: $slot';
-  }
-
-  @override
-  String get brightnessSlotMorning => '6 AM - 9 AM';
-
-  @override
-  String get brightnessSlotDay => '9 AM - 3 PM';
-
-  @override
-  String get brightnessSlotAfternoon => '3 PM - 6 PM';
-
-  @override
-  String get brightnessSlotEvening => '6 PM - 10 PM';
-
-  @override
-  String get brightnessSlotNight => '10 PM - 6 AM';
+  String get updateNoReleaseBody =>
+      'Yüklenebilir APK içeren kararlı bir sürüm henüz yayımlanmadı. Lütfen daha sonra tekrar deneyin.';
 }

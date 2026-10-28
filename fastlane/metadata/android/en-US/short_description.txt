@@ -1,1 +1,1 @@
-An open-source, Flutter-based alternative launcher for Android TV.
+Your TV. Your way. A cinematic home for Android TV.

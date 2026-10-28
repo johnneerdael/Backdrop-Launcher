@@ -1,0 +1,76 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.41.9'
+
+jobs:
+  release-tools:
+    name: Release tooling
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: python -W error -m unittest discover -s tool/release -p 'test_*.py' -v
+
+  flutter:
+    name: Flutter and Android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test --reporter expanded
+      - name: Configure smoke build without production credentials
+        env:
+          TMDB_API_KEY: ci-placeholder
+          TRAKT_CLIENT_ID: ci-placeholder
+        run: python3 tool/write_build_config.py
+      - name: Create disposable smoke signing key
+        run: |
+          keytool -genkeypair -noprompt -keystore android/app/upload-keystore.jks \
+            -storetype JKS -storepass ci-smoke-only -keypass ci-smoke-only \
+            -alias ci-smoke -keyalg RSA -keysize 2048 -validity 2 \
+            -dname 'CN=Disposable CI smoke build'
+      - name: Compile GitHub release APKs
+        env:
+          SIGNING_KEYSTORE_PASSWORD: ci-smoke-only
+          SIGNING_KEY_ALIAS: ci-smoke
+          SIGNING_KEY_PASSWORD: ci-smoke-only
+        run: |
+          flutter build apk --release --flavor github \
+            --target-platform android-arm,android-arm64 \
+            --dart-define-from-file=.dart_tool/trakt-config.json \
+            --dart-define=ENABLE_SELF_UPDATER=true
+      - name: Remove disposable signing material
+        if: always()
+        run: rm -f android/app/upload-keystore.jks .dart_tool/trakt-config.json

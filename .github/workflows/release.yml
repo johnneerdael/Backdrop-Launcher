@@ -1,276 +1,184 @@
 name: Release
 
-# Tag push publishes GitHub Release APKs. workflow_dispatch also supports build-only and Play deploy/promote.
-# Workflow artifacts expire after 1 day (handoff between jobs). Published files live on GitHub Releases.
+# A tag push never publishes. Only the exact successful main Checks source can ship.
 on:
-  push:
-    tags:
-      - "*"
+  workflow_run:
+    workflows: [Checks]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Version tag for GitHub Release (e.g. 1.2.3). Leave empty to build only."
-        required: false
+      sha:
+        description: 'Full SHA at the current main tip; its push Checks run must have passed'
+        required: true
         type: string
-        default: ""
-      deploy_play:
-        description: Deploy Play Store AAB to internal track
-        type: boolean
-        default: false
-      promote_play:
-        description: Promote Play Store internal track to production
-        type: boolean
-        default: false
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: backdrop-release
+  cancel-in-progress: false
 
 env:
-  FLUTTER_VERSION: "3.41.9"
-  RELEASE_APK_FILENAME_PREFIX: arclauncher
-  ARTIFACT_RETENTION_DAYS: 1
+  FLUTTER_VERSION: '3.41.9'
 
 jobs:
-  build-apk:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.promote_play && !inputs.deploy_play) }}
-    runs-on: ubuntu-latest
+  gate:
+    if: >-
+      github.repository == 'johnneerdael/Backdrop-Launcher' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      ok: ${{ steps.plan.outputs.ok }}
+      sha: ${{ steps.plan.outputs.sha }}
+      version: ${{ steps.plan.outputs.version }}
+      code: ${{ steps.plan.outputs.code }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      # The gate itself always comes from trusted main, never a dispatch input ref.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Validate source, Checks, release history and notes
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ inputs.sha || github.event.workflow_run.head_sha }}
+          CHECKS_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            python3 tool/release/release.py plan --output build/release-plan.json --force
+          else
+            python3 tool/release/release.py plan --output build/release-plan.json
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.plan.outputs.ok == 'true'
+        with:
+          name: release-plan
+          path: build/release-plan.json
+          retention-days: 7
+          if-no-files-found: error
+
+  package:
+    needs: gate
+    if: needs.gate.outputs.ok == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-plan
+          path: build/release-metadata
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
-          java-version: "17"
-      - uses: subosito/flutter-action@v2
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - name: Setup signing
+      - run: flutter pub get --enforce-lockfile
+      - name: Configure Trakt backdrops
         env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_REDIRECT_URI: ${{ vars.TRAKT_REDIRECT_URI }}
+        run: python3 tool/write_build_config.py
+      - name: Restore signing key
+        env:
           SIGNING_JKS_FILE_BASE64: ${{ secrets.SIGNING_JKS_FILE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-          test -n "${SIGNING_JKS_FILE_BASE64:-}" || { echo "SIGNING_JKS_FILE_BASE64 is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEYSTORE_PASSWORD:-}" || { echo "SIGNING_KEYSTORE_PASSWORD is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_ALIAS:-}" || { echo "SIGNING_KEY_ALIAS is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_PASSWORD:-}" || { echo "SIGNING_KEY_PASSWORD is empty or unset"; exit 1; }
-          echo -n "$SIGNING_JKS_FILE_BASE64" | base64 -d > android/app/upload-keystore.jks
-      - name: Set build metadata
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${{ github.ref_name }}"
-          else
-            TAG="${{ inputs.tag }}"
-          fi
-          if [ -n "$TAG" ]; then
-            echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
-          else
-            echo "build_name=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          fi
-          # versionCode from pubspec.yaml (e.g. 1.0.6+4115 → 4115)
-          BUILD_NUMBER=$(sed -nE 's/^version:[[:space:]]*[^+]+\+([0-9]+).*/\1/p' pubspec.yaml)
-          test -n "$BUILD_NUMBER" || { echo "Could not parse versionCode from pubspec.yaml"; exit 1; }
-          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
-      - run: flutter pub get
-      - name: Build release APKs
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+          names = ('SIGNING_JKS_FILE_BASE64', 'SIGNING_KEYSTORE_PASSWORD', 'SIGNING_KEY_ALIAS', 'SIGNING_KEY_PASSWORD')
+          for name in names:
+              if not os.environ.get(name, '').strip():
+                  raise SystemExit(f'Missing repository secret: {name}')
+          path = Path('android/app/upload-keystore.jks')
+          data = base64.b64decode(''.join(os.environ['SIGNING_JKS_FILE_BASE64'].split()), validate=True)
+          descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+          with os.fdopen(descriptor, 'wb') as stream:
+              stream.write(data)
+          PY
+      - name: Build signed GitHub APKs
         env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          VERSION_CODE: ${{ needs.gate.outputs.code }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           flutter build apk --release --flavor github \
+            --target-platform android-arm,android-arm64 \
+            --dart-define-from-file=.dart_tool/trakt-config.json \
             --dart-define=ENABLE_SELF_UPDATER=true \
-            --build-number=${{ steps.meta.outputs.build_number }} \
-            --build-name=${{ steps.meta.outputs.build_name }}
-          mkdir -p release-apks
-          find build/app/outputs -name 'arc-launcher-universal-release.apk' -exec cp -t release-apks/ {} +
-          find build/app/outputs -name 'arc-launcher-arm64-v8a-release.apk' -exec cp -t release-apks/ {} +
-          find build/app/outputs -name 'arc-launcher-armeabi-v7a-release.apk' -exec cp -t release-apks/ {} +
-          for apk in \
-            release-apks/arc-launcher-universal-release.apk \
-            release-apks/arc-launcher-arm64-v8a-release.apk \
-            release-apks/arc-launcher-armeabi-v7a-release.apk; do
-            test -f "$apk" || { echo "Missing $apk"; find build/app/outputs -name '*.apk'; exit 1; }
-          done
-      - uses: actions/upload-artifact@v4
+            --build-name "$VERSION" --build-number "$VERSION_CODE"
+      - name: Install APK signature verifier
+        run: sdkmanager 'build-tools;36.0.0'
+      - name: Verify signatures and prepare distribution
+        run: |
+          python3 tool/release/release.py package \
+            --plan build/release-metadata/release-plan.json \
+            --apk-dir build/app/outputs/apk/github/release \
+            --apksigner "$ANDROID_HOME/build-tools/36.0.0/apksigner" \
+            --output build/release-dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: release-apks
-          path: release-apks/
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          name: signed-release-assets
+          path: build/release-dist/
+          retention-days: 7
           if-no-files-found: error
+      - name: Remove signing material and API build definitions
+        if: always()
+        run: rm -f android/app/upload-keystore.jks .dart_tool/trakt-config.json
 
-  build-aab-play:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.promote_play && !inputs.deploy_play) }}
-    runs-on: ubuntu-latest
+  publish:
+    needs: [gate, package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          distribution: temurin
-          java-version: "17"
-      - uses: subosito/flutter-action@v2
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Setup signing
+          name: release-plan
+          path: build/release-metadata
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: signed-release-assets
+          path: build/release-dist
+      - name: Recheck source and Checks, verify assets, then publish
         env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          SIGNING_JKS_FILE_BASE64: ${{ secrets.SIGNING_JKS_FILE_BASE64 }}
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-          test -n "${SIGNING_JKS_FILE_BASE64:-}" || { echo "SIGNING_JKS_FILE_BASE64 is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEYSTORE_PASSWORD:-}" || { echo "SIGNING_KEYSTORE_PASSWORD is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_ALIAS:-}" || { echo "SIGNING_KEY_ALIAS is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_PASSWORD:-}" || { echo "SIGNING_KEY_PASSWORD is empty or unset"; exit 1; }
-          echo -n "$SIGNING_JKS_FILE_BASE64" | base64 -d > android/app/upload-keystore.jks
-      - name: Set build metadata
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${{ github.ref_name }}"
-          else
-            TAG="${{ inputs.tag }}"
-          fi
-          if [ -n "$TAG" ]; then
-            echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
-          else
-            echo "build_name=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          fi
-          # versionCode from pubspec.yaml (e.g. 1.0.6+4115 → 4115)
-          BUILD_NUMBER=$(sed -nE 's/^version:[[:space:]]*[^+]+\+([0-9]+).*/\1/p' pubspec.yaml)
-          test -n "$BUILD_NUMBER" || { echo "Could not parse versionCode from pubspec.yaml"; exit 1; }
-          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
-      - run: flutter pub get
-      - name: Build play release AAB
-        env:
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: |
-          flutter build appbundle --release --flavor play \
-            --build-number=${{ steps.meta.outputs.build_number }} \
-            --build-name=${{ steps.meta.outputs.build_name }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: play-aab
-          path: build/app/outputs/bundle/playRelease/app-play-release.aab
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          if-no-files-found: error
-
-  github-release:
-    needs: [build-apk]
-    if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-apks
-          path: release-apks
-      - name: Resolve release tag
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Prepare release assets and notes
-        env:
-          TAG: ${{ steps.meta.outputs.tag }}
-        run: |
-          mkdir -p dist
-          cp release-apks/arc-launcher-universal-release.apk \
-            "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}.apk"
-          # Stable alias for TV box Downloader codes (e.g. 6330120) that resolve
-          # releases/latest/download/arclauncher.apk. Shipped through 1.0.5, lost
-          # in 1.0.6 when the universal APK became version-stamped. Do not remove.
-          # See https://github.com/meddouribadis/arclauncher/issues/42
-          cp release-apks/arc-launcher-universal-release.apk \
-            "dist/${RELEASE_APK_FILENAME_PREFIX}.apk"
-          cp release-apks/arc-launcher-arm64-v8a-release.apk \
-            "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}-arm64-v8a.apk"
-          cp release-apks/arc-launcher-armeabi-v7a-release.apk \
-            "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}-armeabi-v7a.apk"
-          echo "Arc Launcher v${TAG}" > release_notes.md
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: ${{ steps.meta.outputs.tag }}
-          body_path: release_notes.md
-          generate_release_notes: true
-          files: dist/*
-          fail_on_unmatched_files: true
-
-  virustotal-scan:
-    needs: [github-release]
-    uses: ./.github/workflows/virustotal_scan.yml
-    with:
-      release_tag: ${{ needs.github-release.outputs.tag }}
-    secrets: inherit
-
-  deploy-play-store:
-    needs: [build-aab-play]
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy_play
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: play-aab
-          path: build/app/outputs/bundle/playRelease
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: false
-      - name: Setup Play credentials and Fastlane
-        env:
-          GOOGLE_PLAY_API_KEY: ${{ secrets.GOOGLE_PLAY_API_KEY }}
-        run: |
-          test -n "${GOOGLE_PLAY_API_KEY:-}" || { echo "GOOGLE_PLAY_API_KEY is empty or unset"; exit 1; }
-          echo "$GOOGLE_PLAY_API_KEY" > fastlane/google_play_api_key.json
-          gem install fastlane -NV
-      - run: fastlane deploy
-        env:
-          LC_ALL: en_US.UTF-8
-          LANG: en_US.UTF-8
-
-  # Promotes whatever is already on the internal track (no build needed).
-  promote-play-store:
-    if: github.event_name == 'workflow_dispatch' && inputs.promote_play
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: false
-      - name: Setup Play credentials and Fastlane
-        env:
-          GOOGLE_PLAY_API_KEY: ${{ secrets.GOOGLE_PLAY_API_KEY }}
-        run: |
-          test -n "${GOOGLE_PLAY_API_KEY:-}" || { echo "GOOGLE_PLAY_API_KEY is empty or unset"; exit 1; }
-          echo "$GOOGLE_PLAY_API_KEY" > fastlane/google_play_api_key.json
-          gem install fastlane -NV
-      - run: fastlane promote
-        env:
-          LC_ALL: en_US.UTF-8
-          LANG: en_US.UTF-8
+          python3 tool/release/release.py publish \
+            --plan build/release-metadata/release-plan.json \
+            --dist build/release-dist

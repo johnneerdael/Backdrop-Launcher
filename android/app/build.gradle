@@ -39,11 +39,6 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def secretProperties = new Properties()
-secretProperties.setProperty("signing_keystore_password", "${System.getenv('FLAUNCHER_KEYSTORE_PASSWORD')}")
-secretProperties.setProperty("signing_key_password", "${System.getenv('FLAUNCHER_SIGNING_KEY_PASSWORD')}")
-secretProperties.setProperty("signing_key_alias", "${System.getenv('FLAUNCHER_SIGNING_KEY_ALIAS')}")
-
 android {
     flavorDimensions += "store"
 
@@ -64,7 +59,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.omeda.arc"
+        applicationId "nl.neerdael.backdrop_launcher"
         compileSdk 36
         minSdkVersion flutter.minSdkVersion
         targetSdk 35
@@ -75,7 +70,12 @@ android {
     signingConfigs {
         debug {}
         release {
-            if (localProperties['storeFile'] != null) {
+            if (System.getenv('BACKDROP_KEYSTORE_FILE') != null) {
+                storeFile file(System.getenv('BACKDROP_KEYSTORE_FILE'))
+                storePassword System.getenv('SIGNING_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD')
+            } else if (localProperties['storeFile'] != null) {
                 storeFile file(localProperties['storeFile'])
                 storePassword localProperties['storePassword']
                 keyAlias localProperties['keyAlias']
@@ -130,15 +130,15 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    namespace 'com.omeda.arc'
+    namespace 'nl.neerdael.backdrop_launcher'
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             def abi = output.getFilter(com.android.build.OutputFile.ABI)
             if (abi != null) {
-                outputFileName = "arc-launcher-${abi}-${variant.buildType.name}.apk"
+                outputFileName = "backdrop-launcher-${abi}-${variant.buildType.name}.apk"
             } else {
-                outputFileName = "arc-launcher-universal-${variant.buildType.name}.apk"
+                outputFileName = "backdrop-launcher-universal-${variant.buildType.name}.apk"
             }
         }
     }

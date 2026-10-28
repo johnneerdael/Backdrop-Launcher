@@ -20,7 +20,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/launcher_state.dart';
 import '../providers/settings_service.dart';
 
 /// A focusable and hoverable capsule control for the top bar (Settings, Network, etc.),
@@ -62,7 +61,9 @@ class _AppBarFocusRingState extends State<AppBarFocusRing> {
 
   @override
   Widget build(BuildContext context) {
-    final accentColorHex = context.select<SettingsService, String>((s) => s.accentColorHex);
+    final accentColorHex = context.select<SettingsService, String>(
+      (s) => s.accentColorHex,
+    );
     final accentColor = Color(int.parse('FF$accentColorHex', radix: 16));
 
     final isHighlighted = _isFocused || _isHovered;
@@ -74,15 +75,16 @@ class _AppBarFocusRingState extends State<AppBarFocusRing> {
       button: true,
       child: Actions(
         actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed()),
-          ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: (_) => widget.onPressed()),
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) => widget.onPressed(),
+          ),
+          ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
+            onInvoke: (_) => widget.onPressed(),
+          ),
         },
         child: Focus(
           focusNode: widget.focusNode,
           onFocusChange: (hasFocus) {
-            if (hasFocus) {
-              context.read<LauncherState>().setAppGridFocused(false);
-            }
             if (mounted) {
               setState(() => _isFocused = hasFocus);
             }
@@ -124,10 +126,7 @@ class _AppBarFocusRingState extends State<AppBarFocusRing> {
                     child: child,
                   );
                 },
-                child: Padding(
-                  padding: widget.padding,
-                  child: widget.child,
-                ),
+                child: Padding(padding: widget.padding, child: widget.child),
               ),
             ),
           ),
@@ -184,7 +183,9 @@ class AppBarFocusRingPainter extends CustomPainter {
 
     final bgPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white.withValues(alpha: (baseBgAlpha * progress).clamp(0.0, 1.0));
+      ..color = Colors.white.withValues(
+        alpha: (baseBgAlpha * progress).clamp(0.0, 1.0),
+      );
     canvas.drawRRect(rrect, bgPaint);
 
     // 2. Specular hairline gradient contour

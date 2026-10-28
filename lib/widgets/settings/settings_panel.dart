@@ -18,21 +18,15 @@
 
 import 'package:flauncher/widgets/side_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/applications_panel_page.dart';
-import 'package:flauncher/widgets/settings/launcher_sections_panel_page.dart';
-import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
-import 'package:flauncher/widgets/settings/reddit_subreddits_panel_page.dart';
-import 'package:flauncher/widgets/settings/reddit_wallpaper_panel_page.dart';
-import 'package:flauncher/widgets/settings/unsplash_slideshow_panel_page.dart';
-import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
+import 'package:flauncher/widgets/settings/app_inventory_page.dart';
+import 'package:flauncher/widgets/settings/application_row_editor_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flauncher/widgets/settings/status_bar_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
-import 'package:flauncher/widgets/settings/wifi_usage_period_page.dart';
 import 'package:flauncher/widgets/settings/back_button_action_page.dart';
 import 'package:flauncher/widgets/settings/date_time_format_page.dart';
 import 'package:flauncher/widgets/settings/app_details_page.dart';
 import 'package:flauncher/widgets/settings/accent_color_page.dart';
-import 'package:flauncher/widgets/settings/brightness_settings_page.dart';
 import 'package:flauncher/widgets/settings/appearance_panel_page.dart';
 import 'package:flauncher/widgets/settings/focus_border_thickness_page.dart';
 import 'package:flauncher/widgets/settings/misc_panel_page.dart';
@@ -42,9 +36,9 @@ import 'package:flauncher/widgets/settings/interface_settings_page.dart';
 import 'package:flauncher/widgets/settings/general_settings_page.dart';
 import 'package:flauncher/widgets/settings/screensaver_clock_style_page.dart';
 import 'package:flauncher/models/app.dart';
-import 'package:flauncher/widgets/settings/slideshow_sources_panel_page.dart';
 import 'package:flauncher/widgets/settings/settings_theme.dart';
 import 'package:flutter/material.dart';
+import 'trakt_catalogs_page.dart';
 
 class SettingsPanel extends StatefulWidget {
   final String? initialRoute;
@@ -86,63 +80,92 @@ class _SettingsPanelState extends State<SettingsPanel> {
               isRightSide: false,
               child: Navigator(
                 key: _navigatorKey,
-                initialRoute: widget.initialRoute ?? SettingsPanelPage.routeName,
+                initialRoute:
+                    widget.initialRoute ?? SettingsPanelPage.routeName,
                 onGenerateRoute: (settings) {
                   switch (settings.name) {
                     case SettingsPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => SettingsPanelPage());
-                    case GeneralSettingsPage.routeName:
-                      return _FastPageRoute(builder: (_) => GeneralSettingsPage());
-                    case InterfaceSettingsPage.routeName:
-                      return _FastPageRoute(builder: (_) => InterfaceSettingsPage());
-                    case WallpaperPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => WallpaperPanelPage());
-                    case StatusBarPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => StatusBarPanelPage());
-                    case GradientPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => GradientPanelPage());
-                    case SlideshowSourcesPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => SlideshowSourcesPanelPage());
-                    case UnsplashSlideshowPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => UnsplashSlideshowPanelPage());
-                    case RedditWallpaperPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => const RedditWallpaperPanelPage());
-                    case RedditSubredditsPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => const RedditSubredditsPanelPage());
-                    case ApplicationsPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => ApplicationsPanelPage());
-                    case LauncherSectionsPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => LauncherSectionsPanelPage());
-                    case LauncherSectionPanelPage.routeName:
                       return _FastPageRoute(
-                        builder: (_) => LauncherSectionPanelPage(sectionIndex: settings.arguments as int?),
+                        builder: (_) => SettingsPanelPage(),
                       );
-                    case WifiUsagePeriodPage.routeName:
-                      return _FastPageRoute(builder: (_) => WifiUsagePeriodPage());
+                    case GeneralSettingsPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => GeneralSettingsPage(),
+                      );
+                    case InterfaceSettingsPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => InterfaceSettingsPage(),
+                      );
+                    case TraktCatalogsPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => const TraktCatalogsPage(),
+                      );
+                    case WallpaperPanelPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => WallpaperPanelPage(),
+                      );
+                    case StatusBarPanelPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => StatusBarPanelPage(),
+                      );
+                    case ApplicationsPanelPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => ApplicationsPanelPage(),
+                      );
+                    case AppInventoryPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => const AppInventoryPage(),
+                      );
+                    case ApplicationRowEditorPage.routeName:
+                      return _FastPageRoute(
+                        builder: (_) => ApplicationRowEditorPage(
+                          categoryId: settings.arguments as int,
+                        ),
+                      );
                     case BackButtonActionPage.routeName:
-                      return _FastPageRoute(builder: (_) => BackButtonActionPage());
+                      return _FastPageRoute(
+                        builder: (_) => BackButtonActionPage(),
+                      );
                     case DateTimeFormatPage.routeName:
-                      return _FastPageRoute(builder: (_) => DateTimeFormatPage());
+                      return _FastPageRoute(
+                        builder: (_) => DateTimeFormatPage(),
+                      );
                     case AppearancePanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => const AppearancePanelPage());
+                      return _FastPageRoute(
+                        builder: (_) => const AppearancePanelPage(),
+                      );
                     case FocusBorderThicknessPage.routeName:
-                      return _FastPageRoute(builder: (_) => const FocusBorderThicknessPage());
+                      return _FastPageRoute(
+                        builder: (_) => const FocusBorderThicknessPage(),
+                      );
                     case MiscPanelPage.routeName:
                       return _FastPageRoute(builder: (_) => MiscPanelPage());
                     case WatchNextPanelPage.routeName:
-                      return _FastPageRoute(builder: (_) => const WatchNextPanelPage());
+                      return _FastPageRoute(
+                        builder: (_) => const WatchNextPanelPage(),
+                      );
                     case WatchNextMaxItemsPage.routeName:
-                      return _FastPageRoute(builder: (_) => const WatchNextMaxItemsPage());
+                      return _FastPageRoute(
+                        builder: (_) => const WatchNextMaxItemsPage(),
+                      );
                     case ScreensaverClockStylePage.routeName:
-                      return _FastPageRoute(builder: (_) => const ScreensaverClockStylePage());
+                      return _FastPageRoute(
+                        builder: (_) => const ScreensaverClockStylePage(),
+                      );
                     case AccentColorPage.routeName:
                       return _FastPageRoute(builder: (_) => AccentColorPage());
-                    case BrightnessSettingsPage.routeName:
-                      return _FastPageRoute(builder: (_) => BrightnessSettingsPage());
                     case AppDetailsPage.routeName:
-                      return _FastPageRoute(builder: (_) => AppDetailsPage(application: settings.arguments as App));
+                      return _FastPageRoute(
+                        builder: (_) => AppDetailsPage(
+                          application: settings.arguments as App,
+                        ),
+                      );
                     default:
-                      throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
+                      throw ArgumentError.value(
+                        settings.name,
+                        "settings.name",
+                        "Route not supported.",
+                      );
                   }
                 },
               ),
@@ -167,13 +190,14 @@ class _SettingsPanelState extends State<SettingsPanel> {
 /// while the parent menu fades back in from the left.
 class FastPageRoute<T> extends PageRouteBuilder<T> {
   FastPageRoute({required WidgetBuilder builder, RouteSettings? settings})
-      : super(
-          settings: settings,
-          transitionDuration: const Duration(milliseconds: 140),
-          reverseTransitionDuration: const Duration(milliseconds: 110),
-          pageBuilder: (context, animation, secondaryAnimation) => builder(context),
-          transitionsBuilder: buildPageTransitions,
-        );
+    : super(
+        settings: settings,
+        transitionDuration: const Duration(milliseconds: 140),
+        reverseTransitionDuration: const Duration(milliseconds: 110),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            builder(context),
+        transitionsBuilder: buildPageTransitions,
+      );
 
   static Widget buildPageTransitions(
     BuildContext context,
@@ -186,15 +210,10 @@ class FastPageRoute<T> extends PageRouteBuilder<T> {
     // When popped (animation: 1 -> 0):
     // It fades out during [1.0 -> 0.45] and slides back to the right.
     final primaryFade = animation.drive(
-      CurveTween(
-        curve: const Interval(0.45, 1.0, curve: Curves.easeOutCubic),
-      ),
+      CurveTween(curve: const Interval(0.45, 1.0, curve: Curves.easeOutCubic)),
     );
     final primarySlide = animation.drive(
-      Tween<Offset>(
-        begin: const Offset(0.04, 0),
-        end: Offset.zero,
-      ).chain(
+      Tween<Offset>(begin: const Offset(0.04, 0), end: Offset.zero).chain(
         CurveTween(
           curve: const Interval(0.25, 1.0, curve: Curves.easeOutCubic),
         ),
@@ -207,19 +226,12 @@ class FastPageRoute<T> extends PageRouteBuilder<T> {
     // This route fades back in during [0.40 -> 0.0] and shifts back from the left.
     final secondaryFade = secondaryAnimation.drive(
       Tween<double>(begin: 1.0, end: 0.0).chain(
-        CurveTween(
-          curve: const Interval(0.0, 0.40, curve: Curves.easeInCubic),
-        ),
+        CurveTween(curve: const Interval(0.0, 0.40, curve: Curves.easeInCubic)),
       ),
     );
     final secondarySlide = secondaryAnimation.drive(
-      Tween<Offset>(
-        begin: Offset.zero,
-        end: const Offset(-0.02, 0),
-      ).chain(
-        CurveTween(
-          curve: const Interval(0.0, 0.50, curve: Curves.easeInCubic),
-        ),
+      Tween<Offset>(begin: Offset.zero, end: const Offset(-0.02, 0)).chain(
+        CurveTween(curve: const Interval(0.0, 0.50, curve: Curves.easeInCubic)),
       ),
     );
 
@@ -229,10 +241,7 @@ class FastPageRoute<T> extends PageRouteBuilder<T> {
         opacity: secondaryFade,
         child: SlideTransition(
           position: primarySlide,
-          child: FadeTransition(
-            opacity: primaryFade,
-            child: child,
-          ),
+          child: FadeTransition(opacity: primaryFade, child: child),
         ),
       ),
     );

@@ -105,7 +105,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutFlauncher.
   ///
   /// In en, this message translates to:
-  /// **'About Arc Launcher'**
+  /// **'About Backdrop Launcher'**
   String get aboutFlauncher;
 
   /// No description provided for @addCategory.
@@ -113,12 +113,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add category'**
   String get addCategory;
-
-  /// No description provided for @addSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Add section'**
-  String get addSection;
 
   /// No description provided for @alphabetical.
   ///
@@ -192,24 +186,6 @@ abstract class AppLocalizations {
   /// **'Background blur'**
   String get backgroundBlur;
 
-  /// No description provided for @dockBlur.
-  ///
-  /// In en, this message translates to:
-  /// **'Dock blur'**
-  String get dockBlur;
-
-  /// No description provided for @dockDarkBackground.
-  ///
-  /// In en, this message translates to:
-  /// **'Dark dock background'**
-  String get dockDarkBackground;
-
-  /// No description provided for @dockShadow.
-  ///
-  /// In en, this message translates to:
-  /// **'Dock shadow'**
-  String get dockShadow;
-
   /// No description provided for @applications.
   ///
   /// In en, this message translates to:
@@ -221,12 +197,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatically hide status bar'**
   String get autoHideAppBar;
-
-  /// No description provided for @hideStatusBarInGrid.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide status bar in grid'**
-  String get hideStatusBarInGrid;
 
   /// No description provided for @backButtonAction.
   ///
@@ -324,18 +294,6 @@ abstract class AppLocalizations {
   /// **'Gradient'**
   String get gradient;
 
-  /// No description provided for @favoriteApps.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorite Apps'**
-  String get favoriteApps;
-
-  /// No description provided for @grid.
-  ///
-  /// In en, this message translates to:
-  /// **'Grid'**
-  String get grid;
-
   /// No description provided for @height.
   ///
   /// In en, this message translates to:
@@ -353,12 +311,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hidden Apps'**
   String get hiddenApplications;
-
-  /// No description provided for @launcherSections.
-  ///
-  /// In en, this message translates to:
-  /// **'Sections'**
-  String get launcherSections;
 
   /// No description provided for @layout.
   ///
@@ -378,12 +330,6 @@ abstract class AppLocalizations {
   /// **'Manual'**
   String get manual;
 
-  /// No description provided for @modifySection.
-  ///
-  /// In en, this message translates to:
-  /// **'Modify section'**
-  String get modifySection;
-
   /// No description provided for @mustNotBeEmpty.
   ///
   /// In en, this message translates to:
@@ -395,12 +341,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Name'**
   String get name;
-
-  /// No description provided for @newSection.
-  ///
-  /// In en, this message translates to:
-  /// **'New section'**
-  String get newSection;
 
   /// No description provided for @noDateFormatSpecified.
   ///
@@ -438,12 +378,6 @@ abstract class AppLocalizations {
   /// **'Or select format specifiers'**
   String get orSelectFormatSpecifiers;
 
-  /// No description provided for @picture.
-  ///
-  /// In en, this message translates to:
-  /// **'Picture'**
-  String get picture;
-
   /// No description provided for @removeFrom.
   ///
   /// In en, this message translates to:
@@ -479,18 +413,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get save;
-
-  /// No description provided for @spacer.
-  ///
-  /// In en, this message translates to:
-  /// **'Spacer'**
-  String get spacer;
-
-  /// No description provided for @spacerMaxHeightRequirement.
-  ///
-  /// In en, this message translates to:
-  /// **'Must be greater than 0 and less than or equal to 500'**
-  String get spacerMaxHeightRequirement;
 
   /// No description provided for @statusBar.
   ///
@@ -597,7 +519,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateInstallPermissionBody.
   ///
   /// In en, this message translates to:
-  /// **'Allow Arc Launcher to install unknown apps, then retry the update.'**
+  /// **'Allow Backdrop Launcher to install unknown apps, then retry the update.'**
   String get updateInstallPermissionBody;
 
   /// No description provided for @updateOpenPermissionSettingsButton.
@@ -615,7 +537,7 @@ abstract class AppLocalizations {
   /// No description provided for @textAboutDialog.
   ///
   /// In en, this message translates to:
-  /// **'Arc Launcher is a customized open-source launcher for Android TV, based on FLauncher.\n\nDeveloped by Meddouri Badis.\nSource code available at {repoUrl}.'**
+  /// **'Backdrop Launcher is an open-source Android TV launcher customized by John Neerdael. Based on Arc Launcher, LTvLauncher and FLauncher.\n\nSource code available at {repoUrl}.'**
   String textAboutDialog(String repoUrl);
 
   /// No description provided for @textEmptyCategory.
@@ -678,108 +600,6 @@ abstract class AppLocalizations {
   /// **'Add to...'**
   String get withEllipsisAddTo;
 
-  /// No description provided for @timeBasedWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Time based wallpaper'**
-  String get timeBasedWallpaper;
-
-  /// No description provided for @unsplashSlideshow.
-  ///
-  /// In en, this message translates to:
-  /// **'Unsplash slideshow'**
-  String get unsplashSlideshow;
-
-  /// No description provided for @unsplashEnable.
-  ///
-  /// In en, this message translates to:
-  /// **'Show Unsplash photos'**
-  String get unsplashEnable;
-
-  /// No description provided for @unsplashAccessKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Unsplash access key'**
-  String get unsplashAccessKey;
-
-  /// No description provided for @unsplashAccessKeyHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Create a free app at unsplash.com/developers and paste its Access Key.'**
-  String get unsplashAccessKeyHelp;
-
-  /// No description provided for @unsplashNotSet.
-  ///
-  /// In en, this message translates to:
-  /// **'Not set'**
-  String get unsplashNotSet;
-
-  /// No description provided for @unsplashInterval.
-  ///
-  /// In en, this message translates to:
-  /// **'Change every'**
-  String get unsplashInterval;
-
-  /// No description provided for @unsplashIntervalMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes} min'**
-  String unsplashIntervalMinutes(int minutes);
-
-  /// No description provided for @slideshowCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'Categories'**
-  String get slideshowCategories;
-
-  /// No description provided for @slideshowDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Day (6:00 - 18:00)'**
-  String get slideshowDay;
-
-  /// No description provided for @slideshowNight.
-  ///
-  /// In en, this message translates to:
-  /// **'Night (18:00 - 6:00)'**
-  String get slideshowNight;
-
-  /// No description provided for @unsplashPhotoCredit.
-  ///
-  /// In en, this message translates to:
-  /// **'Photo: {author} / Unsplash'**
-  String unsplashPhotoCredit(String author);
-
-  /// No description provided for @pickDayWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick day wallpaper'**
-  String get pickDayWallpaper;
-
-  /// No description provided for @pickNightWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick night wallpaper'**
-  String get pickNightWallpaper;
-
-  /// No description provided for @video.
-  ///
-  /// In en, this message translates to:
-  /// **'Video'**
-  String get video;
-
-  /// No description provided for @pickDayVideoWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick day video'**
-  String get pickDayVideoWallpaper;
-
-  /// No description provided for @pickNightVideoWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick night video'**
-  String get pickNightVideoWallpaper;
-
   /// No description provided for @watchNextSectionTitle.
   ///
   /// In en, this message translates to:
@@ -840,12 +660,6 @@ abstract class AppLocalizations {
   /// **'Miscellaneous'**
   String get miscellaneous;
 
-  /// No description provided for @brightnessScheduler.
-  ///
-  /// In en, this message translates to:
-  /// **'Brightness Scheduler'**
-  String get brightnessScheduler;
-
   /// No description provided for @screensaverSettings.
   ///
   /// In en, this message translates to:
@@ -858,23 +672,11 @@ abstract class AppLocalizations {
   /// **'Screensaver Clock Style'**
   String get screensaverClockStyle;
 
-  /// No description provided for @wifiUsagePeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi Usage Period'**
-  String get wifiUsagePeriod;
-
   /// No description provided for @showAppNamesBelowIcons.
   ///
   /// In en, this message translates to:
   /// **'Show App Names Below Icons'**
   String get showAppNamesBelowIcons;
-
-  /// No description provided for @wifiUsage.
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi Usage'**
-  String get wifiUsage;
 
   /// No description provided for @networkIndicator.
   ///
@@ -893,36 +695,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last Used'**
   String get lastUsed;
-
-  /// No description provided for @daily.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily'**
-  String get daily;
-
-  /// No description provided for @weekly.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly'**
-  String get weekly;
-
-  /// No description provided for @monthly.
-  ///
-  /// In en, this message translates to:
-  /// **'Monthly'**
-  String get monthly;
-
-  /// No description provided for @grantPermission.
-  ///
-  /// In en, this message translates to:
-  /// **'Grant Permission'**
-  String get grantPermission;
-
-  /// No description provided for @checkStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Check Status'**
-  String get checkStatus;
 
   /// No description provided for @watchNextBigPictureMode.
   ///
@@ -1020,172 +792,10 @@ abstract class AppLocalizations {
   /// **'Unlimited'**
   String get watchNextMaxItemsUnlimited;
 
-  /// No description provided for @redditWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Reddit wallpaper'**
-  String get redditWallpaper;
-
-  /// No description provided for @redditWallpaperEnable.
-  ///
-  /// In en, this message translates to:
-  /// **'Show Reddit wallpapers'**
-  String get redditWallpaperEnable;
-
-  /// No description provided for @redditSubreddits.
-  ///
-  /// In en, this message translates to:
-  /// **'Subreddits'**
-  String get redditSubreddits;
-
-  /// No description provided for @redditSort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sort by'**
-  String get redditSort;
-
-  /// No description provided for @redditSortHot.
-  ///
-  /// In en, this message translates to:
-  /// **'Hot'**
-  String get redditSortHot;
-
-  /// No description provided for @redditSortTopDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Top (Today)'**
-  String get redditSortTopDay;
-
-  /// No description provided for @redditSortTopWeek.
-  ///
-  /// In en, this message translates to:
-  /// **'Top (This week)'**
-  String get redditSortTopWeek;
-
-  /// No description provided for @redditSortTopMonth.
-  ///
-  /// In en, this message translates to:
-  /// **'Top (This month)'**
-  String get redditSortTopMonth;
-
-  /// No description provided for @redditSortTopAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Top (All time)'**
-  String get redditSortTopAll;
-
-  /// No description provided for @redditSortNew.
-  ///
-  /// In en, this message translates to:
-  /// **'New'**
-  String get redditSortNew;
-
-  /// No description provided for @redditInterval.
-  ///
-  /// In en, this message translates to:
-  /// **'Change every'**
-  String get redditInterval;
-
-  /// No description provided for @redditIntervalMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes} min'**
-  String redditIntervalMinutes(int minutes);
-
-  /// No description provided for @redditInterval1Hour.
-  ///
-  /// In en, this message translates to:
-  /// **'1 hour'**
-  String get redditInterval1Hour;
-
-  /// No description provided for @redditIntervalHours.
-  ///
-  /// In en, this message translates to:
-  /// **'{hours} hours'**
-  String redditIntervalHours(int hours);
-
-  /// No description provided for @redditInterval1Day.
-  ///
-  /// In en, this message translates to:
-  /// **'1 day'**
-  String get redditInterval1Day;
-
-  /// No description provided for @redditIntervalDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days} days'**
-  String redditIntervalDays(int days);
-
-  /// No description provided for @redditClientId.
-  ///
-  /// In en, this message translates to:
-  /// **'Reddit Client ID (Optional)'**
-  String get redditClientId;
-
-  /// No description provided for @redditClientIdHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional. Create an installed app at reddit.com/prefs/apps and paste its ID if your network requires it.'**
-  String get redditClientIdHelp;
-
-  /// No description provided for @redditChangeNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Change wallpaper now'**
-  String get redditChangeNow;
-
-  /// No description provided for @redditAddSubreddit.
-  ///
-  /// In en, this message translates to:
-  /// **'Add custom subreddit'**
-  String get redditAddSubreddit;
-
-  /// No description provided for @redditSubredditName.
-  ///
-  /// In en, this message translates to:
-  /// **'Subreddit name (without r/)'**
-  String get redditSubredditName;
-
-  /// No description provided for @redditSubredditAdded.
-  ///
-  /// In en, this message translates to:
-  /// **'Subreddit added'**
-  String get redditSubredditAdded;
-
-  /// No description provided for @redditSubredditInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a valid subreddit name'**
-  String get redditSubredditInvalid;
-
-  /// No description provided for @redditWallpaperUpdated.
-  ///
-  /// In en, this message translates to:
-  /// **'Wallpaper updated successfully'**
-  String get redditWallpaperUpdated;
-
-  /// No description provided for @redditWallpaperFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to fetch wallpaper. If this persists, configure a Reddit Client ID in settings.'**
-  String get redditWallpaperFailed;
-
-  /// No description provided for @addToFavorites.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to Fav'**
-  String get addToFavorites;
-
-  /// No description provided for @removeFromFavorites.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from Fav'**
-  String get removeFromFavorites;
-
   /// No description provided for @addToCategory.
   ///
   /// In en, this message translates to:
-  /// **'Add to Category'**
+  /// **'Add to row'**
   String get addToCategory;
 
   /// No description provided for @setCustomBanner.
@@ -1211,60 +821,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to clear banner: {error}'**
   String customBannerClearFailed(String error);
-
-  /// No description provided for @selectImage.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Image'**
-  String get selectImage;
-
-  /// No description provided for @selectVideo.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Video'**
-  String get selectVideo;
-
-  /// No description provided for @mediaItemCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} items'**
-  String mediaItemCount(int count);
-
-  /// No description provided for @noImagesFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No images found on device'**
-  String get noImagesFound;
-
-  /// No description provided for @noVideosFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No videos found on device'**
-  String get noVideosFound;
-
-  /// No description provided for @mediaNavigationHint.
-  ///
-  /// In en, this message translates to:
-  /// **'D-pad: navigate  •  Back: cancel'**
-  String get mediaNavigationHint;
-
-  /// No description provided for @mediaSelectionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'D-pad: navigate  •  Select: set wallpaper  •  Back: cancel'**
-  String get mediaSelectionHint;
-
-  /// No description provided for @mediaPermissionRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Media access permission is required'**
-  String get mediaPermissionRequired;
-
-  /// No description provided for @mediaPermissionHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Grant permission to browse photos and videos'**
-  String get mediaPermissionHelp;
 
   /// No description provided for @preview.
   ///
@@ -1446,71 +1002,17 @@ abstract class AppLocalizations {
   /// **'Clean monospaced display'**
   String get clockStyleDigitalDescription;
 
-  /// No description provided for @brightnessPermissionRequired.
+  /// No description provided for @updateNoReleaseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Permission Required'**
-  String get brightnessPermissionRequired;
+  /// **'No release available yet'**
+  String get updateNoReleaseTitle;
 
-  /// No description provided for @brightnessPermissionHelp.
+  /// No description provided for @updateNoReleaseBody.
   ///
   /// In en, this message translates to:
-  /// **'To control brightness on this device, you must grant permission via ADB:'**
-  String get brightnessPermissionHelp;
-
-  /// No description provided for @brightnessExperimentalNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.'**
-  String get brightnessExperimentalNotice;
-
-  /// No description provided for @brightnessDeviceSupportNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Note: Some Android TV devices may not support app-level brightness control.'**
-  String get brightnessDeviceSupportNote;
-
-  /// No description provided for @enableBrightnessScheduler.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable Scheduler'**
-  String get enableBrightnessScheduler;
-
-  /// No description provided for @currentBrightnessSlot.
-  ///
-  /// In en, this message translates to:
-  /// **'Current: {slot}'**
-  String currentBrightnessSlot(String slot);
-
-  /// No description provided for @brightnessSlotMorning.
-  ///
-  /// In en, this message translates to:
-  /// **'6 AM - 9 AM'**
-  String get brightnessSlotMorning;
-
-  /// No description provided for @brightnessSlotDay.
-  ///
-  /// In en, this message translates to:
-  /// **'9 AM - 3 PM'**
-  String get brightnessSlotDay;
-
-  /// No description provided for @brightnessSlotAfternoon.
-  ///
-  /// In en, this message translates to:
-  /// **'3 PM - 6 PM'**
-  String get brightnessSlotAfternoon;
-
-  /// No description provided for @brightnessSlotEvening.
-  ///
-  /// In en, this message translates to:
-  /// **'6 PM - 10 PM'**
-  String get brightnessSlotEvening;
-
-  /// No description provided for @brightnessSlotNight.
-  ///
-  /// In en, this message translates to:
-  /// **'10 PM - 6 AM'**
-  String get brightnessSlotNight;
+  /// **'No stable release with an installable APK has been published yet. Please try again later.'**
+  String get updateNoReleaseBody;
 }
 
 class _AppLocalizationsDelegate

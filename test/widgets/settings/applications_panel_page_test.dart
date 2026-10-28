@@ -1,125 +1,371 @@
-/*
- * FLauncher
- * Copyright (C) 2021  Étienne Fesser
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 import 'dart:typed_data';
-
+import 'dart:async';
+import 'package:flauncher/database.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
-import 'package:flauncher/models/app.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/settings/app_details_page.dart';
 import 'package:flauncher/widgets/settings/applications_panel_page.dart';
+import 'package:flauncher/widgets/settings/application_row_editor_page.dart';
+import 'package:flauncher/widgets/settings/interface_settings_page.dart';
+import 'package:flauncher/widgets/settings/settings_panel.dart';
+import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../application_rows_test_support.dart';
 
-import '../../mocks.dart';
-import '../../mocks.mocks.dart';
-
-final Uint8List _fakePng = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-  0x42, 0x60, 0x82,
-]);
-
-void main() {
-  setUpAll(() async {
-    final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = const Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
-    binding.platformDispatcher.textScaleFactorTestValue = 0.8;
-  });
-
-  testWidgets("All Applications tab displays unhidden apps", (tester) async {
-    final appsService = MockAppsService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      hidden: false,
-    );
-    when(appsService.applications).thenReturn([app]);
-    when(appsService.categories).thenReturn([]);
-    when(appsService.getAppIcon(any)).thenAnswer((_) async => _fakePng);
-
-    await _pumpWidgetWithProviders(tester, appsService);
-
-    expect(find.text("All Apps"), findsOneWidget);
-    expect(find.text("FLauncher"), findsOneWidget);
-  });
-
-  testWidgets("Hidden Applications tab displays hidden apps", (tester) async {
-    final appsService = MockAppsService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      hidden: true,
-    );
-    when(appsService.applications).thenReturn([app]);
-    when(appsService.categories).thenReturn([]);
-    when(appsService.getAppIcon(any)).thenAnswer((_) async => _fakePng);
-
-    await _pumpWidgetWithProviders(tester, appsService);
-
-    // Switch to Hidden Apps tab via its icon
-    await tester.tap(find.byIcon(Icons.visibility_off_outlined));
-    await tester.pumpAndSettle();
-
-    expect(find.text("Hidden Apps"), findsOneWidget);
-    expect(find.text("FLauncher"), findsOneWidget);
-  });
-
-  testWidgets("Selecting an application opens AppDetailsPage", (tester) async {
-    final appsService = MockAppsService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      hidden: false,
-    );
-    when(appsService.applications).thenReturn([app]);
-    when(appsService.categories).thenReturn([]);
-    when(appsService.getAppIcon(any)).thenAnswer((_) async => _fakePng);
-
-    await _pumpWidgetWithProviders(tester, appsService);
-
-    await tester.tap(find.text("FLauncher"));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key("AppDetailsPage")), findsOneWidget);
-  });
+class UiRowsChannel extends RowsChannel {
+  UiRowsChannel()
+    : super([
+        installedApp('tv.one'),
+        installedApp('android.one', android: true),
+      ]);
+  @override
+  Future<Uint8List> getApplicationIcon(String packageName) async =>
+      Uint8List(0);
 }
 
-Future<void> _pumpWidgetWithProviders(WidgetTester tester, AppsService appsService) async {
-  await tester.pumpWidget(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppsService>.value(value: appsService),
-      ],
-      builder: (_, __) => MaterialApp(
+void main() {
+  Future<AppsService> service(WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final db = FLauncherDatabase.inMemory();
+    addTearDown(db.close);
+    final value = await tester.runAsync(
+      () => initializedService(UiRowsChannel(), db),
+    );
+    addTearDown(value!.dispose);
+    return value;
+  }
+
+  Future<void> pump(WidgetTester tester, AppsService value) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppsService>.value(
+        value: value,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SettingsPanel(
+            initialRoute: ApplicationsPanelPage.routeName,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute(
+            builder: (_) => Scaffold(
+              body: ApplicationRowEditorPage(
+                categoryId: settings.arguments as int,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapAndSave(
+    WidgetTester tester,
+    AppsService value,
+    Finder finder,
+  ) async {
+    await tester.runAsync(() async {
+      final saved = Completer<void>();
+      void listener() {
+        if (!saved.isCompleted) saved.complete();
+      }
+
+      value.addListener(listener);
+      try {
+        await tester.tap(finder);
+        await saved.future.timeout(const Duration(seconds: 3));
+      } finally {
+        value.removeListener(listener);
+      }
+    });
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Applications opens directly on rows and offers Add row', (
+    tester,
+  ) async {
+    final value = await service(tester);
+    await pump(tester, value);
+    expect(find.text('TV Apps'), findsOneWidget);
+    expect(find.text('Android Apps'), findsOneWidget);
+    expect(find.text('Add row'), findsOneWidget);
+    expect(find.text('Installed apps'), findsOneWidget);
+    expect(find.text('Favorites'), findsNothing);
+  });
+
+  testWidgets(
+    'Holding Select opens row controls instead of entering reorder mode',
+    (tester) async {
+      final value = await service(tester);
+      await pump(tester, value);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.byType(ApplicationRowEditorPage), findsOneWidget);
+      expect(find.text('Row name'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+    },
+  );
+
+  testWidgets('Right opens the row editor indicated by the chevron', (
+    tester,
+  ) async {
+    final value = await service(tester);
+    await pump(tester, value);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(find.byType(ApplicationRowEditorPage), findsOneWidget);
+    expect(find.text('Row name'), findsOneWidget);
+  });
+
+  testWidgets('Row visibility is editable without changing membership', (
+    tester,
+  ) async {
+    final value = await service(tester);
+    await pump(tester, value);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Show on home screen'));
+    await tapAndSave(tester, value, find.text('Show on home screen'));
+    expect(find.text('Move row down'), findsNothing);
+    expect(find.text('Move row up'), findsNothing);
+    expect(value.categories.map((row) => row.name), [
+      'TV Apps',
+      'Android Apps',
+    ]);
+    expect(value.categories.first.applications.single.packageName, 'tv.one');
+    Navigator.of(tester.element(find.byType(ApplicationRowEditorPage))).pop();
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('1 apps · Hidden on home screen'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'Remote Right opens a row and Select toggles installed membership',
+    (tester) async {
+      final value = await service(tester);
+      await pump(tester, value);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(find.byType(ApplicationRowEditorPage), findsOneWidget);
+      for (var i = 0; i < 5; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+      }
+      await tester.runAsync(() async {
+        final saved = Completer<void>();
+        void listener() {
+          if (!saved.isCompleted) saved.complete();
+        }
+
+        value.addListener(listener);
+        try {
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await saved.future.timeout(const Duration(seconds: 3));
+        } finally {
+          value.removeListener(listener);
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(
+        value.isAppInCategory(
+          value.getApplication('tv.one')!,
+          value.categories.first,
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'Select reorders in the row list and retains focus until Select finishes',
+    (tester) async {
+      final value = await service(tester);
+      for (var i = 0; i < 8; i++) {
+        await tester.runAsync(() => value.addCategory('Custom $i'));
+      }
+      await pump(tester, value);
+      final rowId = value.categories.first.id;
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(ApplicationRowEditorPage), findsNothing);
+      Key? focusedTile() => FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<FocusableSettingsTile>()
+          ?.key;
+      expect(focusedTile(), ValueKey(rowId));
+      for (var i = 0; i < 9; i++) {
+        await tester.runAsync(() async {
+          final moved = Completer<void>();
+          void listener() {
+            if (!moved.isCompleted) moved.complete();
+          }
+
+          value.addListener(listener);
+          try {
+            await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+            await moved.future.timeout(const Duration(seconds: 3));
+          } finally {
+            value.removeListener(listener);
+          }
+        });
+        await tester.pumpAndSettle();
+        expect(focusedTile(), ValueKey(rowId));
+        final viewport = tester.getRect(
+          find
+              .ancestor(
+                of: find.text('TV Apps'),
+                matching: find.byType(SingleChildScrollView),
+              )
+              .first,
+        );
+        final tile = tester.getRect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is FocusableSettingsTile &&
+                widget.key == ValueKey(rowId),
+          ),
+        );
+        expect(tile.top, greaterThanOrEqualTo(viewport.top));
+        expect(tile.bottom, lessThanOrEqualTo(viewport.bottom));
+      }
+      expect(value.categories.last.name, 'TV Apps');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(focusedTile(), isNot(ValueKey(rowId)));
+      expect(value.categories.last.name, 'TV Apps');
+    },
+  );
+
+  testWidgets(
+    'Pointer activation reorders the chosen row with subsequent remote input',
+    (tester) async {
+      final value = await service(tester);
+      await pump(tester, value);
+      await tester.tap(find.text('Android Apps'));
+      await tester.pumpAndSettle();
+      expect(
+        FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<FocusableSettingsTile>()
+            ?.key,
+        ValueKey(value.categories[1].id),
+      );
+      await tester.runAsync(() async {
+        final moved = Completer<void>();
+        void listener() {
+          if (!moved.isCompleted) moved.complete();
+        }
+
+        value.addListener(listener);
+        try {
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+          await moved.future.timeout(const Duration(seconds: 3));
+        } finally {
+          value.removeListener(listener);
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(value.categories.map((row) => row.name), [
+        'Android Apps',
+        'TV Apps',
+      ]);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.text('Up/Down to move · Select to finish'), findsNothing);
+    },
+  );
+
+  testWidgets('A row editor directly adds and removes installed apps', (
+    tester,
+  ) async {
+    final value = await service(tester);
+    await pump(tester, value);
+    await tester.longPress(find.text('TV Apps'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ApplicationRowEditorPage), findsOneWidget);
+    await tester.ensureVisible(find.text('Delete row'));
+    expect(find.text('Delete row'), findsOneWidget);
+    final row = value.categories.first;
+    final tv = value.applications.firstWhere((a) => a.packageName == 'tv.one');
+    final android = value.applications.firstWhere(
+      (a) => a.packageName == 'android.one',
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('row_member_tv.one')));
+    await tapAndSave(
+      tester,
+      value,
+      find.byKey(const ValueKey('row_member_tv.one')),
+    );
+    expect(value.isAppInCategory(tv, row), isFalse);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('row_member_android.one')),
+    );
+    await tapAndSave(
+      tester,
+      value,
+      find.byKey(const ValueKey('row_member_android.one')),
+    );
+    expect(value.isAppInCategory(android, row), isTrue);
+    expect(value.isAppInCategory(android, value.categories[1]), isTrue);
+  });
+
+  testWidgets(
+    'Add row opens its membership editor and preserves default rows',
+    (tester) async {
+      final value = await service(tester);
+      await pump(tester, value);
+      await tester.runAsync(() => tester.tap(find.text('Add row')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Streaming');
+      await tapAndSave(tester, value, find.text('Save'));
+      expect(find.byType(ApplicationRowEditorPage), findsOneWidget);
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<ApplicationRowEditorPage>(),
+        isNotNull,
+      );
+      final row = value.categories.singleWhere((r) => r.name == 'Streaming');
+      expect(row.applications, isEmpty);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('row_member_tv.one')),
+      );
+      await tapAndSave(
+        tester,
+        value,
+        find.byKey(const ValueKey('row_member_tv.one')),
+      );
+      expect(
+        value.categories
+            .singleWhere((r) => r.id == row.id)
+            .applications
+            .single
+            .packageName,
+        'tv.one',
+      );
+      expect(value.categories.first.applications.single.packageName, 'tv.one');
+    },
+  );
+
+  testWidgets('Interface no longer offers separate Sections', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        routes: {
-          AppDetailsPage.routeName: (_) => const Scaffold(body: Text("Details", key: Key("AppDetailsPage"))),
-        },
-        home: const Scaffold(body: ApplicationsPanelPage()),
+        home: Scaffold(body: InterfaceSettingsPage()),
       ),
-    ),
-  );
-  await tester.pumpAndSettle();
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Launcher sections'), findsNothing);
+    expect(find.byIcon(Icons.category), findsNothing);
+    expect(find.text('Watch Next'), findsOneWidget);
+  });
 }

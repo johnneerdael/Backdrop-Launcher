@@ -26,7 +26,7 @@ void main() {
   });
 
   test("getApplications", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "getApplications") {
         return [
@@ -45,7 +45,7 @@ void main() {
   });
 
   test("launchApp", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     String? packageName;
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "launchApp") {
@@ -62,7 +62,7 @@ void main() {
   });
 
   test("openSettings", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     bool called = false;
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "openSettings") {
@@ -79,7 +79,7 @@ void main() {
   });
 
   test("openAppInfo", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     String? packageName;
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "openAppInfo") {
@@ -96,7 +96,7 @@ void main() {
   });
 
   test("uninstallApp", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     String? packageName;
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "uninstallApp") {
@@ -113,7 +113,7 @@ void main() {
   });
 
   test("isDefaultLauncher", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "isDefaultLauncher") {
         return true;
@@ -127,23 +127,8 @@ void main() {
     expect(isDefaultLauncher, isTrue);
   });
 
-  test("checkForGetContentAvailability", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
-    channel.setMockMethodCallHandler((call) async {
-      if (call.method == "checkForGetContentAvailability") {
-        return true;
-      }
-      fail("Unhandled method name");
-    });
-    final fLauncherChannel = FLauncherChannel();
-
-    final getContentAvailable = await fLauncherChannel.checkForGetContentAvailability();
-
-    expect(getContentAvailable, isTrue);
-  });
-
   test("startAmbientMode", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('nl.neerdael.backdrop_launcher/method');
     bool called = false;
     channel.setMockMethodCallHandler((call) async {
       if (call.method == "startAmbientMode") {

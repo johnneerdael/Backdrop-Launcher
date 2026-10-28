@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/actions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -25,28 +26,17 @@ import 'package:provider/provider.dart';
 import '../widgets/settings/back_button_actions.dart';
 import 'apps_service.dart';
 
-class LauncherState extends ChangeNotifier
-{
+class LauncherState extends ChangeNotifier {
   bool _isDefaultLauncher;
   bool _launcherVisible;
-  bool _appGridFocused;
 
   bool get isDefaultLauncher => _isDefaultLauncher;
   bool get launcherVisible => _launcherVisible;
-  bool get appGridFocused => _appGridFocused;
 
-  LauncherState() : _isDefaultLauncher = false, _launcherVisible = true, _appGridFocused = false;
+  LauncherState() : _isDefaultLauncher = false, _launcherVisible = true;
 
   void toggleLauncherVisibility() {
     _launcherVisible = !_launcherVisible;
-    notifyListeners();
-  }
-
-  void setAppGridFocused(bool value) {
-    if (_appGridFocused == value) {
-      return;
-    }
-    _appGridFocused = value;
     notifyListeners();
   }
 
@@ -56,6 +46,12 @@ class LauncherState extends ChangeNotifier
   }
 
   void handleBackNavigation(BuildContext context) {
+    final focusedContext = FocusManager.instance.primaryFocus?.context;
+    if (focusedContext != null &&
+        Actions.maybeInvoke(focusedContext, const FinishAppReorderIntent()) ==
+            true) {
+      return;
+    }
     AppsService appsService = context.read<AppsService>();
     LauncherState launcherState = context.read<LauncherState>();
     SettingsService settingsService = context.read<SettingsService>();
@@ -72,8 +68,7 @@ class LauncherState extends ChangeNotifier
           appsService.startAmbientMode();
           break;
       }
-    }
-    else {
+    } else {
       SystemNavigator.pop();
     }
   }

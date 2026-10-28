@@ -51,9 +51,9 @@ Future<void> showNoUpdateDialog(
               const SizedBox(height: 14),
               Text(
                 localizations.updateChangelog,
-                style: Theme.of(dialogContext).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  dialogContext,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               _ChangelogWidget(changelog: changelog),
@@ -61,6 +61,26 @@ Future<void> showNoUpdateDialog(
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(MaterialLocalizations.of(dialogContext).okButtonLabel),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> showNoPublishedReleaseDialog(
+  BuildContext context,
+  AppLocalizations localizations,
+) {
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(localizations.updateNoReleaseTitle),
+      content: Text(localizations.updateNoReleaseBody),
       actions: [
         TextButton(
           autofocus: true,
@@ -96,16 +116,16 @@ Future<bool> showUpdateAvailableDialog(
               children: [
                 Text(
                   localizations.updateAvailableBody(
-                      latestVersion, currentVersion),
+                    latestVersion,
+                    currentVersion,
+                  ),
                 ),
                 if (hasChangelog) ...[
                   const SizedBox(height: 14),
                   Text(
                     localizations.updateChangelog,
-                    style:
-                        Theme.of(dialogContext).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                    style: Theme.of(dialogContext).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   _ChangelogWidget(changelog: changelog),
@@ -116,8 +136,9 @@ Future<bool> showUpdateAvailableDialog(
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child:
-                  Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+              child: Text(
+                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+              ),
             ),
             TextButton(
               autofocus: true,
@@ -200,7 +221,9 @@ class _ChangelogWidgetState extends State<_ChangelogWidget> {
           minWidth: double.infinity,
         ),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: _focused
@@ -242,10 +265,7 @@ class _ChangelogWidgetState extends State<_ChangelogWidget> {
         final headerText = trimmed.replaceFirst(RegExp(r"^#+\s*"), "");
         widgets.add(
           Padding(
-            padding: EdgeInsets.only(
-              top: widgets.isEmpty ? 0 : 8,
-              bottom: 4,
-            ),
+            padding: EdgeInsets.only(top: widgets.isEmpty ? 0 : 8, bottom: 4),
             child: Text(
               headerText,
               style: theme.textTheme.titleSmall?.copyWith(
@@ -274,9 +294,7 @@ class _ChangelogWidgetState extends State<_ChangelogWidget> {
                 Expanded(
                   child: Text(
                     bulletText,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.35,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
                   ),
                 ),
               ],
@@ -289,9 +307,7 @@ class _ChangelogWidgetState extends State<_ChangelogWidget> {
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Text(
               trimmed,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                height: 1.35,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
             ),
           ),
         );
@@ -319,8 +335,9 @@ Future<bool> showReadyToInstallDialog(
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child:
-                  Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+              child: Text(
+                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -345,7 +362,9 @@ Future<void> showInstallPermissionDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(),
-          child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+          child: Text(
+            MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+          ),
         ),
         TextButton(
           onPressed: () {

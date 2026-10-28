@@ -16,70 +16,99 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const longPressableKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
+const longPressableKeys = [
+  LogicalKeyboardKey.select,
+  LogicalKeyboardKey.enter,
+  LogicalKeyboardKey.gameButtonA,
+];
 
 class FocusKeyboardListener extends StatefulWidget {
   final Widget child;
   final KeyEventResult Function(LogicalKeyboardKey)? onPressed;
   final KeyEventResult Function(LogicalKeyboardKey)? onLongPress;
 
-  FocusKeyboardListener({
-    Key? key,
+  const FocusKeyboardListener({
+    super.key,
     required this.child,
     this.onPressed,
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
-  _FocusKeyboardListenerState createState() => _FocusKeyboardListenerState();
+  State<FocusKeyboardListener> createState() => _FocusKeyboardListenerState();
 }
 
 class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
-  int? _keyDownAt;
+  LogicalKeyboardKey? _heldKey;
+  Duration? _downAt;
+  Timer? _holdTimer;
+  bool _longPressFired = false;
+  static const _holdDuration = Duration(milliseconds: 500);
 
-  @override
-  Widget build(BuildContext context) => Focus(
-        canRequestFocus: false,
-        // Using "onKeyEvent", in favor of the deprecated "onKey"
-        // seems to break the fix for issue #21 so, keep using the old property
-        onKey: (_, rawKeyEvent) => _handleKey(context, rawKeyEvent),
-        child: widget.child,
-      );
-
-  KeyEventResult _handleKey(BuildContext context, RawKeyEvent rawKeyEvent) {
-    switch (rawKeyEvent.runtimeType) {
-      case RawKeyDownEvent:
-        return _keyDownEvent(context, rawKeyEvent.logicalKey);
-      case RawKeyUpEvent:
-        return _keyUpEvent(context, rawKeyEvent.logicalKey);
-    }
-    return KeyEventResult.handled;
+  void _reset() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _heldKey = null;
+    _downAt = null;
+    _longPressFired = false;
   }
 
-  KeyEventResult _keyDownEvent(BuildContext context, LogicalKeyboardKey key) {
-    if (!longPressableKeys.contains(key)) {
-      return widget.onPressed?.call(key) ?? KeyEventResult.ignored;
+  void _fireLongPress() {
+    if (!mounted || _heldKey == null || _longPressFired) return;
+    _longPressFired = true;
+    _holdTimer?.cancel();
+    widget.onLongPress?.call(_heldKey!);
+  }
+
+  KeyEventResult _handleKey(FocusNode _, KeyEvent event) {
+    final key = event.logicalKey;
+    if (!longPressableKeys.contains(key) || widget.onLongPress == null) {
+      return event is KeyDownEvent || event is KeyRepeatEvent
+          ? widget.onPressed?.call(key) ?? KeyEventResult.ignored
+          : KeyEventResult.ignored;
     }
-    if (_keyDownAt == null) {
-      _keyDownAt = DateTime.now().millisecondsSinceEpoch;
+    if (event is KeyDownEvent) {
+      _reset();
+      _heldKey = key;
+      _downAt = event.timeStamp;
+      _holdTimer = Timer(_holdDuration, _fireLongPress);
       return KeyEventResult.handled;
-    } else if (_longPress()) {
-      _keyDownAt = null;
-      return widget.onLongPress?.call(key) ?? KeyEventResult.ignored;
     }
-    return KeyEventResult.handled;
-  }
-
-  KeyEventResult _keyUpEvent(BuildContext context, LogicalKeyboardKey key) {
-    if (_keyDownAt != null) {
-      _keyDownAt = null;
-      return widget.onPressed?.call(key) ?? KeyEventResult.ignored;
+    if (event is KeyRepeatEvent) {
+      if (_heldKey == key &&
+          _downAt != null &&
+          event.timeStamp - _downAt! >= _holdDuration)
+        _fireLongPress();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent && _heldKey == key) {
+      final activate = !_longPressFired;
+      _reset();
+      return activate
+          ? widget.onPressed?.call(key) ?? KeyEventResult.ignored
+          : KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
 
-  bool _longPress() => _keyDownAt != null && DateTime.now().millisecondsSinceEpoch - _keyDownAt! >= 500;
+  @override
+  Widget build(BuildContext context) => Focus(
+    canRequestFocus: false,
+    onKeyEvent: _handleKey,
+    onFocusChange: (focused) {
+      if (!focused) _reset();
+    },
+    child: widget.child,
+  );
+
+  @override
+  void dispose() {
+    _reset();
+    super.dispose();
+  }
 }

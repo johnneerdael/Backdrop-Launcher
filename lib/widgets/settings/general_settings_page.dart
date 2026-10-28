@@ -21,12 +21,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'focusable_settings_tile.dart';
-import 'brightness_settings_page.dart';
 import 'date_time_format_page.dart';
 import 'back_button_action_page.dart';
-import 'wifi_usage_period_page.dart';
 import 'screensaver_clock_style_page.dart';
-
 
 class GeneralSettingsPage extends StatelessWidget {
   static const String routeName = "general_settings_panel";
@@ -47,41 +44,46 @@ class GeneralSettingsPage extends StatelessWidget {
                 FocusableSettingsTile(
                   showChevron: true,
                   autofocus: true,
-                  leading: const Icon(Icons.brightness_6),
-                  title: Text(localizations.brightnessScheduler, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(BrightnessSettingsPage.routeName),
-                ),
-                FocusableSettingsTile(
-                  showChevron: true,
                   leading: const Icon(Icons.screenshot_monitor),
-                  title: Text(localizations.screensaverSettings, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    localizations.screensaverSettings,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   onPressed: () => _openScreensaverSettings(),
                 ),
                 FocusableSettingsTile(
                   showChevron: true,
                   leading: const Icon(Icons.watch_later_outlined),
-                  title: Text(localizations.screensaverClockStyle, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(ScreensaverClockStylePage.routeName),
+                  title: Text(
+                    localizations.screensaverClockStyle,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(ScreensaverClockStylePage.routeName),
                 ),
                 FocusableSettingsTile(
                   showChevron: true,
                   leading: const Icon(Icons.date_range),
-                  title: Text(localizations.dateAndTimeFormat, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(DateTimeFormatPage.routeName),
+                  title: Text(
+                    localizations.dateAndTimeFormat,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(DateTimeFormatPage.routeName),
                 ),
                 FocusableSettingsTile(
                   showChevron: true,
                   leading: const Icon(Icons.arrow_back),
-                  title: Text(localizations.backButtonAction, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(BackButtonActionPage.routeName),
+                  title: Text(
+                    localizations.backButtonAction,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(BackButtonActionPage.routeName),
                 ),
-                FocusableSettingsTile(
-                  showChevron: true,
-                  leading: const Icon(Icons.wifi),
-                  title: Text(localizations.wifiUsagePeriod, style: Theme.of(context).textTheme.bodyMedium),
-                  onPressed: () => Navigator.of(context).pushNamed(WifiUsagePeriodPage.routeName),
-                ),
-
               ],
             ),
           ),
@@ -91,7 +93,7 @@ class GeneralSettingsPage extends StatelessWidget {
   }
 
   Future<void> _openScreensaverSettings() async {
-    const platform = MethodChannel('me.efesser.flauncher/method');
+    const platform = MethodChannel('nl.neerdael.backdrop_launcher/method');
     platform.invokeMethod('openScreensaverSettings');
   }
 }

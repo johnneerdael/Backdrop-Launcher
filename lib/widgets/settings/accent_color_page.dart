@@ -78,10 +78,12 @@ class AccentColorPage extends StatelessWidget {
     return Consumer<SettingsService>(
       builder: (context, settingsService, _) {
         final currentColor = settingsService.accentColorHex;
-        
+
         return Column(
           children: [
-            SettingsPageHeader(title: AppLocalizations.of(context)!.accentColor),
+            SettingsPageHeader(
+              title: AppLocalizations.of(context)!.accentColor,
+            ),
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.all(16),
@@ -95,7 +97,7 @@ class AccentColorPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final (hex, name) = colorPresets[index];
                   final isSelected = currentColor == hex;
-                  
+
                   return _ColorTile(
                     color: _hexToColor(hex),
                     name: _localizedColorName(context, name),
@@ -171,13 +173,19 @@ class _ColorTileState extends State<_ColorTile> {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = widget.color.computeLuminance() > 0.62 ? Colors.black87 : Colors.white;
+    final foreground = widget.color.computeLuminance() > 0.62
+        ? Colors.black87
+        : Colors.white;
     final ring = _focused || widget.isSelected;
 
     return Actions(
       actions: <Type, Action<Intent>>{
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap()),
-        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: (_) => widget.onTap()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
       },
       child: Focus(
         autofocus: widget.autofocus,
@@ -206,7 +214,9 @@ class _ColorTileState extends State<_ColorTile> {
                 ),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: ring ? Colors.white.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.12),
+                  color: ring
+                      ? Colors.white.withValues(alpha: 0.9)
+                      : Colors.white.withValues(alpha: 0.12),
                   width: 2,
                 ),
               ),

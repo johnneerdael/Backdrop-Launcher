@@ -1,4 +1,3 @@
-
 import 'dart:typed_data';
 
 import 'package:flauncher/models/app.dart';
@@ -68,25 +67,25 @@ class AppDetailsPage extends StatelessWidget {
                 title: localizations.open,
                 onTap: () async {
                   await appsService.launchApp(application);
-                  Navigator.of(context).pop(); // Close settings after launch? Or stay? Dialog behavior was close.
+                  Navigator.of(
+                    context,
+                  ).pop(); // Close settings after launch? Or stay? Dialog behavior was close.
                 },
               ),
               _buildListTile(
                 context,
-                icon: appsService.isAppInFavorites(application) ? Icons.star : Icons.star_border,
-                title: appsService.isAppInFavorites(application) ? localizations.removeFromFavorites : localizations.addToFavorites,
-                onTap: () => appsService.toggleFavorite(application),
-              ),
-              _buildListTile(
-                context,
-                icon: application.hidden ? Icons.visibility : Icons.visibility_off_outlined,
-                title: application.hidden ? localizations.show : localizations.hide,
+                icon: application.hidden
+                    ? Icons.visibility
+                    : Icons.visibility_off_outlined,
+                title: application.hidden
+                    ? localizations.show
+                    : localizations.hide,
                 onTap: () {
-                   if (application.hidden) {
-                     appsService.showApplication(application);
-                   } else {
-                     appsService.hideApplication(application);
-                   }
+                  if (application.hidden) {
+                    appsService.showApplication(application);
+                  } else {
+                    appsService.hideApplication(application);
+                  }
                 },
               ),
               if (!application.hidden)
@@ -111,8 +110,8 @@ class AppDetailsPage extends StatelessWidget {
                 icon: Icons.delete_outlined,
                 title: localizations.uninstall,
                 onTap: () async {
-                    await appsService.uninstallApp(application);
-                    Navigator.of(context).pop();
+                  await appsService.uninstallApp(application);
+                  Navigator.of(context).pop();
                 },
               ),
             ],
@@ -122,8 +121,12 @@ class AppDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildListTile(BuildContext context,
-      {required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildListTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return FocusableSettingsTile(
       leading: Icon(icon),
       title: Text(title, style: Theme.of(context).textTheme.bodyMedium),

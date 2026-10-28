@@ -1,0 +1,122 @@
+site_name: Backdrop Launcher user guide
+site_description: Your TV. Your way. Learn to set up Backdrop Launcher, organise your Android TV apps, choose cinematic backdrops and pick up with Continue Watching.
+site_url: https://backdrop-launcher.neerdael.nl/
+repo_url: https://github.com/johnneerdael/Backdrop-Launcher
+repo_name: johnneerdael/Backdrop-Launcher
+edit_uri: edit/main/docs/user-guide/
+docs_dir: docs/user-guide
+site_dir: build/user-guide-site
+exclude_docs: |
+  _meta/
+
+copyright: Backdrop Launcher is free software under GPL-3.0-or-later. Third-party services, app logos and programme artwork belong to their respective owners.
+
+theme:
+  name: material
+  language: en
+  logo: assets/brand/mark-on-dark.svg
+  favicon: assets/brand/favicon.png
+  font: false
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil-outline
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Follow the system setting
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+
+extra_css:
+  - stylesheets/backdrop.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/johnneerdael/Backdrop-Launcher
+      name: Backdrop Launcher on GitHub
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.keys
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+nav:
+  - Home: index.md
+  - Get started:
+      - get-started/index.md
+      - Install Backdrop Launcher: get-started/install.md
+      - First run and your remote: get-started/remote.md
+  - Your home:
+      - home/index.md
+      - Continue Watching: home/continue-watching.md
+      - Create and arrange app rows: home/rows.md
+      - Manage apps and artwork: home/apps.md
+  - Make it yours:
+      - personalise/index.md
+      - Backdrops and Trakt: personalise/backdrops.md
+      - Colours, cards and labels: personalise/appearance.md
+      - Status bar and date formats: personalise/status-and-time.md
+      - Clock, screensaver and Back: personalise/clock-and-back.md
+  - Help and reference:
+      - help/index.md
+      - Settings reference: help/settings.md
+      - Updates: help/updates.md
+      - Troubleshooting: help/troubleshooting.md
+      - Frequently asked questions: help/faq.md
+      - Credits and licences: help/credits.md

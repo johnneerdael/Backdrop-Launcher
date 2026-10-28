@@ -46,7 +46,6 @@ void main() {
     );
     when(appsService.applications).thenReturn([app]);
     when(appsService.hasCustomBanner(any)).thenAnswer((_) async => false);
-    when(appsService.isAppInFavorites(any)).thenReturn(false);
 
     await _pumpWidgetWithProviders(tester, appsService, null, app);
 
@@ -67,7 +66,6 @@ void main() {
     when(appsService.categories).thenReturn([category]);
     when(appsService.applications).thenReturn([]);
     when(appsService.hasCustomBanner(any)).thenAnswer((_) async => false);
-    when(appsService.isAppInFavorites(any)).thenReturn(false);
 
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
@@ -87,7 +85,6 @@ void main() {
     when(appsService.categories).thenReturn([category]);
     when(appsService.applications).thenReturn([]);
     when(appsService.hasCustomBanner(any)).thenAnswer((_) async => false);
-    when(appsService.isAppInFavorites(any)).thenReturn(false);
 
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
@@ -107,7 +104,6 @@ void main() {
     when(appsService.categories).thenReturn([category]);
     when(appsService.applications).thenReturn([]);
     when(appsService.hasCustomBanner(any)).thenAnswer((_) async => false);
-    when(appsService.isAppInFavorites(any)).thenReturn(false);
 
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
@@ -129,7 +125,6 @@ void main() {
     when(appsService.categories).thenReturn([category]);
     when(appsService.applications).thenReturn([]);
     when(appsService.hasCustomBanner(any)).thenAnswer((_) async => false);
-    when(appsService.isAppInFavorites(any)).thenReturn(false);
 
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 

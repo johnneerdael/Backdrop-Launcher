@@ -98,6 +98,8 @@ class $AppsTable extends Apps with TableInfo<$AppsTable, App> {
           .read(DriftSqlType.string, data['${effectivePrefix}version'])!,
       hidden: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}hidden'])!,
+      lastLaunchedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_launched_at']),
     );
   }
 
@@ -225,6 +227,15 @@ class $CategoriesTable extends Categories
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _hiddenMeta = const VerificationMeta('hidden');
+  @override
+  late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
+      'hidden', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("hidden" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _sortMeta = const VerificationMeta('sort');
   @override
   late final GeneratedColumnWithTypeConverter<CategorySort, int> sort =
@@ -233,14 +244,14 @@ class $CategoriesTable extends Categories
               requiredDuringInsert: false,
               defaultValue: Constant(Category.Sort.index))
           .withConverter<CategorySort>($CategoriesTable.$convertersort);
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
-  late final GeneratedColumnWithTypeConverter<CategoryType, int> type =
-      GeneratedColumn<int>('type', aliasedName, false,
+  late final GeneratedColumnWithTypeConverter<CategorySource, int> source =
+      GeneratedColumn<int>('source', aliasedName, false,
               type: DriftSqlType.int,
               requiredDuringInsert: false,
-              defaultValue: Constant(Category.Type.index))
-          .withConverter<CategoryType>($CategoriesTable.$convertertype);
+              defaultValue: const Constant(0))
+          .withConverter<CategorySource>($CategoriesTable.$convertersource);
   static const VerificationMeta _rowHeightMeta =
       const VerificationMeta('rowHeight');
   @override
@@ -249,14 +260,6 @@ class $CategoriesTable extends Categories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(Category.RowHeight));
-  static const VerificationMeta _columnsCountMeta =
-      const VerificationMeta('columnsCount');
-  @override
-  late final GeneratedColumn<int> columnsCount = GeneratedColumn<int>(
-      'columns_count', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(Category.ColumnsCount));
   static const VerificationMeta _orderMeta = const VerificationMeta('order');
   @override
   late final GeneratedColumn<int> order = GeneratedColumn<int>(
@@ -264,7 +267,7 @@ class $CategoriesTable extends Categories
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, name, sort, type, rowHeight, columnsCount, order];
+      [id, name, hidden, sort, source, rowHeight, order];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -284,17 +287,15 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
+    if (data.containsKey('hidden')) {
+      context.handle(_hiddenMeta,
+          hidden.isAcceptableOrUnknown(data['hidden']!, _hiddenMeta));
+    }
     context.handle(_sortMeta, const VerificationResult.success());
-    context.handle(_typeMeta, const VerificationResult.success());
+    context.handle(_sourceMeta, const VerificationResult.success());
     if (data.containsKey('row_height')) {
       context.handle(_rowHeightMeta,
           rowHeight.isAcceptableOrUnknown(data['row_height']!, _rowHeightMeta));
-    }
-    if (data.containsKey('columns_count')) {
-      context.handle(
-          _columnsCountMeta,
-          columnsCount.isAcceptableOrUnknown(
-              data['columns_count']!, _columnsCountMeta));
     }
     if (data.containsKey('order')) {
       context.handle(
@@ -317,14 +318,15 @@ class $CategoriesTable extends Categories
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       order: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}order'])!,
-      columnsCount: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}columns_count'])!,
       rowHeight: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}row_height'])!,
       sort: $CategoriesTable.$convertersort.fromSql(attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}sort'])!),
-      type: $CategoriesTable.$convertertype.fromSql(attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}type'])!),
+      source: $CategoriesTable.$convertersource.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}source'])!),
+      hidden: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}hidden'])!,
     );
   }
 
@@ -335,53 +337,53 @@ class $CategoriesTable extends Categories
 
   static JsonTypeConverter2<CategorySort, int, int> $convertersort =
       const EnumIndexConverter<CategorySort>(CategorySort.values);
-  static JsonTypeConverter2<CategoryType, int, int> $convertertype =
-      const EnumIndexConverter<CategoryType>(CategoryType.values);
+  static JsonTypeConverter2<CategorySource, int, int> $convertersource =
+      const EnumIndexConverter<CategorySource>(CategorySource.values);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<int> id;
   final Value<String> name;
+  final Value<bool> hidden;
   final Value<CategorySort> sort;
-  final Value<CategoryType> type;
+  final Value<CategorySource> source;
   final Value<int> rowHeight;
-  final Value<int> columnsCount;
   final Value<int> order;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.hidden = const Value.absent(),
     this.sort = const Value.absent(),
-    this.type = const Value.absent(),
+    this.source = const Value.absent(),
     this.rowHeight = const Value.absent(),
-    this.columnsCount = const Value.absent(),
     this.order = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
+    this.hidden = const Value.absent(),
     this.sort = const Value.absent(),
-    this.type = const Value.absent(),
+    this.source = const Value.absent(),
     this.rowHeight = const Value.absent(),
-    this.columnsCount = const Value.absent(),
     required int order,
   })  : name = Value(name),
         order = Value(order);
   static Insertable<Category> custom({
     Expression<int>? id,
     Expression<String>? name,
+    Expression<bool>? hidden,
     Expression<int>? sort,
-    Expression<int>? type,
+    Expression<int>? source,
     Expression<int>? rowHeight,
-    Expression<int>? columnsCount,
     Expression<int>? order,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (hidden != null) 'hidden': hidden,
       if (sort != null) 'sort': sort,
-      if (type != null) 'type': type,
+      if (source != null) 'source': source,
       if (rowHeight != null) 'row_height': rowHeight,
-      if (columnsCount != null) 'columns_count': columnsCount,
       if (order != null) 'order': order,
     });
   }
@@ -389,18 +391,18 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   CategoriesCompanion copyWith(
       {Value<int>? id,
       Value<String>? name,
+      Value<bool>? hidden,
       Value<CategorySort>? sort,
-      Value<CategoryType>? type,
+      Value<CategorySource>? source,
       Value<int>? rowHeight,
-      Value<int>? columnsCount,
       Value<int>? order}) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      hidden: hidden ?? this.hidden,
       sort: sort ?? this.sort,
-      type: type ?? this.type,
+      source: source ?? this.source,
       rowHeight: rowHeight ?? this.rowHeight,
-      columnsCount: columnsCount ?? this.columnsCount,
       order: order ?? this.order,
     );
   }
@@ -414,19 +416,19 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (hidden.present) {
+      map['hidden'] = Variable<bool>(hidden.value);
+    }
     if (sort.present) {
       map['sort'] =
           Variable<int>($CategoriesTable.$convertersort.toSql(sort.value));
     }
-    if (type.present) {
-      map['type'] =
-          Variable<int>($CategoriesTable.$convertertype.toSql(type.value));
+    if (source.present) {
+      map['source'] =
+          Variable<int>($CategoriesTable.$convertersource.toSql(source.value));
     }
     if (rowHeight.present) {
       map['row_height'] = Variable<int>(rowHeight.value);
-    }
-    if (columnsCount.present) {
-      map['columns_count'] = Variable<int>(columnsCount.value);
     }
     if (order.present) {
       map['order'] = Variable<int>(order.value);
@@ -439,10 +441,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return (StringBuffer('CategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('hidden: $hidden, ')
           ..write('sort: $sort, ')
-          ..write('type: $type, ')
+          ..write('source: $source, ')
           ..write('rowHeight: $rowHeight, ')
-          ..write('columnsCount: $columnsCount, ')
           ..write('order: $order')
           ..write(')'))
         .toString();
@@ -692,158 +694,18 @@ class AppsCategoriesCompanion extends UpdateCompanion<AppCategory> {
   }
 }
 
-class $LauncherSpacersTable extends LauncherSpacers
-    with TableInfo<$LauncherSpacersTable, LauncherSpacer> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $LauncherSpacersTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
-  static const VerificationMeta _heightMeta = const VerificationMeta('height');
-  @override
-  late final GeneratedColumn<int> height = GeneratedColumn<int>(
-      'height', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _orderMeta = const VerificationMeta('order');
-  @override
-  late final GeneratedColumn<int> order = GeneratedColumn<int>(
-      'order', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
-  @override
-  List<GeneratedColumn> get $columns => [id, height, order];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'launcher_spacers';
-  @override
-  VerificationContext validateIntegrity(Insertable<LauncherSpacer> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('height')) {
-      context.handle(_heightMeta,
-          height.isAcceptableOrUnknown(data['height']!, _heightMeta));
-    } else if (isInserting) {
-      context.missing(_heightMeta);
-    }
-    if (data.containsKey('order')) {
-      context.handle(
-          _orderMeta, order.isAcceptableOrUnknown(data['order']!, _orderMeta));
-    } else if (isInserting) {
-      context.missing(_orderMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  LauncherSpacer map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return LauncherSpacer(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      order: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}order'])!,
-      height: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}height'])!,
-    );
-  }
-
-  @override
-  $LauncherSpacersTable createAlias(String alias) {
-    return $LauncherSpacersTable(attachedDatabase, alias);
-  }
-}
-
-class LauncherSpacersCompanion extends UpdateCompanion<LauncherSpacer> {
-  final Value<int> id;
-  final Value<int> height;
-  final Value<int> order;
-  const LauncherSpacersCompanion({
-    this.id = const Value.absent(),
-    this.height = const Value.absent(),
-    this.order = const Value.absent(),
-  });
-  LauncherSpacersCompanion.insert({
-    this.id = const Value.absent(),
-    required int height,
-    required int order,
-  })  : height = Value(height),
-        order = Value(order);
-  static Insertable<LauncherSpacer> custom({
-    Expression<int>? id,
-    Expression<int>? height,
-    Expression<int>? order,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (height != null) 'height': height,
-      if (order != null) 'order': order,
-    });
-  }
-
-  LauncherSpacersCompanion copyWith(
-      {Value<int>? id, Value<int>? height, Value<int>? order}) {
-    return LauncherSpacersCompanion(
-      id: id ?? this.id,
-      height: height ?? this.height,
-      order: order ?? this.order,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (height.present) {
-      map['height'] = Variable<int>(height.value);
-    }
-    if (order.present) {
-      map['order'] = Variable<int>(order.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('LauncherSpacersCompanion(')
-          ..write('id: $id, ')
-          ..write('height: $height, ')
-          ..write('order: $order')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$FLauncherDatabase extends GeneratedDatabase {
   _$FLauncherDatabase(QueryExecutor e) : super(e);
   $FLauncherDatabaseManager get managers => $FLauncherDatabaseManager(this);
   late final $AppsTable apps = $AppsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $AppsCategoriesTable appsCategories = $AppsCategoriesTable(this);
-  late final $LauncherSpacersTable launcherSpacers =
-      $LauncherSpacersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [apps, categories, appsCategories, launcherSpacers];
+      [apps, categories, appsCategories];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
         [
@@ -1007,19 +869,19 @@ class $$AppsTableOrderingComposer
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
   required String name,
+  Value<bool> hidden,
   Value<CategorySort> sort,
-  Value<CategoryType> type,
+  Value<CategorySource> source,
   Value<int> rowHeight,
-  Value<int> columnsCount,
   required int order,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
+  Value<bool> hidden,
   Value<CategorySort> sort,
-  Value<CategoryType> type,
+  Value<CategorySource> source,
   Value<int> rowHeight,
-  Value<int> columnsCount,
   Value<int> order,
 });
 
@@ -1042,37 +904,37 @@ class $$CategoriesTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
+            Value<bool> hidden = const Value.absent(),
             Value<CategorySort> sort = const Value.absent(),
-            Value<CategoryType> type = const Value.absent(),
+            Value<CategorySource> source = const Value.absent(),
             Value<int> rowHeight = const Value.absent(),
-            Value<int> columnsCount = const Value.absent(),
             Value<int> order = const Value.absent(),
           }) =>
               CategoriesCompanion(
             id: id,
             name: name,
+            hidden: hidden,
             sort: sort,
-            type: type,
+            source: source,
             rowHeight: rowHeight,
-            columnsCount: columnsCount,
             order: order,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String name,
+            Value<bool> hidden = const Value.absent(),
             Value<CategorySort> sort = const Value.absent(),
-            Value<CategoryType> type = const Value.absent(),
+            Value<CategorySource> source = const Value.absent(),
             Value<int> rowHeight = const Value.absent(),
-            Value<int> columnsCount = const Value.absent(),
             required int order,
           }) =>
               CategoriesCompanion.insert(
             id: id,
             name: name,
+            hidden: hidden,
             sort: sort,
-            type: type,
+            source: source,
             rowHeight: rowHeight,
-            columnsCount: columnsCount,
             order: order,
           ),
         ));
@@ -1091,6 +953,11 @@ class $$CategoriesTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<bool> get hidden => $state.composableBuilder(
+      column: $state.table.hidden,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ColumnWithTypeConverterFilters<CategorySort, CategorySort, int> get sort =>
       $state.composableBuilder(
           column: $state.table.sort,
@@ -1098,20 +965,15 @@ class $$CategoriesTableFilterComposer
               column,
               joinBuilders: joinBuilders));
 
-  ColumnWithTypeConverterFilters<CategoryType, CategoryType, int> get type =>
-      $state.composableBuilder(
-          column: $state.table.type,
+  ColumnWithTypeConverterFilters<CategorySource, CategorySource, int>
+      get source => $state.composableBuilder(
+          column: $state.table.source,
           builder: (column, joinBuilders) => ColumnWithTypeConverterFilters(
               column,
               joinBuilders: joinBuilders));
 
   ColumnFilters<int> get rowHeight => $state.composableBuilder(
       column: $state.table.rowHeight,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
-
-  ColumnFilters<int> get columnsCount => $state.composableBuilder(
-      column: $state.table.columnsCount,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -1147,23 +1009,23 @@ class $$CategoriesTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<bool> get hidden => $state.composableBuilder(
+      column: $state.table.hidden,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<int> get sort => $state.composableBuilder(
       column: $state.table.sort,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<int> get type => $state.composableBuilder(
-      column: $state.table.type,
+  ColumnOrderings<int> get source => $state.composableBuilder(
+      column: $state.table.source,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
   ColumnOrderings<int> get rowHeight => $state.composableBuilder(
       column: $state.table.rowHeight,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
-
-  ColumnOrderings<int> get columnsCount => $state.composableBuilder(
-      column: $state.table.columnsCount,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -1298,97 +1160,6 @@ class $$AppsCategoriesTableOrderingComposer
   }
 }
 
-typedef $$LauncherSpacersTableCreateCompanionBuilder = LauncherSpacersCompanion
-    Function({
-  Value<int> id,
-  required int height,
-  required int order,
-});
-typedef $$LauncherSpacersTableUpdateCompanionBuilder = LauncherSpacersCompanion
-    Function({
-  Value<int> id,
-  Value<int> height,
-  Value<int> order,
-});
-
-class $$LauncherSpacersTableTableManager extends RootTableManager<
-    _$FLauncherDatabase,
-    $LauncherSpacersTable,
-    LauncherSpacer,
-    $$LauncherSpacersTableFilterComposer,
-    $$LauncherSpacersTableOrderingComposer,
-    $$LauncherSpacersTableCreateCompanionBuilder,
-    $$LauncherSpacersTableUpdateCompanionBuilder> {
-  $$LauncherSpacersTableTableManager(
-      _$FLauncherDatabase db, $LauncherSpacersTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          filteringComposer:
-              $$LauncherSpacersTableFilterComposer(ComposerState(db, table)),
-          orderingComposer:
-              $$LauncherSpacersTableOrderingComposer(ComposerState(db, table)),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<int> height = const Value.absent(),
-            Value<int> order = const Value.absent(),
-          }) =>
-              LauncherSpacersCompanion(
-            id: id,
-            height: height,
-            order: order,
-          ),
-          createCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            required int height,
-            required int order,
-          }) =>
-              LauncherSpacersCompanion.insert(
-            id: id,
-            height: height,
-            order: order,
-          ),
-        ));
-}
-
-class $$LauncherSpacersTableFilterComposer
-    extends FilterComposer<_$FLauncherDatabase, $LauncherSpacersTable> {
-  $$LauncherSpacersTableFilterComposer(super.$state);
-  ColumnFilters<int> get id => $state.composableBuilder(
-      column: $state.table.id,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
-
-  ColumnFilters<int> get height => $state.composableBuilder(
-      column: $state.table.height,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
-
-  ColumnFilters<int> get order => $state.composableBuilder(
-      column: $state.table.order,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
-}
-
-class $$LauncherSpacersTableOrderingComposer
-    extends OrderingComposer<_$FLauncherDatabase, $LauncherSpacersTable> {
-  $$LauncherSpacersTableOrderingComposer(super.$state);
-  ColumnOrderings<int> get id => $state.composableBuilder(
-      column: $state.table.id,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
-
-  ColumnOrderings<int> get height => $state.composableBuilder(
-      column: $state.table.height,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
-
-  ColumnOrderings<int> get order => $state.composableBuilder(
-      column: $state.table.order,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
-}
-
 class $FLauncherDatabaseManager {
   final _$FLauncherDatabase _db;
   $FLauncherDatabaseManager(this._db);
@@ -1397,6 +1168,4 @@ class $FLauncherDatabaseManager {
       $$CategoriesTableTableManager(_db, _db.categories);
   $$AppsCategoriesTableTableManager get appsCategories =>
       $$AppsCategoriesTableTableManager(_db, _db.appsCategories);
-  $$LauncherSpacersTableTableManager get launcherSpacers =>
-      $$LauncherSpacersTableTableManager(_db, _db.launcherSpacers);
 }

@@ -16,446 +16,335 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/gradients.dart';
-import 'package:flauncher/providers/reddit_slideshow.dart';
+import 'package:flauncher/bundled_artwork.dart';
+import 'package:flauncher/image_preparation.dart';
+import 'package:flauncher/local_media_cache.dart';
 import 'package:flauncher/providers/settings_service.dart';
-import 'package:flauncher/providers/unsplash_slideshow.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flauncher/providers/trakt_service.dart';
+import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
+/// One still-image source: bundled backdrops, or raw artwork selected via Trakt.
 class WallpaperService extends ChangeNotifier {
-  final SettingsService _settingsService;
-  final FLauncherChannel _channel = FLauncherChannel();
-
-  late File _wallpaperFile;
-  late File _wallpaperDayFile;
-  late File _wallpaperNightFile;
-  late File _wallpaperVideoFile;
-  late File _wallpaperDayVideoFile;
-  late File _wallpaperNightVideoFile;
-  bool _initialized = false;
+  final SettingsService _settings;
+  final TraktService? _trakt;
+  final http.Client _client;
+  final Future<Directory> Function() _cacheDirectory;
+  final Random _random;
+  late final Future<void> ready;
   Timer? _timer;
-  int _wallpaperRevision = 0;
+  Directory? _cache;
+  late final LocalMediaCache _startupCache = LocalMediaCache(
+    'wallpaper',
+    directory: _cacheDirectory,
+  );
+  int _displayGeneration = 0;
+  bool _disposed = false;
+  bool _busy = false;
+  bool _pending = false;
+  bool _initialized = false;
+  bool _active = true;
+  int _generation = 0;
+  int _revision = 0;
+  int _bundledIndex = -1;
+  ImageProvider _wallpaper = const AssetImage(BundledArtwork.defaultBackdrop);
+  List<String> _bundled = [BundledArtwork.defaultBackdrop];
+  List<TraktCandidate> _candidates = [];
+  DateTime? _catalogLoaded;
+  String? _lastCandidate;
+  String? _error;
+  String? _title;
+  Object? _lastConfig;
 
-  late UnsplashSlideshow _slideshow;
-  Timer? _slideshowTimer;
-  final Random _random = Random();
-  File? _slideshowFile;
+  static const maxCachedBackdrops = 3;
+  static const maxDownloadBytes = 8 * 1024 * 1024;
+  ImageProvider get wallpaper => _wallpaper;
+  int get wallpaperRevision => _revision;
+  bool get isInitialized => _initialized;
+  bool get isLoading => _busy;
+  String? get error => _error;
+  String? get title => _title;
 
-  late RedditSlideshow _redditSlideshow;
-  Timer? _redditTimer;
-  Timer? _redditDebounce;
-  File? _redditFile;
-
-  static const Duration redditConfigDebounce = Duration(seconds: 3);
-
-  /// Credit to display while the Reddit wallpaper is on screen.
-  String? get redditWallpaperCredit {
-    if (!_settingsService.redditWallpaperEnabled || _redditFile == null) return null;
-    final sub = _settingsService.redditCurrentSubreddit;
-    final author = _settingsService.redditCurrentAuthor;
-    if (sub != null && sub.isNotEmpty) {
-      if (author != null && author.isNotEmpty) {
-        return "r/$sub • u/$author";
-      }
-      return "r/$sub";
-    }
-    return _settingsService.redditCurrentTitle;
+  WallpaperService(
+    this._settings, {
+    TraktService? trakt,
+    http.Client? client,
+    Future<Directory> Function()? cacheDirectory,
+    Random? random,
+  }) : _trakt = trakt,
+       _client = client ?? http.Client(),
+       _cacheDirectory = cacheDirectory ?? getApplicationCacheDirectory,
+       _random = random ?? Random() {
+    _settings.addListener(_configure);
+    _trakt?.addListener(_configure);
+    ready = _init();
   }
 
-  String? get redditWallpaperTitle =>
-      _settingsService.redditWallpaperEnabled && _redditFile != null ? _settingsService.redditCurrentTitle : null;
-
-  /// Photographer credit to display while the Unsplash slideshow is on screen.
-  String? get slideshowAuthor =>
-      _settingsService.unsplashSlideshowEnabled && _slideshowFile != null ? _settingsService.unsplashAuthor : null;
-
-  ImageProvider? _wallpaper;
-  int get wallpaperRevision => _wallpaperRevision;
-
-  ImageProvider? get wallpaper => _wallpaper;
-
-  File? get wallpaperVideoFile {
-    final f = _resolveActiveVideoFile();
-    return f != null && f.existsSync() ? f : null;
-  }
-
-  FLauncherGradient get gradient => FLauncherGradients.all.firstWhere(
-    (gradient) => gradient.uuid == _settingsService.gradientUuid,
-    orElse: () => FLauncherGradients.saintPetersburg,
+  bool get _useTrakt =>
+      _settings.traktBackdropsEnabled && (_trakt?.isConnected ?? false);
+  Object get _config => (
+    _useTrakt,
+    _settings.backdropIntervalMinutes,
+    _trakt?.selectedCatalogs.join('|') ?? '',
   );
 
-  WallpaperService(this._settingsService) : _wallpaper = null {
-    _settingsService.addListener(_onSettingsChanged);
-    _init();
+  Future<void> _init() async {
+    try {
+      final images = await BundledArtwork.backdrops();
+      if (images.isNotEmpty) _bundled = images;
+    } catch (_) {
+      /* The default asset is also available during startup. */
+    }
+    if (_disposed) return;
+    _initialized = true;
+    _lastConfig = _config;
+    if (!await _restoreLastWallpaper() && !await _restoreExistingTraktCache())
+      await _showBundled();
+    _restartTimer();
   }
 
-  bool _lastTimeBasedEnabled = false;
-  // Slideshow settings that require restarting its timer when they change.
-  (bool, int) _lastSlideshowConfig = (false, 0);
-  (bool, int) get _slideshowConfig =>
-      (_settingsService.unsplashSlideshowEnabled, _settingsService.unsplashIntervalMinutes);
-
-  (bool, int, List<String>, String) _lastRedditConfig = (false, 0, [], '');
-  (bool, int, List<String>, String) get _redditConfig => (
-    _settingsService.redditWallpaperEnabled,
-    _settingsService.redditIntervalMinutes,
-    _settingsService.redditSubreddits,
-    _settingsService.redditSort,
-  );
-
-  void _onSettingsChanged() {
-    final enabled = _settingsService.timeBasedWallpaperEnabled;
-    if (enabled != _lastTimeBasedEnabled) {
-      _lastTimeBasedEnabled = enabled;
-      _updateTimerState();
-      _updateWallpaper();
+  Future<bool> _restoreLastWallpaper() async {
+    final saved = await _startupCache.readJson('last');
+    if (saved is! Map) return false;
+    final asset = saved['asset'];
+    if (asset is String && _bundled.contains(asset)) {
+      _bundledIndex = _bundled.indexOf(asset);
+      await _show(AssetImage(asset));
+      return true;
     }
-    if (_initialized && _slideshowConfig != _lastSlideshowConfig) {
-      _lastSlideshowConfig = _slideshowConfig;
-      _updateSlideshowState();
-      _updateWallpaper(force: true);
+    final name = saved['file'];
+    if (!_useTrakt ||
+        name is! String ||
+        !RegExp(r'^[a-zA-Z0-9_-]+\.jpg$').hasMatch(name))
+      return false;
+    try {
+      final file = File('${(await _cacheDir()).path}/$name');
+      if (!await file.exists()) return false;
+      if (!await prepareImage(wallpaperImage(FileImage(file)))) return false;
+      await _show(FileImage(file), title: saved['title'] as String?);
+      return true;
+    } catch (_) {
+      return false;
     }
-    if (_initialized && _redditConfig != _lastRedditConfig) {
-      _lastRedditConfig = _redditConfig;
-      // Debounce while enabled so toggling several subreddits in a row triggers
-      // a single fetch instead of one per change.
-      _redditDebounce?.cancel();
-      if (_settingsService.redditWallpaperEnabled) {
-        _redditDebounce = Timer(redditConfigDebounce, _updateRedditState);
-      } else {
-        _updateRedditState();
+  }
+
+  Future<bool> _restoreExistingTraktCache() async {
+    if (!_useTrakt) return false;
+    try {
+      final files = await (await _cacheDir())
+          .list()
+          .where((file) => file is File && file.path.endsWith('.jpg'))
+          .cast<File>()
+          .toList();
+      files.sort(
+        (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+      );
+      for (final file in files.take(maxCachedBackdrops)) {
+        if (await prepareImage(wallpaperImage(FileImage(file)))) {
+          await _show(FileImage(file));
+          return true;
+        }
       }
-      _updateWallpaper(force: true);
+    } catch (_) {}
+    return false;
+  }
+
+  void _configure() {
+    if (_disposed || !_initialized || _lastConfig == _config) return;
+    final previous = _lastConfig as (bool, int, String);
+    final current = _config as (bool, int, String);
+    _lastConfig = _config;
+    _restartTimer();
+    if (previous.$1 == current.$1 && previous.$3 == current.$3) return;
+    _generation++;
+    _displayGeneration++;
+    _candidates = [];
+    _catalogLoaded = null;
+    if (!_useTrakt) {
+      _error = null;
+      unawaited(_showBundled());
+    } else {
+      unawaited(nextBackdrop());
+    }
+  }
+
+  void setActive(bool active) {
+    if (_disposed || _active == active) return;
+    _active = active;
+    _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _timer = null;
+    if (_active)
+      _timer = Timer.periodic(
+        Duration(minutes: _settings.backdropIntervalMinutes),
+        (_) => unawaited(nextBackdrop()),
+      );
+  }
+
+  Future<void> _show(ImageProvider image, {String? title}) async {
+    if (_disposed) return;
+    final displayGeneration = ++_displayGeneration;
+    if (!await prepareImage(wallpaperImage(image)) ||
+        _disposed ||
+        displayGeneration != _displayGeneration)
+      return;
+    final old = _wallpaper;
+    _wallpaper = image;
+    _title = title;
+    _revision++;
+    if (old != image) unawaited(wallpaperImage(old).evict());
+    notifyListeners();
+    await _startupCache.writeJson('last', {
+      if (image is AssetImage) 'asset': image.assetName,
+      if (image is FileImage) 'file': image.file.uri.pathSegments.last,
+      'title': title,
+    });
+  }
+
+  Future<void> _showBundled() async {
+    _bundledIndex = (_bundledIndex + 1) % _bundled.length;
+    await _show(AssetImage(_bundled[_bundledIndex]));
+  }
+
+  Future<void> nextBackdrop() async {
+    if (_disposed || !_initialized) return;
+    if (_busy) {
+      _pending = true;
+      return;
+    }
+    if (!_useTrakt) {
+      await _showBundled();
+      return;
+    }
+    _busy = true;
+    notifyListeners();
+    final generation = _generation;
+    try {
+      if (_catalogLoaded == null ||
+          DateTime.now().difference(_catalogLoaded!) >=
+              const Duration(hours: 6)) {
+        final candidates = await _trakt!.fetchCandidates();
+        if (_disposed || generation != _generation) return;
+        _candidates = candidates;
+        _catalogLoaded = DateTime.now();
+      }
+      final candidates = List<TraktCandidate>.of(_candidates)..shuffle(_random);
+      // Prefer a different title, but allow a list with just one usable backdrop.
+      candidates.sort(
+        (a, b) => (a.key == _lastCandidate ? 1 : 0).compareTo(
+          b.key == _lastCandidate ? 1 : 0,
+        ),
+      );
+      for (final candidate in candidates.take(10)) {
+        final url = await _trakt!.backdropFor(candidate);
+        if (_disposed || generation != _generation) return;
+        if (url == null) continue;
+        final file = await _download(
+          url,
+          candidate.key.replaceAll(':', '_'),
+          generation,
+        );
+        if (file == null || _disposed || generation != _generation) return;
+        _lastCandidate = candidate.key;
+        _error = null;
+        await _show(FileImage(file), title: candidate.title);
+        await _pruneCache(file);
+        return;
+      }
+      _error = candidates.isEmpty
+          ? 'Select a catalog or list with movies or shows.'
+          : 'No backdrops found in the selected catalogs.';
+      await _showBundled();
+    } catch (_) {
+      if (!_disposed && generation == _generation) {
+        _error = 'Trakt backdrops are unavailable. Showing included backdrops.';
+        // Keep the last locally available wallpaper on a failed refresh.
+        if (_wallpaper is! FileImage) await _showBundled();
+      }
+    } finally {
+      _busy = false;
+      if (!_disposed) {
+        notifyListeners();
+        if (_pending) {
+          _pending = false;
+          unawaited(nextBackdrop());
+        }
+      }
+    }
+  }
+
+  Future<Directory> _cacheDir() async {
+    return _cache ??= await Directory(
+      '${(await _cacheDirectory()).path}/trakt_backdrops',
+    ).create(recursive: true);
+  }
+
+  Future<File?> _download(Uri url, String key, int generation) async {
+    final dir = await _cacheDir();
+    if (_disposed || generation != _generation) return null;
+    final file = File('${dir.path}/$key.jpg');
+    if (await file.exists()) return file;
+    final response = await _client
+        .send(http.Request('GET', url))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200 ||
+        !(response.headers['content-type'] ?? '').startsWith('image/') ||
+        (response.contentLength ?? 0) > maxDownloadBytes) {
+      await response.stream.listen((_) {}).cancel();
+      throw const TraktException('Backdrop download failed.');
+    }
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in response.stream.timeout(
+      const Duration(seconds: 20),
+    )) {
+      if (_disposed || generation != _generation) return null;
+      if (bytes.length + chunk.length > maxDownloadBytes)
+        throw const TraktException('Backdrop is too large.');
+      bytes.add(chunk);
+    }
+    if (bytes.isEmpty) throw const TraktException('Backdrop is empty.');
+    // Validate before persisting or replacing the currently visible wallpaper.
+    if (!await validImageBytes(bytes.toBytes()))
+      throw const TraktException('Invalid backdrop image.');
+    if (_disposed || generation != _generation) return null;
+    await file.writeAsBytes(bytes.takeBytes(), flush: true);
+    return file;
+  }
+
+  Future<void> _pruneCache(File current) async {
+    final dir = _cache;
+    if (dir == null || !await dir.exists()) return;
+    final files = await dir
+        .list()
+        .where((f) => f is File)
+        .cast<File>()
+        .toList();
+    files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+    final others = files.where((f) => f.path != current.path).toList();
+    for (final file in others.skip(maxCachedBackdrops - 1)) {
+      await FileImage(file).evict();
+      if (await file.exists()) await file.delete();
     }
   }
 
   @override
   void dispose() {
-    _settingsService.removeListener(_onSettingsChanged);
+    _disposed = true;
+    _generation++;
+    _displayGeneration++;
     _timer?.cancel();
-    _slideshowTimer?.cancel();
-    _redditTimer?.cancel();
-    _redditDebounce?.cancel();
+    _settings.removeListener(_configure);
+    _trakt?.removeListener(_configure);
+    _client.close();
     super.dispose();
-  }
-
-  Future<void> _init() async {
-    final directory = await getApplicationDocumentsDirectory();
-    _wallpaperFile = File("${directory.path}/wallpaper");
-    _wallpaperDayFile = File("${directory.path}/wallpaper_day");
-    _wallpaperNightFile = File("${directory.path}/wallpaper_night");
-    _wallpaperVideoFile = File("${directory.path}/wallpaper_video");
-    _wallpaperDayVideoFile = File("${directory.path}/wallpaper_day_video");
-    _wallpaperNightVideoFile = File("${directory.path}/wallpaper_night_video");
-    _slideshow = UnsplashSlideshow(Directory("${directory.path}/slideshow"));
-    _slideshowFile = newestCachedImage(_slideshow.cacheDir);
-    _redditSlideshow = RedditSlideshow(Directory("${directory.path}/reddit_slideshow"));
-    _redditFile = newestCachedImage(_redditSlideshow.cacheDir);
-    _initialized = true;
-
-    _lastTimeBasedEnabled = _settingsService.timeBasedWallpaperEnabled;
-    _lastSlideshowConfig = _slideshowConfig;
-    _lastRedditConfig = _redditConfig;
-    _updateWallpaper();
-    _updateTimerState();
-    _updateSlideshowState();
-    _updateRedditState();
-  }
-
-  void _updateSlideshowState() {
-    _slideshowTimer?.cancel();
-    _slideshowTimer = null;
-    if (!_settingsService.unsplashSlideshowEnabled) return;
-    final interval = Duration(minutes: _settingsService.unsplashIntervalMinutes);
-    _slideshowTimer = Timer.periodic(interval, (_) => _advanceSlideshow());
-    final file = _slideshowFile;
-    // Reuse the cached image after a reboot unless it is already due for a change.
-    if (file == null || DateTime.now().difference(file.lastModifiedSync()) >= interval) {
-      _advanceSlideshow();
-    }
-  }
-
-  Future<void> _advanceSlideshow() async {
-    final hour = DateTime.now().hour;
-    // Same 6h-18h day/night split as the time-based wallpaper.
-    final isDay = hour >= 6 && hour < 18;
-    final result = await _slideshow.next(
-      isDay
-          ? pickSlideshowFilter(_settingsService.unsplashDaySources, defaultDaySlideshowSources, _random)
-          : pickSlideshowFilter(_settingsService.unsplashNightSources, defaultNightSlideshowSources, _random),
-      _settingsService.unsplashAccessKey,
-    );
-    if (result == null || !_settingsService.unsplashSlideshowEnabled) return;
-    final (file, author) = result;
-    _slideshowFile = file;
-    await _settingsService.setUnsplashAuthor(author);
-    _updateWallpaper(force: true);
-  }
-
-  void _updateRedditState() {
-    _redditTimer?.cancel();
-    _redditTimer = null;
-    if (!_settingsService.redditWallpaperEnabled) return;
-    final interval = Duration(minutes: _settingsService.redditIntervalMinutes);
-    _redditTimer = Timer.periodic(interval, (_) => advanceRedditWallpaper());
-    final file = _redditFile;
-    if (file == null || DateTime.now().difference(file.lastModifiedSync()) >= interval) {
-      advanceRedditWallpaper();
-    }
-  }
-
-  Future<void> advanceRedditWallpaper() async {
-    final result = await _redditSlideshow.next(
-      subreddits: _settingsService.redditSubreddits,
-      sort: RedditSort.fromKey(_settingsService.redditSort),
-      clientId: _settingsService.redditClientId.isNotEmpty ? _settingsService.redditClientId : null,
-      clientSecret: _settingsService.redditClientSecret.isNotEmpty ? _settingsService.redditClientSecret : null,
-      random: _random,
-    );
-    if (result == null || !_settingsService.redditWallpaperEnabled) return;
-    final (file, post) = result;
-    _redditFile = file;
-    await _settingsService.setRedditWallpaperInfo(title: post.title, author: post.author, subreddit: post.subreddit);
-    _updateWallpaper(force: true);
-  }
-
-  void _updateTimerState() {
-    final enabled = _settingsService.timeBasedWallpaperEnabled;
-    if (enabled && (_timer == null || !_timer!.isActive)) {
-      _timer = Timer.periodic(const Duration(minutes: 1), (_) => _updateWallpaper());
-    } else if (!enabled && _timer != null) {
-      _timer?.cancel();
-      _timer = null;
-    }
-  }
-
-  File? _resolveActiveVideoFile() {
-    if (!isInitialized) return null;
-    if (_settingsService.redditWallpaperEnabled) return null;
-    if (_settingsService.unsplashSlideshowEnabled) return null;
-
-    final now = DateTime.now();
-    final isDay = now.hour >= 6 && now.hour < 18;
-    final enabled = _settingsService.timeBasedWallpaperEnabled;
-
-    if (enabled) {
-      if (isDay && _wallpaperDayVideoFile.existsSync()) {
-        return _wallpaperDayVideoFile;
-      }
-      if (!isDay && _wallpaperNightVideoFile.existsSync()) {
-        return _wallpaperNightVideoFile;
-      }
-      if (_wallpaperVideoFile.existsSync()) {
-        return _wallpaperVideoFile;
-      }
-    } else if (_wallpaperVideoFile.existsSync()) {
-      return _wallpaperVideoFile;
-    }
-    return null;
-  }
-
-  bool get isInitialized => _initialized;
-
-  void _updateWallpaper({bool force = false}) {
-    final now = DateTime.now();
-    final isDay = now.hour >= 6 && now.hour < 18;
-    final enabled = _settingsService.timeBasedWallpaperEnabled;
-
-    final videoFile = _resolveActiveVideoFile();
-
-    ImageProvider? newWallpaper;
-
-    final slideshowFile = _slideshowFile;
-    final redditFile = _redditFile;
-    if (_settingsService.redditWallpaperEnabled && redditFile != null && redditFile.existsSync()) {
-      newWallpaper = FileImage(redditFile);
-    } else if (_settingsService.unsplashSlideshowEnabled && slideshowFile != null && slideshowFile.existsSync()) {
-      newWallpaper = FileImage(slideshowFile);
-    } else if (videoFile != null) {
-      newWallpaper = null;
-    } else if (enabled) {
-      if (isDay && _wallpaperDayFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperDayFile);
-      } else if (!isDay && _wallpaperNightFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperNightFile);
-      } else if (_wallpaperFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperFile); // Fallback
-      }
-    } else if (_wallpaperFile.existsSync()) {
-      newWallpaper = FileImage(_wallpaperFile);
-    }
-
-    if (_wallpaper != newWallpaper || videoFile != null || force) {
-      _wallpaper = newWallpaper;
-      _wallpaperRevision++;
-      notifyListeners();
-    }
-  }
-
-  Future<void> pickWallpaper(File sourceFile) async {
-    await _saveImage(sourceFile, _wallpaperFile);
-  }
-
-  Future<void> pickWallpaperFromUri(String sourceUri) async {
-    await _saveImageBytes(await _channel.loadContentUriImage(sourceUri), _wallpaperFile);
-  }
-
-  Future<void> pickWallpaperDay(File sourceFile) async {
-    await _saveImage(sourceFile, _wallpaperDayFile);
-  }
-
-  Future<void> pickWallpaperDayFromUri(String sourceUri) async {
-    await _saveImageBytes(await _channel.loadContentUriImage(sourceUri), _wallpaperDayFile);
-  }
-
-  Future<void> pickWallpaperNight(File sourceFile) async {
-    await _saveImage(sourceFile, _wallpaperNightFile);
-  }
-
-  Future<void> pickWallpaperNightFromUri(String sourceUri) async {
-    await _saveImageBytes(await _channel.loadContentUriImage(sourceUri), _wallpaperNightFile);
-  }
-
-  Future<void> pickVideoWallpaper(File sourceFile) async {
-    await _saveVideo(sourceFile, _wallpaperVideoFile);
-  }
-
-  Future<void> pickVideoWallpaperDay(File sourceFile) async {
-    await _saveVideo(sourceFile, _wallpaperDayVideoFile);
-  }
-
-  Future<void> pickVideoWallpaperNight(File sourceFile) async {
-    await _saveVideo(sourceFile, _wallpaperNightVideoFile);
-  }
-
-  Future<void> _saveImage(File sourceFile, File targetFile) async {
-    if (_settingsService.redditWallpaperEnabled) {
-      await _settingsService.setRedditWallpaperEnabled(false);
-    }
-    if (_settingsService.unsplashSlideshowEnabled) {
-      await _settingsService.setUnsplashSlideshowEnabled(false);
-    }
-    await _replacePairedVideo(targetFile);
-
-    final readStream = sourceFile.openRead();
-    final writeStream = targetFile.openWrite();
-    await readStream.cast<List<int>>().pipe(writeStream);
-
-    await _refreshImageWallpaper(targetFile);
-  }
-
-  Future<void> _saveImageBytes(Uint8List imageBytes, File targetFile) async {
-    if (imageBytes.isEmpty) {
-      throw StateError('Unable to read the selected image');
-    }
-
-    if (_settingsService.redditWallpaperEnabled) {
-      await _settingsService.setRedditWallpaperEnabled(false);
-    }
-    if (_settingsService.unsplashSlideshowEnabled) {
-      await _settingsService.setUnsplashSlideshowEnabled(false);
-    }
-
-    await _replacePairedVideo(targetFile);
-    await targetFile.writeAsBytes(imageBytes, flush: true);
-
-    await _refreshImageWallpaper(targetFile);
-  }
-
-  Future<void> _replacePairedVideo(File targetFile) async {
-    // Setting an image means the user no longer wants a video wallpaper, so
-    // remove all video wallpaper files (including unrelated ones like the
-    // general wallpaper_video when setting wallpaper_day) to prevent stale
-    // video playback after switching.
-    await cleanVideoWallpaperFiles();
-  }
-
-  Future<void> _refreshImageWallpaper(File targetFile) async {
-    await FileImage(targetFile).evict();
-    PaintingBinding.instance.imageCache.clear();
-    PaintingBinding.instance.imageCache.clearLiveImages();
-
-    _updateWallpaper(force: true);
-  }
-
-  Future<void> _saveVideo(File sourceFile, File targetVideoFile) async {
-    final pairedImage = _pairedImageForVideo(targetVideoFile);
-    if (pairedImage != null && await pairedImage.exists()) {
-      await pairedImage.delete();
-    }
-
-    if (_settingsService.redditWallpaperEnabled) {
-      await _settingsService.setRedditWallpaperEnabled(false);
-    }
-    if (_settingsService.unsplashSlideshowEnabled) {
-      await _settingsService.setUnsplashSlideshowEnabled(false);
-    }
-
-    final readStream = sourceFile.openRead();
-    final writeStream = targetVideoFile.openWrite();
-    await readStream.cast<List<int>>().pipe(writeStream);
-
-    _updateWallpaper(force: true);
-  }
-
-  File? _pairedImageForVideo(File videoFile) {
-    if (videoFile.path == _wallpaperVideoFile.path) return _wallpaperFile;
-    if (videoFile.path == _wallpaperDayVideoFile.path) return _wallpaperDayFile;
-    if (videoFile.path == _wallpaperNightVideoFile.path) return _wallpaperNightFile;
-    return null;
-  }
-
-  Future<void> setGradient(FLauncherGradient fLauncherGradient) async {
-    await cleanImageWallpaperFiles();
-    await cleanVideoWallpaperFiles();
-
-    if (_settingsService.redditWallpaperEnabled) {
-      await _settingsService.setRedditWallpaperEnabled(false);
-    }
-    if (_settingsService.unsplashSlideshowEnabled) {
-      await _settingsService.setUnsplashSlideshowEnabled(false);
-    }
-
-    await _settingsService.setGradientUuid(fLauncherGradient.uuid);
-    // Drop the in-memory wallpaper provider so the gradient is shown instead of
-    // the (now deleted) image/video file. _updateWallpaper notifies listeners.
-    _updateWallpaper(force: true);
-  }
-
-  // Cleaning methods
-
-  Future<void> cleanVideoWallpaperFiles() async {
-    if (await _wallpaperVideoFile.exists()) {
-      await _wallpaperVideoFile.delete();
-    }
-
-    if (await _wallpaperDayVideoFile.exists()) {
-      await _wallpaperDayVideoFile.delete();
-    }
-
-    if (await _wallpaperNightVideoFile.exists()) {
-      await _wallpaperNightVideoFile.delete();
-    }
-  }
-
-  Future<void> cleanImageWallpaperFiles() async {
-    if (await _wallpaperFile.exists()) {
-      await _wallpaperFile.delete();
-    }
-
-    if (await _wallpaperDayFile.exists()) {
-      await _wallpaperDayFile.delete();
-    }
-
-    if (await _wallpaperNightFile.exists()) {
-      await _wallpaperNightFile.delete();
-    }
   }
 }

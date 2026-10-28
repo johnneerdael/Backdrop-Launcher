@@ -16,129 +16,140 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:io';
-
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/providers/trakt_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
-import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
-import 'package:flauncher/widgets/settings/reddit_wallpaper_panel_page.dart';
-import 'package:flauncher/widgets/settings/unsplash_slideshow_panel_page.dart';
-import 'package:flauncher/widgets/tv_media_picker.dart';
 import 'package:flauncher/widgets/settings/settings_theme.dart';
+import 'package:flauncher/widgets/settings/trakt_catalogs_page.dart';
+import 'package:flauncher/widgets/settings/trakt_connect_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flauncher/l10n/app_localizations.dart';
-
-import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
 
 class WallpaperPanelPage extends StatelessWidget {
-  static const String routeName = "wallpaper_panel";
-
+  static const routeName = 'wallpaper_panel';
   const WallpaperPanelPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    AppLocalizations localizations = AppLocalizations.of(context)!;
-
+    final settings = context.watch<SettingsService>();
+    final wallpaper = context.watch<WallpaperService>();
+    final trakt = context.watch<TraktService>();
     return Column(
       children: [
-        SettingsPageHeader(title: localizations.wallpaper),
+        const SettingsPageHeader(title: 'Backdrops'),
         Expanded(
           child: ListView(
             children: [
-              Consumer<SettingsService>(
-                builder: (_, settings, __) {
-                  return RoundedSwitchListTile(
-                    title: Text(localizations.timeBasedWallpaper),
-                    secondary: Icon(Icons.access_time),
-                    value: settings.timeBasedWallpaperEnabled,
-                    onChanged: (value) => settings.setTimeBasedWallpaperEnabled(value),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image(
+                    image: ResizeImage(wallpaper.wallpaper, width: 640),
+                    height: 150,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              FocusableSettingsTile(
+                autofocus: true,
+                leading: const Icon(Icons.skip_next),
+                title: Text(
+                  wallpaper.isLoading ? 'Loading backdrop…' : 'Next backdrop',
+                ),
+                subtitle: Text(
+                  wallpaper.title ?? '10 included cinematic backdrops',
+                ),
+                onPressed: wallpaper.isLoading
+                    ? null
+                    : () => wallpaper.nextBackdrop(),
+              ),
+              FocusableSettingsTile(
+                leading: const Icon(Icons.timer_outlined),
+                title: const Text('Change backdrop every'),
+                trailing: Text('${settings.backdropIntervalMinutes} min'),
+                onPressed: () {
+                  final choices = SettingsService.backdropIntervalChoices;
+                  settings.setBackdropIntervalMinutes(
+                    choices[(choices.indexOf(settings.backdropIntervalMinutes) +
+                            1) %
+                        choices.length],
                   );
                 },
               ),
-              Consumer<SettingsService>(
-                builder: (_, settings, __) {
-                  if (settings.timeBasedWallpaperEnabled) {
-                    return Column(
-                      children: [
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.wb_sunny),
-                          title: Text(localizations.pickDayWallpaper),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickWallpaperDayFromUri(media.uri), false),
-                        ),
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.videocam_outlined),
-                          title: Text(localizations.pickDayVideoWallpaper),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickVideoWallpaperDay(File(media.path)), true),
-                        ),
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.nights_stay),
-                          title: Text(localizations.pickNightWallpaper),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickWallpaperNightFromUri(media.uri), false),
-                        ),
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.videocam_outlined),
-                          title: Text(localizations.pickNightVideoWallpaper),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickVideoWallpaperNight(File(media.path)), true),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return Column(
-                      children: [
-                        FocusableSettingsTile(
-                          autofocus: true,
-                          leading: Icon(Icons.gradient),
-                          title: Text(localizations.gradient, style: Theme.of(context).textTheme.bodyMedium),
-                          onPressed: () => Navigator.of(context).pushNamed(GradientPanelPage.routeName),
-                        ),
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.insert_drive_file_outlined),
-                          title: Text(localizations.picture, style: Theme.of(context).textTheme.bodyMedium),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickWallpaperFromUri(media.uri), false),
-                        ),
-                        FocusableSettingsTile(
-                          leading: Icon(Icons.videocam_outlined),
-                          title: Text(localizations.video, style: Theme.of(context).textTheme.bodyMedium),
-                          onPressed: () =>
-                              _pickWallpaper(context, (s, media) => s.pickVideoWallpaper(File(media.path)), true),
-                        ),
-                      ],
-                    );
-                  }
-                },
+              const SettingsSectionDivider(),
+              FocusableSettingsTile(
+                leading: Icon(trakt.isConnected ? Icons.link : Icons.link_off),
+                title: Text(
+                  trakt.isConnected ? 'Trakt connected' : 'Connect Trakt',
+                ),
+                subtitle: Text(
+                  trakt.isConfigured
+                      ? 'Choose movie and TV backdrops from Trakt.'
+                      : 'Trakt is not configured in this build.',
+                ),
+                onPressed: trakt.isConnected || !trakt.isConfigured
+                    ? null
+                    : () async {
+                        final connected = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => const TraktConnectDialog(),
+                        );
+                        if (connected == true)
+                          await settings.setTraktBackdropsEnabled(true);
+                      },
               ),
               FocusableSettingsTile(
-                leading: const Icon(Icons.slideshow),
-                title: Text(localizations.unsplashSlideshow),
-                onPressed: () => Navigator.of(context).pushNamed(UnsplashSlideshowPanelPage.routeName),
+                title: const Text('Use Trakt backdrops'),
+                subtitle: const Text(
+                  'Included backdrops are used when offline.',
+                ),
+                leading: Icon(
+                  settings.traktBackdropsEnabled && trakt.isConnected
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                ),
+                onPressed: !trakt.isConnected
+                    ? null
+                    : () => settings.setTraktBackdropsEnabled(
+                        !settings.traktBackdropsEnabled,
+                      ),
               ),
               FocusableSettingsTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: Text(localizations.redditWallpaper),
-                onPressed: () => Navigator.of(context).pushNamed(RedditWallpaperPanelPage.routeName),
+                title: const Text('Catalogs & lists'),
+                leading: const Icon(Icons.video_library_outlined),
+                onPressed: !trakt.isConnected
+                    ? null
+                    : () => Navigator.of(
+                        context,
+                      ).pushNamed(TraktCatalogsPage.routeName),
+              ),
+              if (wallpaper.error != null)
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(wallpaper.error!),
+                ),
+              if (trakt.isConnected)
+                FocusableSettingsTile(
+                  title: const Text('Disconnect Trakt'),
+                  leading: const Icon(Icons.logout),
+                  onPressed: () async {
+                    await settings.setTraktBackdropsEnabled(false);
+                    await trakt.disconnect();
+                  },
+                ),
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Backdrops provided by TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.',
+                  style: TextStyle(fontSize: 11, color: Colors.white60),
+                ),
               ),
             ],
           ),
         ),
       ],
     );
-  }
-
-  Future<void> _pickWallpaper(
-    BuildContext context,
-    Future<void> Function(WallpaperService, TvMediaSelection) action,
-    bool isVideo,
-  ) async {
-    final media = await TvMediaPicker.show(context, mode: isVideo ? TvMediaPickerMode.video : TvMediaPickerMode.image);
-    if (media != null && context.mounted) {
-      await action(context.read<WallpaperService>(), media);
-    }
   }
 }

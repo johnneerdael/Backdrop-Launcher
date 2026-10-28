@@ -46,7 +46,9 @@ class WatchNextMaxItemsPage extends StatelessWidget {
                     _radioTile(
                       context,
                       service,
-                      count == 0 ? localizations.watchNextMaxItemsUnlimited : '$count',
+                      count == 0
+                          ? localizations.watchNextMaxItemsUnlimited
+                          : '$count',
                       count,
                       autofocus: currentMax == count,
                     ),
@@ -72,7 +74,9 @@ class WatchNextMaxItemsPage extends StatelessWidget {
       frameLeading: false,
       leading: Icon(
         isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-        color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey,
+        color: isSelected
+            ? Theme.of(context).colorScheme.secondary
+            : Colors.grey,
       ),
       title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       onPressed: () => service.setWatchNextMaxItems(value),

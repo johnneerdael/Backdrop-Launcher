@@ -43,7 +43,10 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
   bool _isRefreshing = false;
   bool _showAllApps = false;
 
-  Future<void> _refreshContent(BuildContext context, AppLocalizations localizations) async {
+  Future<void> _refreshContent(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     try {
@@ -76,7 +79,9 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
 
     final List<String> displayPkgs;
     if (_showAllApps) {
-      final allInstalled = appsService.applications.map((a) => a.packageName).toSet();
+      final allInstalled = appsService.applications
+          .map((a) => a.packageName)
+          .toSet();
       displayPkgs = {...knownPkgs, ...allInstalled}.toList();
     } else {
       displayPkgs = knownPkgs.toList();
@@ -109,7 +114,10 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                     }
                   }
                 },
-                title: Text(localizations.showWatchNextSection, style: Theme.of(context).textTheme.bodyMedium),
+                title: Text(
+                  localizations.showWatchNextSection,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: const Icon(Icons.play_circle_outline),
               ),
 
@@ -118,7 +126,9 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Card(
-                      color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.errorContainer.withValues(alpha: 0.5),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -135,8 +145,11 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton(
-                              onPressed: () => watchNextService.requestPermission(),
-                              child: Text(localizations.watchNextGrantPermission),
+                              onPressed: () =>
+                                  watchNextService.requestPermission(),
+                              child: Text(
+                                localizations.watchNextGrantPermission,
+                              ),
                             ),
                           ],
                         ),
@@ -147,18 +160,27 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                 RoundedSwitchListTile(
                   value: settingsService.watchNextBigPictureMode,
                   onChanged: settingsService.setWatchNextBigPictureMode,
-                  title: Text(localizations.watchNextBigPictureMode, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    localizations.watchNextBigPictureMode,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   subtitle: Text(
                     localizations.watchNextBigPictureModeDescription,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  secondary: const Icon(Icons.photo_size_select_actual_outlined),
+                  secondary: const Icon(
+                    Icons.photo_size_select_actual_outlined,
+                  ),
                 ),
 
                 RoundedSwitchListTile(
                   value: settingsService.watchNextHideProgramsWithoutImages,
-                  onChanged: settingsService.setWatchNextHideProgramsWithoutImages,
-                  title: Text(localizations.watchNextHideWithoutImages, style: Theme.of(context).textTheme.bodyMedium),
+                  onChanged:
+                      settingsService.setWatchNextHideProgramsWithoutImages,
+                  title: Text(
+                    localizations.watchNextHideWithoutImages,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   subtitle: Text(
                     localizations.watchNextHideWithoutImagesDescription,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -168,7 +190,10 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
 
                 FocusableSettingsTile(
                   leading: const Icon(Icons.format_list_numbered),
-                  title: Text(localizations.watchNextMaxItems, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    localizations.watchNextMaxItems,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   subtitle: Text(
                     settingsService.watchNextMaxItems == 0
                         ? localizations.watchNextMaxItemsUnlimited
@@ -176,7 +201,9 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   trailing: const Icon(Icons.chevron_right, size: 20),
-                  onPressed: () => Navigator.of(context).pushNamed(WatchNextMaxItemsPage.routeName),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(WatchNextMaxItemsPage.routeName),
                 ),
 
                 FocusableSettingsTile(
@@ -187,12 +214,17 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.refresh),
-                  title: Text(localizations.watchNextRefresh, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    localizations.watchNextRefresh,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   subtitle: Text(
                     localizations.watchNextRefreshDescription,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  onPressed: _isRefreshing ? null : () => _refreshContent(context, localizations),
+                  onPressed: _isRefreshing
+                      ? null
+                      : () => _refreshContent(context, localizations),
                 ),
 
                 const SettingsSectionDivider(),
@@ -201,8 +233,8 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                   child: Text(
                     localizations.watchNextFilterApps,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
                 Padding(
@@ -228,27 +260,44 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                   ...displayPkgs.map((pkg) {
                     final App? app = appsService.getApplication(pkg);
                     final String appName = app?.name ?? pkg;
-                    final bool isExcluded = settingsService.isWatchNextPackageExcluded(pkg);
+                    final bool isExcluded = settingsService
+                        .isWatchNextPackageExcluded(pkg);
 
                     return RoundedSwitchListTile(
                       value: !isExcluded,
-                      onChanged: (_) => settingsService.toggleWatchNextExcludedPackage(pkg),
-                      title: Text(appName, style: Theme.of(context).textTheme.bodyMedium),
+                      onChanged: (_) =>
+                          settingsService.toggleWatchNextExcludedPackage(pkg),
+                      title: Text(
+                        appName,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                       subtitle: Text(
                         pkg,
-                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white54,
+                        ),
                       ),
-                      secondary: _AppIcon(packageName: pkg, appsService: appsService),
+                      secondary: _AppIcon(
+                        packageName: pkg,
+                        appsService: appsService,
+                      ),
                     );
                   }),
 
                 const SizedBox(height: 8),
                 Center(
                   child: TextButton.icon(
-                    onPressed: () => setState(() => _showAllApps = !_showAllApps),
-                    icon: Icon(_showAllApps ? Icons.filter_list : Icons.apps_outlined, size: 18),
+                    onPressed: () =>
+                        setState(() => _showAllApps = !_showAllApps),
+                    icon: Icon(
+                      _showAllApps ? Icons.filter_list : Icons.apps_outlined,
+                      size: 18,
+                    ),
                     label: Text(
-                      _showAllApps ? localizations.watchNextFilterApps : localizations.watchNextShowAllApps,
+                      _showAllApps
+                          ? localizations.watchNextFilterApps
+                          : localizations.watchNextShowAllApps,
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),

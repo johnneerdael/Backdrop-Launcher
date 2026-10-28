@@ -33,54 +33,49 @@ class StatusBarPanelPage extends StatelessWidget {
     SettingsService settingsService = Provider.of(context);
 
     return Column(
-        children: [
-          SettingsPageHeader(title: localizations.statusBar),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                RoundedSwitchListTile(
-                  autofocus: true,
-                  value: settingsService.autoHideAppBarEnabled,
-                  onChanged: (value) => settingsService.setAutoHideAppBarEnabled(value),
-                  title: Text(localizations.autoHideAppBar, style: Theme.of(context).textTheme.bodyMedium),
-                  secondary: const Icon(Icons.visibility_off_outlined),
+      children: [
+        SettingsPageHeader(title: localizations.statusBar),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              RoundedSwitchListTile(
+                autofocus: true,
+                value: settingsService.autoHideAppBarEnabled,
+                onChanged: (value) =>
+                    settingsService.setAutoHideAppBarEnabled(value),
+                title: Text(
+                  localizations.autoHideAppBar,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                RoundedSwitchListTile(
-                  value: settingsService.hideStatusBarInGrid,
-                  onChanged: (value) => settingsService.setHideStatusBarInGrid(value),
-                  title: Text(localizations.hideStatusBarInGrid, style: Theme.of(context).textTheme.bodyMedium),
-                  secondary: const Icon(Icons.grid_view_outlined),
-                ),
-                const SettingsSectionDivider(),
-                RoundedSwitchListTile(
-                  value: settingsService.showDateInStatusBar,
-                  onChanged: (value) => settingsService.setShowDateInStatusBar(value),
-                  title: Text(localizations.date),
-                  secondary: Icon(Icons.calendar_today_outlined)
-                ),
-                RoundedSwitchListTile(
-                  value: settingsService.showTimeInStatusBar,
-                  onChanged: (value) => settingsService.setShowTimeInStatusBar(value),
-                  title: Text(localizations.time),
-                  secondary: Icon(Icons.watch_later_outlined)
-                ),
-                RoundedSwitchListTile(
-                  value: settingsService.showWifiWidgetInStatusBar,
-                  onChanged: (value) => settingsService.setShowWifiWidgetInStatusBar(value),
-                  title: Text(localizations.wifiUsage),
-                  secondary: Icon(Icons.wifi)
-                ),
-                RoundedSwitchListTile(
-                  value: settingsService.showNetworkIndicatorInStatusBar,
-                  onChanged: (value) => settingsService.setShowNetworkIndicatorInStatusBar(value),
-                  title: Text(localizations.networkIndicator),
-                  secondary: Icon(Icons.signal_wifi_4_bar)
-                ),
-              ],
-            ),
+                secondary: const Icon(Icons.visibility_off_outlined),
+              ),
+              const SettingsSectionDivider(),
+              RoundedSwitchListTile(
+                value: settingsService.showDateInStatusBar,
+                onChanged: (value) =>
+                    settingsService.setShowDateInStatusBar(value),
+                title: Text(localizations.date),
+                secondary: Icon(Icons.calendar_today_outlined),
+              ),
+              RoundedSwitchListTile(
+                value: settingsService.showTimeInStatusBar,
+                onChanged: (value) =>
+                    settingsService.setShowTimeInStatusBar(value),
+                title: Text(localizations.time),
+                secondary: Icon(Icons.watch_later_outlined),
+              ),
+              RoundedSwitchListTile(
+                value: settingsService.showNetworkIndicatorInStatusBar,
+                onChanged: (value) =>
+                    settingsService.setShowNetworkIndicatorInStatusBar(value),
+                title: Text(localizations.networkIndicator),
+                secondary: Icon(Icons.signal_wifi_4_bar),
+              ),
+            ],
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }

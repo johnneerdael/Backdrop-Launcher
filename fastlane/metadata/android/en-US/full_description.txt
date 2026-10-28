@@ -1,35 +1,12 @@
-LTvLauncher is a fork of FLauncher - an open-source alternative launcher for Android TV.
+Backdrop Launcher gives your Android TV a cinematic home built around your apps and your artwork.
 
-This customized version introduces usability enhancements and UX improvements.
+• Create, arrange and hide app rows.
+• Resume Continue Watching items shared by compatible TV apps.
+• Enjoy included offline backdrops or connect Trakt for movie and show artwork.
+• Choose app artwork, accent colors, focus outlines and tile background opacity.
+• Customize the clock, date and quiet clock screensaver.
+• Restore locally cached home artwork on startup with no added branding splash.
 
-Key Features & Enhancements:
+Trakt provides backdrop selections; it does not synchronize viewing history. Continue Watching availability depends on your TV firmware and the apps that publish resume items.
 
-- Data Usage Widget - Track daily Internet consumption directly from the status bar.
-- Inbuilt OLED Screensaver - Minimal screensaver with 30s clock position shifting to prevent burn-in.
-- Easy WiFi Access - Network indicator doubles as a shortcut to system WiFi settings.
-- Quick Presets - Select Time/Date formats and Category names from a list (No keyboard required).
-- Time-Based Wallpaper - Automatically switch between day and night backgrounds.
-- Pitch Black Wallpaper - Added a true black gradient background option.
-- Enhanced Focus Indicator - New double-border design ensures perfect visibility on any background.
-- Smart Navigation - Fixed "bounce back" issues and optimized focus traversal for a smoother experience.
-- Refined Settings - Reorganized menus with a new "Miscellaneous" section and unified focus styles.
-- Accent Color Support - Personalize the UI with multiple color presets.
-- Improved Sorting - Easily reorder categories using Left/Right arrow keys instead of finicky gestures.
-- Left Side Settings - Reorganized settings panel now opens on the left for better reach.
-- Brightness Scheduler (Experimental) - Automatically adjust system brightness based on time of day (Requires WRITE_SETTINGS permission via ADB).
-- New Category - Added "Favorites".
-- Optimizations - Improved performance with aggressive icon caching and code cleanups.
-
-Original FLauncher Features:
-
-- No ads
-- Customizable categories
-- Manually reorder apps within categories
-- Wallpaper support
-- Open "Android Settings"
-- Open "App info"
-- Uninstall app
-- Clock
-- Switch between row and grid for categories
-- Support for non-TV (sideloaded) apps
-- Navigation sound feedback
+Open source, GPL v3 or later. Built on Arc Launcher, LTvLauncher and FLauncher.

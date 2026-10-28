@@ -1,139 +1,188 @@
-/*
- * FLauncher
- * Copyright (C) 2021  Étienne Fesser
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+import 'dart:math' as math;
 
+import 'package:flauncher/models/app.dart';
+import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/app_card.dart';
-import 'package:flauncher/widgets/category_container_common.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/app.dart';
-import '../models/category.dart';
-import '../providers/settings_service.dart';
-
-class CategoryRow extends StatelessWidget
-{
+class CategoryRow extends StatefulWidget {
   final Category category;
   final List<App> applications;
-
   final bool isFirstSection;
   final bool showTitle;
   final VoidCallback? onAppFocused;
-
-  CategoryRow({
-    Key? key,
+  final ValueChanged<int>? onFocusIndexChanged;
+  final bool ensureVerticalOnFocus;
+  const CategoryRow({
+    super.key,
     required this.category,
     required this.applications,
     this.isFirstSection = false,
     this.showTitle = true,
     this.onAppFocused,
-  }) : super(key: key);
+    this.onFocusIndexChanged,
+    this.ensureVerticalOnFocus = true,
+  });
+  @override
+  State<CategoryRow> createState() => CategoryRowState();
+}
+
+class CategoryRowState extends State<CategoryRow> {
+  final ScrollController _scroll = ScrollController();
+  final Map<String, FocusNode> _focus = {};
+  double _slotWidth = 1;
+
+  void requestAppFocus(int index, {bool Function()? shouldFocus}) {
+    if (widget.applications.isEmpty) return;
+    final position = index.clamp(0, widget.applications.length - 1);
+    if (_scroll.hasClients) {
+      final target =
+          (position * _slotWidth -
+                  (_scroll.position.viewportDimension - _slotWidth) / 2)
+              .clamp(0.0, _scroll.position.maxScrollExtent);
+      _scroll.jumpTo(target);
+    }
+    final node = _node(widget.applications[position]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && (shouldFocus?.call() ?? true)) node.requestFocus();
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  FocusNode _node(App app) => _focus.putIfAbsent(
+    app.packageName,
+    () => FocusNode(debugLabel: app.packageName),
+  );
+
+  void _focused(int index) {
+    widget.onFocusIndexChanged?.call(index);
+    widget.onAppFocused?.call();
+    final context = _node(widget.applications[index]).context;
+    final render = context?.findRenderObject();
+    if (context != null && render != null) {
+      Scrollable.maybeOf(
+        context,
+        axis: Axis.horizontal,
+      )?.position.ensureVisible(
+        render,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final showAppNames = context.select<SettingsService, bool>((s) => s.showAppNamesBelowIcons);
-    Widget categoryContent;
-    if (applications.isEmpty) {
-      categoryContent = categoryContainerEmptyState(context);
-    }
-    else {
-      categoryContent = SizedBox(
-        height: category.rowHeight.toDouble() + (showAppNames ? kAppNameLabelHeight : 0),
-        child: ListView.custom(
-          padding: const EdgeInsets.all(8),
-          scrollDirection: Axis.horizontal,
-          childrenDelegate: SliverChildBuilderDelegate(
-            childCount: applications.length,
-            findChildIndexCallback: _findChildIndex,
-            (context, index) => Padding(
-                key: Key(applications[index].packageName),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: AppCard(
-                  category: category,
-                  application: applications[index],
-                  autofocus: index == 0,
-                  handleUpNavigationToSettings: isFirstSection,
-                  onFocused: onAppFocused,
-                  onMove: (direction) => _onMove(context, direction, index),
-                  onMoveEnd: () => _onMoveEnd(context)
-                )
-            )
-          )
-        )
-      );
-    }
-
-    if (!showTitle) return categoryContent;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Selector<SettingsService, bool>(
-          selector: (context, service) => service.showCategoryTitles,
-          builder: (context, showCategoriesTitle, _) {
-            if (showCategoriesTitle) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Text(category.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge!
-                      .copyWith(shadows: [const Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)])
+    final showNames = context.select<SettingsService, bool>(
+      (s) => s.showAppNamesBelowIcons,
+    );
+    final showTitle =
+        widget.showTitle &&
+        context.select<SettingsService, bool>((s) => s.showCategoryTitles);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final extra =
+            (showNames ? kAppNameLabelHeight : 0) + (showTitle ? 36.0 : 0) + 16;
+        final available = constraints.maxHeight.isFinite
+            ? math.max(48.0, constraints.maxHeight - extra)
+            : widget.category.rowHeight.toDouble();
+        final cardHeight = math.min(
+          widget.category.rowHeight.toDouble(),
+          available,
+        );
+        _slotWidth = cardHeight * kAppCardAspectRatio + 24;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showTitle)
+              Padding(
+                padding: const EdgeInsets.only(left: 36, bottom: 8),
+                child: Text(
+                  widget.category.name,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    shadows: const [
+                      Shadow(color: Colors.black54, blurRadius: 8),
+                    ],
+                  ),
                 ),
-              );
-            }
-
-            return SizedBox.shrink();
-          }
-        ),
-        categoryContent
-      ],
+              ),
+            SizedBox(
+              height: cardHeight + (showNames ? kAppNameLabelHeight : 0) + 16,
+              child: ListView.builder(
+                key: PageStorageKey('row_apps_${widget.category.id}'),
+                controller: _scroll,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                scrollDirection: Axis.horizontal,
+                itemCount: widget.applications.length,
+                findChildIndexCallback: (key) {
+                  if (key is! ValueKey<String>) return null;
+                  final index = widget.applications.indexWhere(
+                    (app) => app.packageName == key.value,
+                  );
+                  return index < 0 ? null : index;
+                },
+                itemBuilder: (context, index) {
+                  final app = widget.applications[index];
+                  return Padding(
+                    key: ValueKey(app.packageName),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      width: cardHeight * kAppCardAspectRatio,
+                      child: AppCard(
+                        focusNode: _node(app),
+                        category: widget.category,
+                        application: app,
+                        autofocus: widget.isFirstSection && index == 0,
+                        handleUpNavigationToSettings: false,
+                        ensureVisibleOnFocus: widget.ensureVerticalOnFocus,
+                        onFocused: () => _focused(index),
+                        onMove: (direction) => _move(context, direction, index),
+                        onMoveEnd: () => context
+                            .read<AppsService>()
+                            .saveApplicationOrderInCategory(widget.category),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  int _findChildIndex(Key key) =>
-      applications.indexWhere((app) => app.packageName == (key as ValueKey<String>).value);
-
-  void _onMove(BuildContext context, AxisDirection direction, int index) {
-    int newIndex = 0;
-
-    if (direction == AxisDirection.right && index < applications.length - 1) {
-      newIndex = index + 1;
-    } else if (direction == AxisDirection.left && index > 0) {
-      newIndex = index - 1;
-    } else {
-      // Ignore UP/DOWN or at boundaries
-      return;
-    }
-
-    final appsService = context.read<AppsService>();
-    final movingApp = applications[index];
-    final realOldIndex = category.applications.indexOf(movingApp);
-    final realNewIndex = category.applications.indexOf(applications[newIndex]);
-    if (realOldIndex >= 0 && realNewIndex >= 0) {
-      appsService.reorderApplication(category, realOldIndex, realNewIndex);
-      // Set pending focus so the app at the new position will request focus
-      appsService.setPendingReorderFocus(movingApp.packageName, category.id);
-    }
+  void _move(BuildContext context, AxisDirection direction, int index) {
+    final next =
+        index +
+        (direction == AxisDirection.right
+            ? 1
+            : direction == AxisDirection.left
+            ? -1
+            : 0);
+    if (next == index || next < 0 || next >= widget.applications.length) return;
+    final service = context.read<AppsService>();
+    service.setPendingReorderFocus(
+      widget.applications[index].packageName,
+      widget.category.id,
+    );
+    service.reorderApplication(widget.category, index, next);
   }
 
-  void _onMoveEnd(BuildContext context) {
-    final appsService = context.read<AppsService>();
-    appsService.saveApplicationOrderInCategory(category);
+  @override
+  void dispose() {
+    _scroll.dispose();
+    for (final node in _focus.values) {
+      node.dispose();
+    }
+    super.dispose();
   }
 }

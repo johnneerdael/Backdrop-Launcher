@@ -16,8 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-class App
-{
+class App {
   final String name;
 
   final String packageName;
@@ -39,19 +38,18 @@ class App
     required this.name,
     required this.version,
     required this.hidden,
-    this.action = null
-  }):
-    categoryOrders = Map(),
-    sideloaded = false;
+    this.lastLaunchedAt,
+    this.action = null,
+  }) : categoryOrders = Map(),
+       sideloaded = false;
 
-  App.fromSystem(Map<dynamic, dynamic> data):
-    packageName = data['packageName'],
-    name = data['name'],
-    version = data['version'],
-    hidden = false,
-    sideloaded = data['sideloaded'],
-    categoryOrders = Map() {
-
+  App.fromSystem(Map<dynamic, dynamic> data)
+    : packageName = data['packageName'],
+      name = data['name'],
+      version = data['version'],
+      hidden = false,
+      sideloaded = data['sideloaded'],
+      categoryOrders = Map() {
     if (data.containsKey('action')) {
       action = data['action'];
     }

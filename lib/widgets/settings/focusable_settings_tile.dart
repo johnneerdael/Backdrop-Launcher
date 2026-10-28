@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'settings_theme.dart';
 
@@ -14,6 +15,8 @@ class FocusableSettingsTile extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onPressed;
+  final VoidCallback? onRightPressed;
+  final VoidCallback? onLongPress;
   final bool autofocus;
 
   /// Shows a disclosure chevron when no [trailing] widget is provided.
@@ -30,6 +33,8 @@ class FocusableSettingsTile extends StatelessWidget {
     this.leading,
     this.trailing,
     this.onPressed,
+    this.onRightPressed,
+    this.onLongPress,
     this.autofocus = false,
     this.showChevron = false,
     this.frameLeading = true,
@@ -38,77 +43,105 @@ class FocusableSettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accentColor = Theme.of(context).colorScheme.primary;
-    final baseTextStyle = Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
+    final baseTextStyle =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
     // Icons get a tinted squircle behind them; arbitrary widgets (app icons,
     // spinners) are rendered untouched.
     final framedLeading = frameLeading && leading is Icon;
 
-    return SettingsFocusCard(
-      autofocus: autofocus,
-      onPressed: onPressed,
-      builder: (context, highlighted) => DefaultTextStyle.merge(
-        style: baseTextStyle.copyWith(
-          color: highlighted ? Colors.white : Colors.white.withValues(alpha: 0.9),
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              if (framedLeading)
-                AnimatedContainer(
-                  duration: SettingsStyle.focusDurationFor(context),
-                  curve: Curves.easeOutCubic,
-                  width: SettingsStyle.iconChipSize,
-                  height: SettingsStyle.iconChipSize,
-                  decoration: BoxDecoration(
-                    color: highlighted
-                        ? accentColor.withValues(alpha: 0.22)
-                        : Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(SettingsStyle.iconChipRadius),
-                    border: Border.all(
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) {
+        // A held remote button may keep repeating after a new page opens.
+        // Repeats must not activate that page's initially focused control.
+        if (event is KeyRepeatEvent &&
+            const [
+              LogicalKeyboardKey.select,
+              LogicalKeyboardKey.enter,
+              LogicalKeyboardKey.gameButtonA,
+              LogicalKeyboardKey.space,
+            ].contains(event.logicalKey)) {
+          return KeyEventResult.handled;
+        }
+        final open = onRightPressed ?? onPressed;
+        if (!showChevron ||
+            open == null ||
+            event.logicalKey != LogicalKeyboardKey.arrowRight) {
+          return KeyEventResult.ignored;
+        }
+        if (event is KeyDownEvent) open();
+        return KeyEventResult.handled;
+      },
+      child: SettingsFocusCard(
+        autofocus: autofocus,
+        onPressed: onPressed,
+        onLongPress: onLongPress,
+        builder: (context, highlighted) => DefaultTextStyle.merge(
+          style: baseTextStyle.copyWith(
+            color: highlighted
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.9),
+          ),
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                if (framedLeading)
+                  AnimatedContainer(
+                    duration: SettingsStyle.focusDurationFor(context),
+                    curve: Curves.easeOutCubic,
+                    width: SettingsStyle.iconChipSize,
+                    height: SettingsStyle.iconChipSize,
+                    decoration: BoxDecoration(
                       color: highlighted
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : Colors.white.withValues(alpha: 0.04),
+                          ? accentColor.withValues(alpha: 0.22)
+                          : Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(
+                        SettingsStyle.iconChipRadius,
+                      ),
+                      border: Border.all(
+                        color: highlighted
+                            ? Colors.white.withValues(alpha: 0.18)
+                            : Colors.white.withValues(alpha: 0.04),
+                      ),
                     ),
-                  ),
-                  child: IconTheme.merge(
-                    data: IconThemeData(
-                      size: SettingsStyle.iconSize,
-                      color: highlighted ? Colors.white : Colors.white.withValues(alpha: 0.78),
+                    child: IconTheme.merge(
+                      data: IconThemeData(
+                        size: SettingsStyle.iconSize,
+                        color: highlighted
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.78),
+                      ),
+                      child: Center(child: leading!),
                     ),
-                    child: Center(child: leading!),
-                  ),
-                )
-              else
-                leading!,
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: subtitle != null
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        title,
-                        const SizedBox(height: 2),
-                        subtitle!,
-                      ],
-                    )
-                  : title,
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: 12),
-              trailing!,
-            ] else if (showChevron) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: highlighted
-                    ? Colors.white.withValues(alpha: 0.85)
-                    : Colors.white.withValues(alpha: 0.25),
+                  )
+                else
+                  leading!,
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: subtitle != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [title, const SizedBox(height: 2), subtitle!],
+                      )
+                    : title,
               ),
+              if (trailing != null) ...[
+                const SizedBox(width: 12),
+                trailing!,
+              ] else if (showChevron) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: highlighted
+                      ? Colors.white.withValues(alpha: 0.85)
+                      : Colors.white.withValues(alpha: 0.25),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

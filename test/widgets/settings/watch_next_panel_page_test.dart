@@ -33,6 +33,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 class MockWatchNextServiceForPanel extends ChangeNotifier implements WatchNextService {
+  @override
+  Future<void> get ready => Future<void>.value();
+  @override
+  Future<void> startBackgroundRefresh() => refreshPermissionAndItems();
   bool _forceRefreshed = false;
   final Set<String> _packages = {'com.plexapp.android', 'com.netflix.ninja'};
 

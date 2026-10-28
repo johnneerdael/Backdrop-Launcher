@@ -50,7 +50,8 @@ class WatchNextItem {
   bool get hasImage {
     final poster = posterUri?.trim();
     final backdrop = backdropUri?.trim();
-    return (poster != null && poster.isNotEmpty) || (backdrop != null && backdrop.isNotEmpty);
+    return (poster != null && poster.isNotEmpty) ||
+        (backdrop != null && backdrop.isNotEmpty);
   }
 
   factory WatchNextItem.fromMap(Map<dynamic, dynamic> map) {
@@ -62,7 +63,7 @@ class WatchNextItem {
       backdropUri: map['backdropUri'],
       packageName: map['packageName'],
       contentId: map['contentId'],
-      progressPercent: map['progressPercent'],
+      progressPercent: _progress(map),
       duration: map['duration'],
       lastEngagementDate: map['lastEngagementDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['lastEngagementDate'])
@@ -71,6 +72,14 @@ class WatchNextItem {
       watchNextType: map['watchNextType'],
       aspectRatio: map['aspectRatio'],
     );
+  }
+
+  static int _progress(Map<dynamic, dynamic> map) {
+    final duration = map['duration'] as int? ?? 0;
+    final position = map['playbackPosition'] as int?;
+    if (position != null)
+      return duration > 0 ? (position * 100 ~/ duration).clamp(0, 100) : 0;
+    return (map['progressPercent'] as int? ?? 0).clamp(0, 100);
   }
 
   Map<String, dynamic> toMap() {

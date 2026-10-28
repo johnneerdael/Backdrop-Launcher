@@ -60,13 +60,19 @@ class FocusBorderThicknessPage extends StatelessWidget {
                             end: Alignment.bottomRight,
                             colors: [Color(0xFF2C2C31), Color(0xFF1A1A1D)],
                           ),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
                         ),
                         child: Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.tv, size: 28, color: Colors.white.withValues(alpha: 0.8)),
+                              Icon(
+                                Icons.tv,
+                                size: 28,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 "${currentThickness.toStringAsFixed(1)} dp",
@@ -152,7 +158,9 @@ class FocusBorderThicknessPage extends StatelessWidget {
       frameLeading: false,
       leading: Icon(
         isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-        color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey,
+        color: isSelected
+            ? Theme.of(context).colorScheme.secondary
+            : Colors.grey,
       ),
       title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       onPressed: () => service.setFocusBorderThickness(value),

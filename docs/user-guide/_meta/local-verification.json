@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "build_command": "/tmp/backdrop-guide-venv/bin/python -m mkdocs build --strict",
+  "result": "passed",
+  "html_pages_including_404": 20,
+  "content_pages": 19,
+  "local_references_checked": 1093,
+  "missing_files_or_anchors": 0,
+  "external_loaded_resources_in_html": [],
+  "screenshot_count": 16,
+  "screenshot_total_bytes": 883652,
+  "browser_checks": [
+    "Chrome: landing page at default desktop viewport in dark and light themes; full-frame hero and buttons readable.",
+    "Chrome: 390x844 landing and task page; body/document client/scroll widths 390, no document overflow.",
+    "Chrome: mobile navigation drawer and Your home submenu; Continue Watching navigation works.",
+    "Chrome: mobile full query Trakt returns 10 matching documents with correct query/share link.",
+    "Chrome: light palette persists through task-page navigation.",
+    "Chrome console warning/error query returned no entries on checked task page.",
+    "Temporary viewport override reset."
+  ],
+  "limitations": [
+    "Local build and browser inspection are not GitHub Pages publication or DNS verification.",
+    "Root will integrate and verify final deployed site; release download link depends on a real published APK.",
+    "Historical About/Settings root captures intentionally omitted to avoid the previous product-name strings."
+  ],
+  "placeholders": []
+}

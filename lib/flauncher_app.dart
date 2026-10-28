@@ -28,25 +28,10 @@ import 'package:provider/provider.dart';
 
 import 'flauncher.dart';
 
-class FLauncherApp extends StatelessWidget
-{
-  static const PrioritizedIntents _backIntents = PrioritizedIntents(orderedIntents: [
-    DismissIntent(),
-    BackIntent()
-  ]);
-
-  static const MaterialColor _swatch = MaterialColor(0xFF011526, <int, Color>{
-    50: Color(0xFF36A0FA),
-    100: Color(0xFF067BDE),
-    200: Color(0xFF045CA7),
-    300: Color(0xFF033662),
-    400: Color(0xFF022544),
-    500: Color(0xFF011526),
-    600: Color(0xFF000508),
-    700: Color(0xFF000000),
-    800: Color(0xFF000000),
-    900: Color(0xFF000000),
-  });
+class FLauncherApp extends StatelessWidget {
+  static const PrioritizedIntents _backIntents = PrioritizedIntents(
+    orderedIntents: [DismissIntent(), BackIntent()],
+  );
 
   const FLauncherApp();
 
@@ -59,102 +44,119 @@ class FLauncherApp extends StatelessWidget
     return Selector<SettingsService, Color>(
       selector: (_, settings) => settings.accentColor,
       builder: (context, accentColor, _) {
-
         return MaterialApp(
-      scrollBehavior: const MaterialScrollBehavior().copyWith(
-        overscroll: false,
-      ),
-      shortcuts: {
-        ...WidgetsApp.defaultShortcuts,
-        const SingleActivator(LogicalKeyboardKey.escape): _backIntents,
-        const SingleActivator(LogicalKeyboardKey.gameButtonB): _backIntents,
-        const SingleActivator(LogicalKeyboardKey.select): const ActivateIntent()
-      },
-      actions: {
-        ...WidgetsApp.defaultActions,
-        BackIntent: BackAction(context),
-        DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)
-      },
-      localizationsDelegates: [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      title: 'FLauncher',
-        theme: ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          // Use ColorScheme based on accent color
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: accentColor,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            overscroll: false,
+          ),
+          shortcuts: {
+            ...WidgetsApp.defaultShortcuts,
+            const SingleActivator(LogicalKeyboardKey.escape): _backIntents,
+            const SingleActivator(LogicalKeyboardKey.gameButtonB): _backIntents,
+            const SingleActivator(LogicalKeyboardKey.select):
+                const ActivateIntent(),
+          },
+          actions: {
+            ...WidgetsApp.defaultActions,
+            BackIntent: BackAction(context),
+            DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(
+              context,
+            ),
+          },
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          title: 'Backdrop Launcher',
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'Inter',
             brightness: Brightness.dark,
-            primary: accentColor,
-            secondary: accentColor,
-            surface: const Color(0xFF1E1E1E),
-            background: const Color(0xFF121212),
-          ),
-          cardColor: const Color(0xFF1E1E1E), // Dark surface color
-          canvasColor: const Color(0xFF121212),
-          scaffoldBackgroundColor: const Color(0xFF121212), // Dark background
-          textButtonTheme: TextButtonThemeData(
+            // Use ColorScheme based on accent color
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: accentColor,
+              brightness: Brightness.dark,
+              primary: accentColor,
+              secondary: accentColor,
+              surface: const Color(0xFF1C1927),
+              background: const Color(0xFF0D0D14),
+            ),
+            cardColor: const Color(0xFF1C1927), // Dark surface color
+            canvasColor: const Color(0xFF0D0D14),
+            scaffoldBackgroundColor: const Color(0xFF0D0D14), // Dark background
+            textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white, // Revert to white for settings list
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              )
+                foregroundColor:
+                    Colors.white, // Revert to white for settings list
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
+            ),
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: const Color(0xFF1C1927),
+              titleTextStyle: Typography.material2018().white.titleLarge,
+              contentTextStyle: Typography.material2018().white.bodyMedium,
+            ),
+            appBarTheme: const AppBarTheme(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+            ),
+            typography: Typography.material2018(),
+            inputDecorationTheme: InputDecorationTheme(
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white),
+              ),
+              labelStyle: Typography.material2018().white.bodyMedium,
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: accentColor,
+              selectionColor: accentColor.withOpacity(0.4),
+              selectionHandleColor: accentColor,
+            ),
+            progressIndicatorTheme: ProgressIndicatorThemeData(
+              color: accentColor,
+            ),
+            sliderTheme: SliderThemeData(
+              activeTrackColor: accentColor,
+              thumbColor: accentColor,
+              inactiveTrackColor: accentColor.withOpacity(0.3),
+            ),
+            toggleButtonsTheme: ToggleButtonsThemeData(
+              selectedColor: accentColor,
+              fillColor: accentColor.withOpacity(0.1),
+            ),
+            switchTheme: SwitchThemeData(
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) return accentColor;
+                return null;
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected))
+                  return accentColor.withOpacity(0.5);
+                return null;
+              }),
+            ),
+            tabBarTheme: TabBarThemeData(indicatorColor: accentColor),
           ),
-          dialogTheme: DialogThemeData(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: const Color(0xFF1E1E1E),
-            titleTextStyle: Typography.material2018().white.titleLarge,
-            contentTextStyle: Typography.material2018().white.bodyMedium,
+          home: Builder(
+            builder: (context) => PopScope(
+              canPop: false,
+              child: ExcludeSemantics(child: FLauncher()),
+              onPopInvoked: (didPop) {
+                LauncherState launcherState = context.read<LauncherState>();
+                launcherState.handleBackNavigation(context);
+              },
+            ),
           ),
-          appBarTheme: const AppBarTheme(elevation: 0, backgroundColor: Colors.transparent),
-          typography: Typography.material2018(),
-          inputDecorationTheme: InputDecorationTheme(
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-            labelStyle: Typography.material2018().white.bodyMedium,
-          ),
-          textSelectionTheme: TextSelectionThemeData(
-            cursorColor: accentColor,
-            selectionColor: accentColor.withOpacity(0.4),
-            selectionHandleColor: accentColor,
-          ),
-          progressIndicatorTheme: ProgressIndicatorThemeData(color: accentColor),
-          sliderTheme: SliderThemeData(
-            activeTrackColor: accentColor,
-            thumbColor: accentColor,
-            inactiveTrackColor: accentColor.withOpacity(0.3),
-          ),
-          toggleButtonsTheme: ToggleButtonsThemeData(
-            selectedColor: accentColor,
-            fillColor: accentColor.withOpacity(0.1),
-          ),
-          switchTheme: SwitchThemeData(
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return accentColor;
-              return null;
-            }),
-            trackColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return accentColor.withOpacity(0.5);
-              return null;
-            }),
-          ), tabBarTheme: TabBarThemeData(indicatorColor: accentColor),
-        ),
-      home: Builder(
-        builder: (context) => PopScope(
-          canPop: false,
-          child: ExcludeSemantics(
-            child: FLauncher(),
-          ),
-          onPopInvoked: (didPop) {
-            LauncherState launcherState = context.read<LauncherState>();
-            launcherState.handleBackNavigation(context);
-          }
-        )
-      ),
-      );
-    });
+        );
+      },
+    );
   }
 }

@@ -31,12 +31,13 @@ class SettingsSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     // The knob must stay readable whatever accent the user picked.
     final lightTrack = accentColor.computeLuminance() > 0.55;
-    final trackColor =
-        value ? accentColor : Colors.white.withValues(alpha: 0.16);
+    final trackColor = value
+        ? accentColor
+        : Colors.white.withValues(alpha: 0.16);
     final borderColor = value
         ? (lightTrack
-            ? Colors.black.withValues(alpha: 0.18)
-            : Colors.white.withValues(alpha: 0.18))
+              ? Colors.black.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.18))
         : Colors.white.withValues(alpha: 0.08);
 
     return Semantics(

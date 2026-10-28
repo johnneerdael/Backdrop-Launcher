@@ -53,6 +53,10 @@ android/app/upload-keystore.jks
 coverage/
 
 # Secrets
+.tmdb
+.trakt
+trakt-config.json
+*.local.json
 *.jks
 *.keystore
 keystore.properties
@@ -99,3 +103,8 @@ android/fastlane/report.xml
 android/fastlane/google_play_api_key.json
 android/fastlane/README.md
 
+
+# Historical capture archives remain local; public guide uses selected derivatives.
+docs/user-guide-capture/
+.venv-docs/
+site/

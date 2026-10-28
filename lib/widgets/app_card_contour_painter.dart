@@ -64,7 +64,11 @@ class AppCardContourPainter extends CustomPainter {
             colors: [
               Colors.white,
               accentColor,
-              Color.lerp(accentColor, Colors.white, 0.35)!.withValues(alpha: 0.85),
+              Color.lerp(
+                accentColor,
+                Colors.white,
+                0.35,
+              )!.withValues(alpha: 0.85),
             ],
           )
         : LinearGradient(
@@ -74,8 +78,11 @@ class AppCardContourPainter extends CustomPainter {
             colors: [
               Colors.white.withValues(alpha: (0.85 * alpha).clamp(0.0, 1.0)),
               accentColor.withValues(alpha: (0.75 * alpha).clamp(0.0, 1.0)),
-              Color.lerp(accentColor, Colors.white, 0.35)!
-                  .withValues(alpha: (0.50 * alpha).clamp(0.0, 1.0)),
+              Color.lerp(
+                accentColor,
+                Colors.white,
+                0.35,
+              )!.withValues(alpha: (0.50 * alpha).clamp(0.0, 1.0)),
             ],
           );
 

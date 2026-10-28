@@ -16,6 +16,10 @@ import '../mocks.dart';
 import '../mocks.mocks.dart';
 
 class TestWatchNextService extends ChangeNotifier implements WatchNextService {
+  @override
+  Future<void> get ready => Future<void>.value();
+  @override
+  Future<void> startBackgroundRefresh() => refreshPermissionAndItems();
   List<WatchNextItem> _items = [];
   int _activeHeroIndex = 0;
   WatchNextItem? launchedItem;

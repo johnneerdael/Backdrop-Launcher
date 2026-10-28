@@ -23,6 +23,7 @@ import 'package:flauncher/widgets/settings/applications_panel_page.dart';
 import 'package:flauncher/widgets/settings/general_settings_page.dart';
 import 'package:flauncher/widgets/settings/interface_settings_page.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
+import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -85,18 +86,30 @@ void main() {
     expect(find.byKey(const Key("GeneralSettingsPage")), findsOneWidget);
   });
 
-  testWidgets("'System settings' calls AppsService", (tester) async {
+  testWidgets("'System settings' closes the launcher settings dialog", (
+    tester,
+  ) async {
     final settingsService = MockSettingsService();
     final appsService = MockAppsService();
     when(appsService.categories).thenReturn([]);
     when(appsService.applications).thenReturn([]);
     when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
 
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
+    await _pumpWidgetWithProviders(
+      tester,
+      settingsService,
+      appsService,
+      asDialog: true,
+    );
+    await tester.tap(find.text("Open settings"));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPanel), findsOneWidget);
 
     await tester.tap(find.text("System settings"));
     await tester.pumpAndSettle();
-    verify(appsService.openSettings());
+    expect(find.byType(SettingsPanel), findsNothing);
+    expect(find.text("Open settings").hitTestable(), findsOneWidget);
+    verify(appsService.openSettings()).called(1);
   });
 
   testWidgets("'About' opens about dialog", (tester) async {
@@ -109,7 +122,7 @@ void main() {
 
     await _pumpWidgetWithProviders(tester, settingsService, appsService);
 
-    await tester.tap(find.text("About Arc Launcher"));
+    await tester.tap(find.text("About Backdrop Launcher"));
     await tester.pumpAndSettle();
     expect(find.byType(LTvLauncherAboutDialog), findsOneWidget);
   });
@@ -118,8 +131,9 @@ void main() {
 Future<void> _pumpWidgetWithProviders(
   WidgetTester tester,
   SettingsService settingsService,
-  AppsService appsService,
-) async {
+  AppsService appsService, {
+  bool asDialog = false,
+}) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
@@ -130,24 +144,44 @@ Future<void> _pumpWidgetWithProviders(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         routes: {
-          ApplicationsPanelPage.routeName: (_) => const Scaffold(body: Text("Apps", key: Key("ApplicationsPanelPage"))),
-          InterfaceSettingsPage.routeName: (_) => const Scaffold(body: Text("Interface", key: Key("InterfaceSettingsPage"))),
-          GeneralSettingsPage.routeName: (_) => const Scaffold(body: Text("System", key: Key("GeneralSettingsPage"))),
+          ApplicationsPanelPage.routeName: (_) => const Scaffold(
+            body: Text("Apps", key: Key("ApplicationsPanelPage")),
+          ),
+          InterfaceSettingsPage.routeName: (_) => const Scaffold(
+            body: Text("Interface", key: Key("InterfaceSettingsPage")),
+          ),
+          GeneralSettingsPage.routeName: (_) => const Scaffold(
+            body: Text("System", key: Key("GeneralSettingsPage")),
+          ),
         },
-        home: Material(child: SettingsPanelPage()),
+        home: asDialog
+            ? Scaffold(
+                body: Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => const SettingsPanel(),
+                    ),
+                    child: const Text("Open settings"),
+                  ),
+                ),
+              )
+            : Material(child: SettingsPanelPage()),
       ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
-class _MockPackageInfoPlatform with MockPlatformInterfaceMixin implements PackageInfoPlatform {
+class _MockPackageInfoPlatform
+    with MockPlatformInterfaceMixin
+    implements PackageInfoPlatform {
   @override
   Future<PackageInfoData> getAll({String? baseUrl}) async => PackageInfoData(
-        appName: "Arc Launcher",
-        packageName: "me.efesser.flauncher",
-        version: "1.0.0",
-        buildNumber: "1",
-        buildSignature: "",
-      );
+    appName: "Arc Launcher",
+    packageName: "me.efesser.flauncher",
+    version: "1.0.0",
+    buildNumber: "1",
+    buildSignature: "",
+  );
 }

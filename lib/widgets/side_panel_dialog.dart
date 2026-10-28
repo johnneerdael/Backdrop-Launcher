@@ -24,8 +24,12 @@ class SidePanelDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final accentColor = Theme.of(context).colorScheme.primary;
     final radius = BorderRadius.horizontal(
-      right: isRightSide ? Radius.zero : const Radius.circular(SettingsStyle.panelRadius),
-      left: isRightSide ? const Radius.circular(SettingsStyle.panelRadius) : Radius.zero,
+      right: isRightSide
+          ? Radius.zero
+          : const Radius.circular(SettingsStyle.panelRadius),
+      left: isRightSide
+          ? const Radius.circular(SettingsStyle.panelRadius)
+          : Radius.zero,
     );
 
     return Align(
@@ -42,7 +46,10 @@ class SidePanelDialog extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [SettingsStyle.panelTop, SettingsStyle.panelBottom],
+                      colors: [
+                        SettingsStyle.panelTop,
+                        SettingsStyle.panelBottom,
+                      ],
                     ),
                   ),
                 ),
@@ -52,7 +59,9 @@ class SidePanelDialog extends StatelessWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
-                        center: isRightSide ? const Alignment(1, -1.2) : const Alignment(-1, -1.2),
+                        center: isRightSide
+                            ? const Alignment(1, -1.2)
+                            : const Alignment(-1, -1.2),
                         radius: 1.4,
                         colors: [
                           accentColor.withValues(alpha: 0.20),
@@ -70,7 +79,10 @@ class SidePanelDialog extends StatelessWidget {
                 bottom: 0,
                 left: isRightSide ? 0 : null,
                 right: isRightSide ? null : 0,
-                child: Container(width: 1, color: Colors.white.withValues(alpha: 0.08)),
+                child: Container(
+                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
               ),
               Material(
                 color: Colors.transparent,

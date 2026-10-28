@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
+import 'dart:async';
+
 import 'package:flauncher/flauncher.dart';
 import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
@@ -27,11 +27,11 @@ import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
+import 'package:flauncher/models/watch_next_item.dart';
+import 'package:flauncher/widgets/watch_next_row.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
-import 'package:flauncher/widgets/apps_grid.dart';
-import 'package:flauncher/widgets/category_row.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
-import 'package:flauncher/widgets/settings/settings_panel_page.dart';
+import 'package:flauncher/widgets/home_rows_pager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,451 +41,495 @@ import 'package:provider/provider.dart';
 import 'helpers.dart';
 import 'mocks.dart';
 import 'mocks.mocks.dart';
-
+import 'watch_next_test_support.dart';
 
 void main() {
-  setUpAll(() async {
+  setUpAll(() {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
-    // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
-    binding.platformDispatcher.textScaleFactorTestValue = 0.8;
+    binding.window.physicalSizeTestValue = const Size(1280, 720);
+    binding.window.devicePixelRatioTestValue = 1;
   });
 
-  testWidgets("Home page shows categories with apps", (tester) async {
-    final appsService = mkAppService();
-    final favoritesCategory = fakeCategory(name: "Favorites", order: 0, type: CategoryType.row);
-    final applicationsCategory = fakeCategory(name: "Applications", order: 1);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, [
-        fakeApp(
-          packageName: "me.efesser.flauncher.1",
-          name: "FLauncher 1",
-          version: "1.0.0",
-        )
-      ]),
-      CategoryWithApps(applicationsCategory, [
-        fakeApp(
-          packageName: "me.efesser.flauncher.2",
-          name: "FLauncher 2",
-          version: "2.0.0",
-        )
-      ]),
-    ]);
+  AppsService rows([int count = 3]) {
+    final service = mkAppService();
+    when(service.categoriesWithApps).thenReturn(
+      List.generate(
+        count,
+        (i) => CategoryWithApps(
+          fakeCategory(
+            id: i + 1,
+            name: ['TV Apps', 'Android Apps', 'Custom row'][i],
+            order: i,
+          ),
+          List.generate(
+            4,
+            (j) => fakeApp(packageName: 'row.$i.app.$j', name: 'App $i.$j'),
+          ),
+        ),
+      ),
+    );
+    return service;
+  }
 
-    await _pumpWidgetWith(tester, appsService);
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+  Future<void> key(WidgetTester tester, LogicalKeyboardKey key) async {
+    await tester.sendKeyEvent(key);
     await tester.pumpAndSettle();
+  }
 
-    expect(find.text("Applications"), findsOneWidget);
-    expect(find.byType(SliverGrid), findsOneWidget);
-    expect(findAppCard("me.efesser.flauncher.2"), findsOneWidget);
-    expect(findAppCard("me.efesser.flauncher.1"), findsOneWidget);
+  testWidgets('Startup remains empty until apps are ready', (tester) async {
+    final service = rows();
+    when(service.initialized).thenReturn(false);
+    await _pumpWidgetWith(tester, service);
+    expect(find.byType(Image), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
-  testWidgets("Home page shows category empty-state", (tester) async {
-    final appsService = mkAppService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-
-    await _pumpWidgetWith(tester, appsService);
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text("Loading"), findsOneWidget);
+  testWidgets('Home is row-only with a faint next-row preview', (tester) async {
+    await _pumpWidgetWith(tester, rows());
+    expect(find.byType(HomeRowsPager), findsOneWidget);
+    expect(find.byType(SliverGrid), findsNothing);
+    final viewport = tester.getRect(
+      find.byKey(const Key('home_sections_viewport')),
+    );
+    expect(viewport.top, greaterThan(360));
+    expect(
+      tester
+          .widget<Opacity>(find.byKey(const ValueKey('home_row_opacity_1')))
+          .opacity,
+      1,
+    );
+    expect(
+      tester
+          .widget<Opacity>(find.byKey(const ValueKey('home_row_opacity_2')))
+          .opacity,
+      closeTo(.18, .001),
+    );
+    expect(
+      tester.getRect(findAppCard('row.1.app.0')).overlaps(viewport),
+      isTrue,
+    );
+    expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
   });
 
-  testWidgets("Home page displays background image", (tester) async {
-    final appsService = mkAppService();
-    when(appsService.categoriesWithApps).thenReturn([]);
+  testWidgets(
+    'Hidden rows stay off home and the next visible row receives focus',
+    (tester) async {
+      final service = rows();
+      service.categoriesWithApps.first.hidden = true;
+      await _pumpWidgetWith(tester, service);
+      final pager = tester.widget<HomeRowsPager>(find.byType(HomeRowsPager));
+      expect(pager.categories.map((row) => row.name), [
+        'Android Apps',
+        'Custom row',
+      ]);
+      expect(findAppCard('row.0.app.0'), findsNothing);
+      expect(isAppCardFocused(tester, 'row.1.app.0'), isTrue);
+    },
+  );
 
-    await _pumpWidgetWith(tester, appsService);
-
-    expect(find.byType(Image), findsWidgets);
+  testWidgets('A row glides fully out of view when moving to the next row', (
+    tester,
+  ) async {
+    await _pumpWidgetWith(tester, rows());
+    final viewport = tester.getRect(
+      find.byKey(const Key('home_sections_viewport')),
+    );
+    final outgoing = findAppCard('row.0.app.0');
+    final start = tester.getRect(outgoing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getRect(outgoing).top, lessThan(start.top));
+    await tester.pumpAndSettle();
+    expect(isAppCardFocused(tester, 'row.1.app.0'), isTrue);
+    expect(
+      outgoing.evaluate().isEmpty ||
+          !tester.getRect(outgoing).overlaps(viewport),
+      isTrue,
+    );
+    expect(
+      tester.getRect(find.byKey(const Key('home_sections_viewport'))),
+      viewport,
+    );
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
   });
 
-  testWidgets("Home page displays background gradient", (tester) async {
-    final appsService = mkAppService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-
-    await _pumpWidgetWithProviders(tester, mkWallpaperService(false), appsService, mkSettingsService());
-
-    expect(find.byKey(Key("background")), findsOneWidget);
+  testWidgets('Each row remembers its horizontal focus', (tester) async {
+    await _pumpWidgetWith(tester, rows());
+    await key(tester, LogicalKeyboardKey.arrowRight);
+    await key(tester, LogicalKeyboardKey.arrowRight);
+    expect(isAppCardFocused(tester, 'row.0.app.2'), isTrue);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    await key(tester, LogicalKeyboardKey.arrowRight);
+    expect(isAppCardFocused(tester, 'row.1.app.1'), isTrue);
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    expect(isAppCardFocused(tester, 'row.0.app.2'), isTrue);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    expect(isAppCardFocused(tester, 'row.1.app.1'), isTrue);
   });
 
-  testWidgets("Pressing select on settings icon opens SettingsPanel", (tester) async {
-    final appsService = mkAppService();
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "Favorites", order: 0), []),
-      CategoryWithApps(fakeCategory(name: "Applications", order: 1), []),
-    ]);
-    await _pumpWidgetWith(tester, appsService);
+  testWidgets('Rapid Down and Up reverses the glide without losing focus', (
+    tester,
+  ) async {
+    await _pumpWidgetWith(tester, rows());
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+    expect(
+      tester
+          .widget<Opacity>(find.byKey(const ValueKey('home_row_opacity_1')))
+          .opacity,
+      1,
+    );
+  });
 
+  testWidgets('The last row aligns fully and can return to Settings', (
+    tester,
+  ) async {
+    await _pumpWidgetWith(tester, rows());
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    expect(isAppCardFocused(tester, 'row.2.app.0'), isTrue);
+    final viewport = tester.getRect(
+      find.byKey(const Key('home_sections_viewport')),
+    );
+    final previous = findAppCard('row.1.app.0');
+    expect(
+      previous.evaluate().isEmpty ||
+          !tester.getRect(previous).overlaps(viewport),
+      isTrue,
+    );
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    expect(isSettingsIconFocused(tester), isTrue);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+  });
+
+  testWidgets(
+    'Empty rows stay off home and an empty home has a Settings action',
+    (tester) async {
+      final service = mkAppService();
+      when(
+        service.categoriesWithApps,
+      ).thenReturn([fakeCategory(name: 'Empty row')]);
+      await _pumpWidgetWith(tester, service);
+      expect(find.byType(HomeRowsPager), findsNothing);
+      expect(find.text('Add apps to a row in Settings'), findsOneWidget);
+      await key(tester, LogicalKeyboardKey.enter);
+      expect(isSettingsIconFocused(tester), isTrue);
+    },
+  );
+
+  testWidgets('App activation and remote hold remain distinct', (tester) async {
+    final service = rows();
+    await _pumpWidgetWith(tester, service);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    verifyNever((service as MockAppsService).launchApp(any));
+  });
+
+  for (final keyCode in [LogicalKeyboardKey.select, LogicalKeyboardKey.enter]) {
+    testWidgets('Short $keyCode launches the app without opening its menu', (
+      tester,
+    ) async {
+      final service = rows();
+      await _pumpWidgetWith(tester, service);
+      await tester.sendKeyDownEvent(keyCode);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.sendKeyUpEvent(keyCode);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byType(ApplicationInfoPanel), findsNothing);
+      verify(
+        (service as MockAppsService).launchApp(
+          argThat(predicate<App>((app) => app.packageName == 'row.0.app.0')),
+        ),
+      ).called(1);
+      await tester.pump(const Duration(milliseconds: 600));
+    });
+  }
+
+  testWidgets('Reordering an app does not shift its row vertically', (
+    tester,
+  ) async {
+    await _pumpWidgetWith(tester, rows());
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    final vertical = tester
+        .widgetList<ListView>(
+          find.descendant(
+            of: find.byType(HomeRowsPager),
+            matching: find.byType(ListView),
+          ),
+        )
+        .singleWhere((list) => list.scrollDirection == Axis.vertical)
+        .controller!;
+    final before = vertical.offset;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reorder'));
+    await tester.pumpAndSettle();
+    await key(tester, LogicalKeyboardKey.arrowRight);
+    expect(vertical.offset, closeTo(before, .01));
+  });
+
+  testWidgets('Apps remain identifiable and navigable while artwork loads', (
+    tester,
+  ) async {
+    final service = rows();
+    final artwork = Completer<Uint8List>();
+    when(
+      (service as MockAppsService).getAppBanner(any),
+    ).thenAnswer((_) => artwork.future);
+    await _pumpWidgetWith(tester, service);
+    expect(find.text('App 0.0'), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await key(tester, LogicalKeyboardKey.arrowRight);
+    expect(isAppCardFocused(tester, 'row.0.app.1'), isTrue);
+    await tester.pumpWidget(const SizedBox());
+    artwork.complete(Uint8List(0));
+  });
+
+  testWidgets('Updating rows behind Settings does not steal menu focus', (
+    tester,
+  ) async {
+    final service = rows();
+    await _pumpWidgetWith(tester, service);
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-
-    expect(find.byType(SettingsPanel), findsOneWidget);
-  });
-
-  testWidgets("Pressing select on app launches app", (tester) async {
-    final appsService = mkAppService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
+    expect(
+      FocusManager.instance.primaryFocus!.context!
+          .findAncestorWidgetOfExactType<SettingsPanel>(),
+      isNotNull,
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "Favorites", order: 0), [app]),
+    when(service.categoriesWithApps).thenReturn([
+      CategoryWithApps(fakeCategory(id: 2, name: 'Android Apps'), [
+        fakeApp(packageName: 'row.1.app.0'),
+      ]),
     ]);
-    await _pumpWidgetWith(tester, appsService);
-
-    await tester.tap(findAppCard("me.efesser.flauncher"));
-    await tester.pump(const Duration(milliseconds: 150));
-    await tester.pump(const Duration(milliseconds: 550));
-
-    verify(appsService.launchApp(app));
-  });
-
-  testWidgets("Long pressing on app opens ApplicationInfoPanel", (tester) async {
-    final appsService = mkAppService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
+    when(service.layoutVersion).thenReturn(1);
+    await _pumpWidgetWith(tester, service);
+    await tester.pumpAndSettle();
+    expect(
+      FocusManager.instance.primaryFocus!.context!
+          .findAncestorWidgetOfExactType<SettingsPanel>(),
+      isNotNull,
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "Favorites", order: 0), [app]),
-    ]);
-    await _pumpWidgetWith(tester, appsService);
-
-    await tester.longPress(findAppCard("me.efesser.flauncher"));
+    Navigator.of(tester.element(find.byType(SettingsPanel))).pop();
     await tester.pumpAndSettle();
-
-    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    expect(isAppCardFocused(tester, 'row.1.app.0'), isTrue);
   });
 
-  testWidgets("AppCard moves in grid", (tester) async {
-    final appsService = mkAppService();
-    final applicationsCategory = fakeCategory(name: "Applications", order: 0, type: CategoryType.grid);
-    final categoryWithApps = CategoryWithApps(applicationsCategory, [
-      fakeApp(
-        packageName: "me.efesser.flauncher",
-        name: "FLauncher",
-        version: "1.0.0",
-      ),
-      fakeApp(
-        packageName: "me.efesser.flauncher.2",
-        name: "FLauncher 2",
-        version: "1.0.0",
-      )
-    ]);
-    when(appsService.categoriesWithApps).thenReturn([categoryWithApps]);
-    await _pumpWidgetWith(tester, appsService);
+  for (final hero in [false, true]) {
+    testWidgets(
+      'Continue Watching stays above app rows and hands focus between zones (hero=$hero)',
+      (tester) async {
+        final settings = mkSettingsService();
+        when(settings.showWatchNextSection).thenReturn(true);
+        when(settings.watchNextBigPictureMode).thenReturn(hero);
+        final item = WatchNextItem(id: 1, title: 'Resume item');
+        final watch = MockWatchNextService();
+        when(watch.hasPermission).thenReturn(true);
+        when(watch.hasItems).thenReturn(true);
+        when(watch.hasVisibleSection).thenReturn(true);
+        when(watch.items).thenReturn([item]);
+        when(watch.activeHeroItem).thenReturn(item);
+        await _pumpWidgetWithProviders(
+          tester,
+          mkWallpaperService(),
+          rows(),
+          settings,
+          watch,
+        );
+        final pinned = tester.getRect(find.byType(WatchNextRow));
+        final viewport = tester.getRect(
+          find.byKey(const Key('home_sections_viewport')),
+        );
+        expect(pinned.bottom, lessThanOrEqualTo(viewport.top - 24));
+        expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+        await key(tester, LogicalKeyboardKey.arrowUp);
+        expect(
+          FocusManager.instance.primaryFocus!.context!
+              .findAncestorWidgetOfExactType<WatchNextRow>(),
+          isNotNull,
+        );
+        await key(tester, LogicalKeyboardKey.arrowDown);
+        expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+        await key(tester, LogicalKeyboardKey.arrowDown);
+        expect(isAppCardFocused(tester, 'row.1.app.0'), isTrue);
+        expect(tester.getRect(find.byType(WatchNextRow)), pinned);
+        await key(tester, LogicalKeyboardKey.arrowUp);
+        await key(tester, LogicalKeyboardKey.arrowUp);
+        expect(
+          FocusManager.instance.primaryFocus!.context!
+              .findAncestorWidgetOfExactType<WatchNextRow>(),
+          isNotNull,
+        );
+        await key(tester, LogicalKeyboardKey.arrowUp);
+        expect(isSettingsIconFocused(tester), isTrue);
+        await key(tester, LogicalKeyboardKey.arrowDown);
+        expect(
+          FocusManager.instance.primaryFocus!.context!
+              .findAncestorWidgetOfExactType<WatchNextRow>(),
+          isNotNull,
+        );
+      },
+    );
+  }
 
-    await tester.longPress(findAppCard("me.efesser.flauncher"));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Pinned feed removal returns focus to apps and no-app home supports both zones',
+    (tester) async {
+      final watch = WatchNextTestFeed();
+      addTearDown(watch.dispose);
+      final settings = mkSettingsService();
+      when(settings.showWatchNextSection).thenReturn(true);
+      await _pumpWidgetWithProviders(
+        tester,
+        mkWallpaperService(),
+        rows(),
+        settings,
+        watch,
+      );
+      await key(tester, LogicalKeyboardKey.arrowUp);
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<WatchNextRow>(),
+        isNotNull,
+      );
+      watch.replace([]);
+      await tester.pumpAndSettle();
+      expect(find.byType(WatchNextRow), findsNothing);
+      expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+      await tester.pumpWidget(const SizedBox());
+      watch.replace([WatchNextItem(id: 99, title: 'Only item')]);
+      await _pumpWidgetWithProviders(
+        tester,
+        mkWallpaperService(),
+        rows(0),
+        settings,
+        watch,
+      );
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<WatchNextRow>(),
+        isNotNull,
+      );
+      await key(tester, LogicalKeyboardKey.arrowDown);
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<WatchNextRow>(),
+        isNull,
+      );
+      await key(tester, LogicalKeyboardKey.arrowUp);
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<WatchNextRow>(),
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    await tester.tap(find.text("Reorder"));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Pinned layout fits TV dimensions and Settings restores toolbar focus',
+    (tester) async {
+      tester.view.physicalSize = const Size(960, 540);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final watch = WatchNextTestFeed();
+      addTearDown(watch.dispose);
+      watch.values[0] = WatchNextItem(
+        id: 1,
+        title:
+            'A very long programme title that stays on one line without changing the pinned area height',
+      );
+      final settings = mkSettingsService();
+      when(settings.showWatchNextSection).thenReturn(true);
+      await _pumpWidgetWithProviders(
+        tester,
+        mkWallpaperService(),
+        rows(),
+        settings,
+        watch,
+      );
+      await key(tester, LogicalKeyboardKey.arrowUp);
+      final pinned = tester.getRect(find.byType(WatchNextRow));
+      final apps = tester.getRect(
+        find.byKey(const Key('home_sections_viewport')),
+      );
+      expect(pinned.bottom, lessThanOrEqualTo(apps.top - 24));
+      await key(tester, LogicalKeyboardKey.arrowUp);
+      await key(tester, LogicalKeyboardKey.enter);
+      expect(find.byType(SettingsPanel), findsOneWidget);
+      Navigator.of(tester.element(find.byType(SettingsPanel))).pop();
+      await tester.pumpAndSettle();
+      expect(isSettingsIconFocused(tester), isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    verify(appsService.reorderApplication(categoryWithApps, 0, 1));
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    verify(appsService.saveApplicationOrderInCategory(categoryWithApps));
-  });
-
-  testWidgets("AppCard moves in row", (tester) async {
-    final appsService = mkAppService();
-    final applicationsCategory = fakeCategory(name: "Applications", order: 0, type: CategoryType.row);
-    final categoryWithApps = CategoryWithApps(applicationsCategory, [
-      fakeApp(
-        packageName: "me.efesser.flauncher",
-        name: "FLauncher",
-        version: "1.0.0",
-      ),
-      fakeApp(
-        packageName: "me.efesser.flauncher.2",
-        name: "FLauncher 2",
-        version: "1.0.0",
-      )
-    ]);
-    when(appsService.categoriesWithApps).thenReturn([categoryWithApps]);
-    await _pumpWidgetWith(tester, appsService);
-
-    await tester.longPress(findAppCard("me.efesser.flauncher"));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text("Reorder"));
-    await tester.pumpAndSettle();
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    verify(appsService.reorderApplication(categoryWithApps, 0, 1));
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    verify(appsService.saveApplicationOrderInCategory(categoryWithApps));
-  });
-
-  testWidgets("Moving down does not skip row", (tester) async {
-    // given
-    final appsService = mkAppService();
-
-    /*
-     * we are creating 3 rows like the following:
-     * ▭ ▭ ▭
-     * ▭ ▭
-     * ▭ ▭ ▭
-     */
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "tv", order: 0), [
-        fakeApp(
-          packageName: "me.efesser.tv1",
-          name: "tv 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.tv2",
-          name: "tv 2",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.tv3",
-          name: "tv 3",
-          version: "1.0.0",
-        )
-      ]),
-      CategoryWithApps(fakeCategory(name: "music", order: 1), [
-        fakeApp(
-          packageName: "me.efesser.music1",
-          name: "music 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music2",
-          name: "music 2",
-          version: "1.0.0",
-        )
-      ]),
-      CategoryWithApps(fakeCategory(name: "games", order: 2), [
-        fakeApp(
-          packageName: "me.efesser.game1",
-          name: "game 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.game2",
-          name: "game 2",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.game3",
-          name: "game 3",
-          version: "1.0.0",
-        )
-      ]),
-    ]);
-
-    await _pumpWidgetWith(tester, appsService);
-    // when
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-
-    // then
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music2"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music2"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.game2"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music2"), isTrue);
-    expect(isAppCardFocused(tester, "me.efesser.game2"), isFalse);
-  });
-
-  testWidgets("Moving left or right stays on the same row", (tester) async {
-    // given
-    final appsService = mkAppService();
-
-    /*
-     * we are creating 2 rows like the following:
-     * ▭ ▭
-     * ▭ ▭ ▭ ▭ ▭
-     */
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "tv", order: 0), [
-        fakeApp(
-          packageName: "me.efesser.tv1",
-          name: "tv 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.tv2",
-          name: "tv 2",
-          version: "1.0.0",
-        ),
-      ]),
-      CategoryWithApps(fakeCategory(name: "music", order: 1, columnsCount: 5), [
-        fakeApp(
-          packageName: "me.efesser.music1",
-          name: "music 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music2",
-          name: "music 2",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music3",
-          name: "music 3",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music4",
-          name: "music 4",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music5",
-          name: "music 5",
-          version: "1.0.0",
-        ),
-      ]),
-    ]);
-
-    await _pumpWidgetWith(tester, appsService);
-
-    // then
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music1"), isTrue);
-
-    // check right direction
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music1"), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.music2"), isTrue);
-
-    // check if right on the last app stays on the same app
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.music5"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv2"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.music2"), isTrue);
-
-    // check left direction
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.music1"), isTrue);
-
-    // check if going left on the first app stays on the same app
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.music1"), isTrue);
-  });
-
-  testWidgets("Moving right or up can go the settings icon", (tester) async {
-    // given
-    final appsService = mkAppService();
-
-    /*
-     * we are creating 2 rows like the following:
-     * ▭ ▭
-     * ▭ ▭ ▭
-     */
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(fakeCategory(name: "tv", order: 0), [
-        fakeApp(
-          packageName: "me.efesser.tv1",
-          name: "tv 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.tv2",
-          name: "tv 2",
-          version: "1.0.0",
-        ),
-      ]),
-      CategoryWithApps(fakeCategory(name: "music", order: 1), [
-        fakeApp(
-          packageName: "me.efesser.music1",
-          name: "music 1",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music2",
-          name: "music 2",
-          version: "1.0.0",
-        ),
-        fakeApp(
-          packageName: "me.efesser.music3",
-          name: "music 3",
-          version: "1.0.0",
-        ),
-      ]),
-    ]);
-
-    await _pumpWidgetWith(tester, appsService);
-
-    // then
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isFalse);
-    expect(isSettingsIconFocused(tester), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(isSettingsIconFocused(tester), isFalse);
-    expect(isAppCardFocused(tester, "me.efesser.tv1"), isTrue);
+  testWidgets('Permission navigation reaches Check then exits to apps', (
+    tester,
+  ) async {
+    final watch = WatchNextTestFeed()..allowed = false;
+    addTearDown(watch.dispose);
+    final settings = mkSettingsService();
+    when(settings.showWatchNextSection).thenReturn(true);
+    await _pumpWidgetWithProviders(
+      tester,
+      mkWallpaperService(),
+      rows(),
+      settings,
+      watch,
+    );
+    await key(tester, LogicalKeyboardKey.arrowUp);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    expect(
+      FocusManager.instance.primaryFocus!.context!
+          .findAncestorWidgetOfExactType<WatchNextRow>(),
+      isNotNull,
+    );
+    await key(tester, LogicalKeyboardKey.enter);
+    expect(watch.permissionRechecks, 1);
+    expect(watch.permissionRequests, 0);
+    await key(tester, LogicalKeyboardKey.arrowDown);
+    expect(isAppCardFocused(tester, 'row.0.app.0'), isTrue);
+    expect(tester.takeException(), isNull);
   });
 }
 
 SettingsService mkSettingsService() {
   final settingsService = MockSettingsService();
-  when(settingsService.dateFormat).thenReturn(SettingsService.defaultDateFormat);
-  when(settingsService.timeFormat).thenReturn(SettingsService.defaultTimeFormat);
-  when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+  when(
+    settingsService.dateFormat,
+  ).thenReturn(SettingsService.defaultDateFormat);
+  when(
+    settingsService.timeFormat,
+  ).thenReturn(SettingsService.defaultTimeFormat);
+  when(settingsService.appHighlightAnimationEnabled).thenReturn(false);
   when(settingsService.showAppNamesBelowIcons).thenReturn(true);
-  when(settingsService.backgroundBlurDisabled).thenReturn(false);
   when(settingsService.showWatchNextSection).thenReturn(false);
   when(settingsService.watchNextBigPictureMode).thenReturn(false);
   when(settingsService.watchNextHideProgramsWithoutImages).thenReturn(false);
   when(settingsService.watchNextMaxItems).thenReturn(0);
   when(settingsService.watchNextExcludedPackages).thenReturn([]);
   when(settingsService.showCategoryTitles).thenReturn(true);
-  when(settingsService.dockBackdropFilterDisabled).thenReturn(false);
-  when(settingsService.dockDarkBackground).thenReturn(false);
-  when(settingsService.dockShadowEnabled).thenReturn(false);
   when(settingsService.autoHideAppBarEnabled).thenReturn(false);
-  when(settingsService.hideStatusBarInGrid).thenReturn(false);
   when(settingsService.showNetworkIndicatorInStatusBar).thenReturn(false);
-  when(settingsService.showWifiWidgetInStatusBar).thenReturn(false);
   when(settingsService.showDateInStatusBar).thenReturn(false);
   when(settingsService.showTimeInStatusBar).thenReturn(false);
   when(settingsService.focusBorderThickness).thenReturn(3.0);
@@ -507,12 +551,10 @@ WatchNextService mkWatchNextService() {
 
 WallpaperService mkWallpaperService([bool wallpaper = true]) {
   final wallpaperService = MockWallpaperService();
-  when(wallpaperService.gradient).thenReturn(FLauncherGradients.greatWhale);
-  when(wallpaperService.wallpaper).thenReturn(wallpaper ? Image.asset('assets/icon.png').image : null);
-  when(wallpaperService.wallpaperVideoFile).thenReturn(null);
+  when(
+    wallpaperService.wallpaper,
+  ).thenReturn(Image.asset('appicons/wuplay.png').image);
   when(wallpaperService.wallpaperRevision).thenReturn(0);
-  when(wallpaperService.slideshowAuthor).thenReturn(null);
-  when(wallpaperService.redditWallpaperCredit).thenReturn(null);
   return wallpaperService;
 }
 
@@ -520,35 +562,106 @@ AppsService mkAppService() {
   final appsService = MockAppsService();
   when(appsService.initialized).thenReturn(true);
   when(appsService.layoutVersion).thenReturn(0);
-  when(appsService.getAppIcon(any)).thenAnswer((_) => Future.value(Uint8List.fromList([
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-    0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-    0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-    0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-    0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
-  ])));
-  when(appsService.getAppBanner(any)).thenAnswer((_) => Future.value(null));
+  when(appsService.getAppIcon(any)).thenAnswer(
+    (_) => Future.value(
+      Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
+      ]),
+    ),
+  );
+  when(
+    appsService.getAppBanner(any),
+  ).thenAnswer((_) => Future.value(Uint8List(0)));
   when(appsService.hasCustomBanner(any)).thenAnswer((_) => Future.value(false));
-  when(appsService.isAppInFavorites(any)).thenReturn(false);
   return appsService;
 }
-
 
 Future<void> _pumpWidgetWith(
   WidgetTester tester,
   AppsService appsService,
-  ) async {
-  return _pumpWidgetWithProviders(tester, mkWallpaperService(), appsService, mkSettingsService(), mkWatchNextService());
+) async {
+  return _pumpWidgetWithProviders(
+    tester,
+    mkWallpaperService(),
+    appsService,
+    mkSettingsService(),
+    mkWatchNextService(),
+  );
 }
 
 Future<void> _pumpWidgetWithProviders(
   WidgetTester tester,
   WallpaperService wallpaperService,
   AppsService appsService,
-  SettingsService settingsService,
-  [WatchNextService? watchNextService,]
-) async {
+  SettingsService settingsService, [
+  WatchNextService? watchNextService,
+]) async {
   try {
     final cwa = appsService.categoriesWithApps;
     when(appsService.categories).thenReturn(cwa);
@@ -561,9 +674,13 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         ChangeNotifierProvider<SettingsService>.value(value: settingsService),
-        ChangeNotifierProvider<WatchNextService>.value(value: watchNextService ?? mkWatchNextService()),
+        ChangeNotifierProvider<WatchNextService>.value(
+          value: watchNextService ?? mkWatchNextService(),
+        ),
         ChangeNotifierProvider(create: (_) => LauncherState()),
-        ChangeNotifierProvider(create: (_) => NetworkService(FLauncherChannel())),
+        ChangeNotifierProvider(
+          create: (_) => NetworkService(FLauncherChannel()),
+        ),
       ],
       builder: (_, __) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

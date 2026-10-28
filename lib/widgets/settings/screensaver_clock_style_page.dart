@@ -38,7 +38,9 @@ class ScreensaverClockStylePage extends StatelessWidget {
 
         return Column(
           children: [
-            SettingsPageHeader(title: AppLocalizations.of(context)!.screensaverClockStyle),
+            SettingsPageHeader(
+              title: AppLocalizations.of(context)!.screensaverClockStyle,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -48,7 +50,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleMinimalDescription,
                       value: 'minimal',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'minimal',
                     ),
                     _StyleRadioTile(
@@ -56,7 +59,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleBoldDescription,
                       value: 'bold',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'bold',
                     ),
                     _StyleRadioTile(
@@ -64,7 +68,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleRetroDescription,
                       value: 'retro',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'retro',
                     ),
                     _StyleRadioTile(
@@ -72,7 +77,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleElegantDescription,
                       value: 'elegant',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'elegant',
                     ),
                     _StyleRadioTile(
@@ -80,7 +86,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleNeonDescription,
                       value: 'neon',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'neon',
                     ),
                     _StyleRadioTile(
@@ -88,7 +95,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStylePixelDescription,
                       value: 'pixel',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'pixel',
                     ),
                     _StyleRadioTile(
@@ -96,7 +104,8 @@ class ScreensaverClockStylePage extends StatelessWidget {
                       subtitle: localizations.clockStyleDigitalDescription,
                       value: 'digital',
                       groupValue: currentStyle,
-                      onChanged: (value) => settingsService.setScreensaverClockStyle(value!),
+                      onChanged: (value) =>
+                          settingsService.setScreensaverClockStyle(value!),
                       autofocus: currentStyle == 'digital',
                     ),
                   ],
@@ -156,13 +165,17 @@ class _StyleRadioTile extends StatelessWidget {
                   title,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.82),
+                    color: isSelected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.82),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.55)),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.55),
+                  ),
                 ),
               ],
             ),
@@ -171,7 +184,9 @@ class _StyleRadioTile extends StatelessWidget {
           Icon(
             isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
             size: 22,
-            color: isSelected ? primaryColor : Colors.white.withValues(alpha: 0.3),
+            color: isSelected
+                ? primaryColor
+                : Colors.white.withValues(alpha: 0.3),
           ),
         ],
       ),

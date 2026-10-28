@@ -139,6 +139,7 @@ class SettingsSectionDivider extends StatelessWidget {
 class SettingsFocusCard extends StatefulWidget {
   final Widget Function(BuildContext context, bool highlighted) builder;
   final VoidCallback? onPressed;
+  final VoidCallback? onLongPress;
   final ValueChanged<bool>? onFocusChange;
   final bool autofocus;
   final EdgeInsetsGeometry margin;
@@ -149,6 +150,7 @@ class SettingsFocusCard extends StatefulWidget {
     super.key,
     required this.builder,
     this.onPressed,
+    this.onLongPress,
     this.onFocusChange,
     this.autofocus = false,
     this.margin = SettingsStyle.cardMargin,
@@ -162,6 +164,7 @@ class SettingsFocusCard extends StatefulWidget {
 
 class _SettingsFocusCardState extends State<SettingsFocusCard>
     with SingleTickerProviderStateMixin {
+  final _focusNode = FocusNode();
   late final AnimationController _highlight = AnimationController(
     vsync: this,
     duration: SettingsStyle.focusDuration,
@@ -181,6 +184,7 @@ class _SettingsFocusCardState extends State<SettingsFocusCard>
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _highlight.dispose();
     super.dispose();
   }
@@ -235,6 +239,7 @@ class _SettingsFocusCardState extends State<SettingsFocusCard>
               }
             },
             child: Focus(
+              focusNode: _focusNode,
               autofocus: widget.autofocus,
               onFocusChange: (focused) {
                 if (_focused != focused) {
@@ -245,7 +250,18 @@ class _SettingsFocusCardState extends State<SettingsFocusCard>
               },
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: widget.onPressed,
+                onTap: widget.onPressed == null
+                    ? null
+                    : () {
+                        _focusNode.requestFocus();
+                        widget.onPressed!();
+                      },
+                onLongPress: widget.onLongPress == null
+                    ? null
+                    : () {
+                        _focusNode.requestFocus();
+                        widget.onLongPress!();
+                      },
                 child: AnimatedBuilder(
                   animation: _highlight,
                   child: content,

@@ -1,4 +1,3 @@
-
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
@@ -28,39 +27,64 @@ class MiscPanelPage extends StatelessWidget {
               RoundedSwitchListTile(
                 autofocus: true,
                 value: settingsService.appHighlightAnimationEnabled,
-                onChanged: (value) => settingsService.setAppHighlightAnimationEnabled(value),
-                title: Text(localizations.appCardHighlightAnimation, style: Theme.of(context).textTheme.bodyMedium),
+                onChanged: (value) =>
+                    settingsService.setAppHighlightAnimationEnabled(value),
+                title: Text(
+                  localizations.appCardHighlightAnimation,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: Icon(Icons.filter_center_focus),
               ),
               RoundedSwitchListTile(
                 value: settingsService.appKeyClickEnabled,
-                onChanged: (value) => settingsService.setAppKeyClickEnabled(value),
-                title: Text(localizations.appKeyClick, style: Theme.of(context).textTheme.bodyMedium),
+                onChanged: (value) =>
+                    settingsService.setAppKeyClickEnabled(value),
+                title: Text(
+                  localizations.appKeyClick,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: Icon(Icons.notifications_active),
               ),
               RoundedSwitchListTile(
                 value: settingsService.showCategoryTitles,
-                onChanged: (value) => settingsService.setShowCategoryTitles(value),
-                title: Text(localizations.showCategoryTitles, style: Theme.of(context).textTheme.bodyMedium),
+                onChanged: (value) =>
+                    settingsService.setShowCategoryTitles(value),
+                title: Text(
+                  localizations.showCategoryTitles,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: Icon(Icons.abc),
               ),
               RoundedSwitchListTile(
                 value: settingsService.showAppNamesBelowIcons,
-                onChanged: (value) => settingsService.setShowAppNamesBelowIcons(value),
-                title: Text(localizations.showAppNamesBelowIcons, style: Theme.of(context).textTheme.bodyMedium),
+                onChanged: (value) =>
+                    settingsService.setShowAppNamesBelowIcons(value),
+                title: Text(
+                  localizations.showAppNamesBelowIcons,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: Icon(Icons.subtitles),
               ),
               RoundedSwitchListTile(
                 value: settingsService.showFocusBorders,
-                onChanged: (value) => settingsService.setShowFocusBorders(value),
-                title: Text(localizations.showFocusBorders, style: Theme.of(context).textTheme.bodyMedium),
+                onChanged: (value) =>
+                    settingsService.setShowFocusBorders(value),
+                title: Text(
+                  localizations.showFocusBorders,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 secondary: Icon(Icons.border_outer),
               ),
               FocusableSettingsTile(
                 showChevron: true,
                 leading: const Icon(Icons.play_circle_outline),
-                title: Text(localizations.watchNextSectionTitle, style: Theme.of(context).textTheme.bodyMedium),
-                onPressed: () => Navigator.of(context).pushNamed(WatchNextPanelPage.routeName),
+                title: Text(
+                  localizations.watchNextSectionTitle,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onPressed: () => Navigator.of(
+                  context,
+                ).pushNamed(WatchNextPanelPage.routeName),
               ),
             ],
           ),

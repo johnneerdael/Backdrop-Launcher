@@ -20,98 +20,52 @@ import 'dart:collection';
 
 import 'app.dart';
 
-enum LauncherSectionType
-{
-  Category,
-  Spacer
-}
+enum CategorySort { manual, alphabetical, lastUsed }
 
-enum CategorySort
-{
-  manual,
-  alphabetical,
-  lastUsed,
-}
+enum CategorySource { custom, tvApps, androidApps }
 
-enum CategoryType
-{
-  row,
-  grid,
-}
+class Category {
+  static const int RowHeight = 110;
+  static const CategorySort Sort = CategorySort.manual;
 
-class LauncherSection
-{
   final int id;
-
   int order;
-
-  LauncherSection({
-    this.id = 0,
-    this.order = 0
-  });
-}
-
-class Category extends LauncherSection
-{
-  static const int          ColumnsCount  = 6;
-  static const int          RowHeight     = 110;
-  static const CategorySort Sort          = CategorySort.manual;
-  static const CategoryType Type          = CategoryType.grid;
-
-  int columnsCount;
-
   int rowHeight;
-
   String name;
-
+  bool hidden;
   CategorySort sort;
-
-  CategoryType type;
-
+  final CategorySource source;
   final List<App> applications;
 
   Category({
     required this.name,
-    int id = 0,
-    int order = 0,
-    this.columnsCount = Category.ColumnsCount,
+    this.id = 0,
+    this.order = 0,
     this.rowHeight = Category.RowHeight,
     this.sort = Category.Sort,
-    this.type = Category.Type
-  }):   applications = [],
-        super(id: id, order: order);
+    this.source = CategorySource.custom,
+    this.hidden = false,
+  }) : applications = [];
 
   Category.withApplications({
     required this.name,
     required this.applications,
-    int id = 0,
-    int order = 0,
-    this.columnsCount = Category.ColumnsCount,
+    this.id = 0,
+    this.order = 0,
     this.rowHeight = Category.RowHeight,
     this.sort = Category.Sort,
-    this.type = Category.Type
-  }): super(id: id, order: order);
+    this.source = CategorySource.custom,
+    this.hidden = false,
+  });
 
-  Category unmodifiable() {
-    return Category.withApplications(
-      name: name,
-      id: id,
-      order: order,
-      columnsCount: columnsCount,
-      rowHeight: rowHeight,
-      sort: sort,
-      type: type,
-      applications: UnmodifiableListView(applications));
-  }
-}
-
-class LauncherSpacer extends LauncherSection
-{
-  int height;
-
-  LauncherSpacer({
-    int id = 0,
-    int order = 0,
-    this.height = 0
-  }): super(id: id, order: order);
+  Category unmodifiable() => Category.withApplications(
+    name: name,
+    id: id,
+    order: order,
+    rowHeight: rowHeight,
+    sort: sort,
+    source: source,
+    hidden: hidden,
+    applications: UnmodifiableListView(applications),
+  );
 }
