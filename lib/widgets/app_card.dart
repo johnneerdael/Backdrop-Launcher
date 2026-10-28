@@ -1,3 +1,4 @@
+import 'package:flauncher/widgets/side_panel_dialog.dart';
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
@@ -602,7 +603,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   Future<void> _showPanel() async {
     _focusNode.requestFocus();
-    final result = await showDialog<ApplicationInfoPanelResult>(
+    final result = await SidePanelDialog.show<ApplicationInfoPanelResult>(
       context: context,
       builder: (context) => ApplicationInfoPanel(
         category: widget.category,

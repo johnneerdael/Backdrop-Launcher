@@ -6,6 +6,7 @@ import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/add_to_category_dialog.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flauncher/widgets/settings/settings_theme.dart';
+import 'package:flauncher/widgets/side_panel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
@@ -25,41 +26,44 @@ class AppDetailsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            FutureBuilder<Uint8List>(
-              future: appsService.getAppIcon(application.packageName),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Image.memory(snapshot.data!, width: 50, height: 50);
-                }
-                return const Icon(Icons.android, size: 50);
-              },
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    application.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  Text(
-                    "v${application.version}",
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+        SettingsPageHeader(title: application.name),
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
+          child: Row(
+            children: [
+              FutureBuilder<Uint8List>(
+                future: appsService.getAppIcon(application.packageName),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Image.memory(snapshot.data!, width: 32, height: 32);
+                  }
+                  return const Icon(Icons.android, size: 32);
+                },
               ),
-            ),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      application.packageName,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    Text(
+                      "v${application.version}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        const SettingsSectionDivider(),
         Expanded(
           child: ListView(
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               _buildListTile(
                 context,
@@ -93,8 +97,10 @@ class AppDetailsPage extends StatelessWidget {
                   context,
                   icon: Icons.add_box_outlined,
                   title: localizations.addToCategory,
-                  onTap: () => showDialog<Category>(
+                  onTap: () => SidePanelDialog.show<Category>(
                     context: context,
+                    // Settings already supplies the native outside dim.
+                    barrierColor: Colors.transparent,
                     builder: (_) => AddToCategoryDialog(application),
                   ),
                 ),

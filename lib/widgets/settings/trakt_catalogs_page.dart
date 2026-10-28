@@ -56,6 +56,7 @@ class _TraktCatalogsPageState extends State<TraktCatalogsPage> {
         const SettingsPageHeader(title: 'Trakt catalogs & lists'),
         Expanded(
           child: ListView(
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               for (final entry in TraktService.builtInCatalogs.entries)
                 option(entry.key, entry.value),
@@ -69,7 +70,7 @@ class _TraktCatalogsPageState extends State<TraktCatalogsPage> {
               ),
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
                   child: Text(_error!),
                 ),
               for (final list in trakt.popularLists)
@@ -80,7 +81,7 @@ class _TraktCatalogsPageState extends State<TraktCatalogsPage> {
                 ),
               if (selected.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
                   child: Text(
                     'Select at least one catalog or list to use Trakt backdrops.',
                   ),

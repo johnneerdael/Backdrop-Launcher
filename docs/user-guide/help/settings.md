@@ -4,6 +4,8 @@
 
 Open Settings by moving Up to the gear on Home and pressing Select. Options save as you change them. This page lists the current English controls; saved preferences on your TV may differ from new-install defaults.
 
+Settings opens as a compact pane on the right, with the typography, charcoal surfaces and blue controls of native Android TV settings. Press **Back** to return to the previous page, then again to close the pane. Opening **System settings** closes the launcher pane before Android's settings appears.
+
 ## Applications
 
 | Control | Choices or action |

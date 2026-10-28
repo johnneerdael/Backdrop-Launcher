@@ -89,10 +89,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar> {
               // Settings button
               AppBarFocusRing(
                 focusNode: _settingsFocusNode,
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => const SettingsPanel(),
-                ),
+                onPressed: () => SettingsPanel.show(context),
                 semanticLabel: 'Settings',
                 child: const Icon(
                   Icons.settings_outlined,

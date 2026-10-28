@@ -9,6 +9,9 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
+  String get generalSettings => 'Cài đặt chung';
+
+  @override
   String get aboutFlauncher => 'Giới thiệu Backdrop Launcher';
 
   @override

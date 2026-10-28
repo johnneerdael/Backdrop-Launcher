@@ -3,12 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'settings_theme.dart';
 
-/// A single settings row with subtle focus feedback.
-///
-/// The visual chrome (glass fill, specular border, lift) lives in
-/// [SettingsFocusCard]; this widget only lays out the leading icon, text and
-/// trailing control. Behaviour is unchanged: OK/Enter still invokes
-/// [onPressed], and the row is still a single focus target.
+/// A native-style preference row with one remote activation target.
 class FocusableSettingsTile extends StatelessWidget {
   final Widget title;
   final Widget? subtitle;
@@ -17,13 +12,9 @@ class FocusableSettingsTile extends StatelessWidget {
   final VoidCallback? onPressed;
   final VoidCallback? onRightPressed;
   final VoidCallback? onLongPress;
+  final ValueChanged<bool>? onFocusChange;
   final bool autofocus;
-
-  /// Shows a disclosure chevron when no [trailing] widget is provided.
   final bool showChevron;
-
-  /// Draws a tinted squircle behind [leading] when it is an icon. Disable for
-  /// radio indicators, which should read as plain marks.
   final bool frameLeading;
 
   const FocusableSettingsTile({
@@ -35,6 +26,7 @@ class FocusableSettingsTile extends StatelessWidget {
     this.onPressed,
     this.onRightPressed,
     this.onLongPress,
+    this.onFocusChange,
     this.autofocus = false,
     this.showChevron = false,
     this.frameLeading = true,
@@ -42,27 +34,48 @@ class FocusableSettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = Theme.of(context).colorScheme.primary;
-    final baseTextStyle =
-        Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
-    // Icons get a tinted squircle behind them; arbitrary widgets (app icons,
-    // spinners) are rendered untouched.
-    final framedLeading = frameLeading && leading is Icon;
+    final text = Theme.of(context).textTheme;
+    final radio =
+        leading is Icon &&
+        !frameLeading &&
+        const [
+          Icons.radio_button_checked,
+          Icons.radio_button_unchecked,
+        ].contains((leading as Icon).icon);
+    Widget? icon = leading;
+    if (radio) {
+      final selected = (leading as Icon).icon == Icons.radio_button_checked;
+      icon = SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: Icon(
+            selected
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
+            size: 24,
+            color: selected
+                ? SettingsStyle.accent
+                : SettingsStyle.controlNormal,
+          ),
+        ),
+      );
+    } else {
+      icon = _nativeCheckbox(icon);
+    }
+    final trailingControl = _nativeCheckbox(trailing);
 
     return Focus(
       canRequestFocus: false,
       onKeyEvent: (_, event) {
-        // A held remote button may keep repeating after a new page opens.
-        // Repeats must not activate that page's initially focused control.
         if (event is KeyRepeatEvent &&
             const [
               LogicalKeyboardKey.select,
               LogicalKeyboardKey.enter,
               LogicalKeyboardKey.gameButtonA,
               LogicalKeyboardKey.space,
-            ].contains(event.logicalKey)) {
+            ].contains(event.logicalKey))
           return KeyEventResult.handled;
-        }
         final open = onRightPressed ?? onPressed;
         if (!showChevron ||
             open == null ||
@@ -76,74 +89,74 @@ class FocusableSettingsTile extends StatelessWidget {
         autofocus: autofocus,
         onPressed: onPressed,
         onLongPress: onLongPress,
-        builder: (context, highlighted) => DefaultTextStyle.merge(
-          style: baseTextStyle.copyWith(
-            color: highlighted
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.9),
-          ),
-          child: Row(
-            children: [
-              if (leading != null) ...[
-                if (framedLeading)
-                  AnimatedContainer(
-                    duration: SettingsStyle.focusDurationFor(context),
-                    curve: Curves.easeOutCubic,
-                    width: SettingsStyle.iconChipSize,
-                    height: SettingsStyle.iconChipSize,
-                    decoration: BoxDecoration(
-                      color: highlighted
-                          ? accentColor.withValues(alpha: 0.22)
-                          : Colors.white.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(
-                        SettingsStyle.iconChipRadius,
-                      ),
-                      border: Border.all(
-                        color: highlighted
-                            ? Colors.white.withValues(alpha: 0.18)
-                            : Colors.white.withValues(alpha: 0.04),
-                      ),
-                    ),
-                    child: IconTheme.merge(
-                      data: IconThemeData(
-                        size: SettingsStyle.iconSize,
-                        color: highlighted
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.78),
-                      ),
-                      child: Center(child: leading!),
-                    ),
-                  )
-                else
-                  leading!,
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: subtitle != null
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [title, const SizedBox(height: 2), subtitle!],
-                      )
-                    : title,
-              ),
-              if (trailing != null) ...[
-                const SizedBox(width: 12),
-                trailing!,
-              ] else if (showChevron) ...[
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: highlighted
-                      ? Colors.white.withValues(alpha: 0.85)
-                      : Colors.white.withValues(alpha: 0.25),
+        onFocusChange: onFocusChange,
+        builder: (context, highlighted) => Row(
+          children: [
+            if (icon != null)
+              SizedBox(
+                width: radio ? 48 : 40,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: IconTheme.merge(
+                    data: const IconThemeData(size: 24, color: Colors.white),
+                    child: icon,
+                  ),
                 ),
-              ],
+              ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 14, bottom: 13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DefaultTextStyle.merge(
+                      style: text.bodyMedium ?? SettingsStyle.primaryTextStyle,
+                      child: title,
+                    ),
+                    const SizedBox(height: 2),
+                    if (subtitle != null)
+                      DefaultTextStyle.merge(
+                        style: text.bodySmall ?? SettingsStyle.summaryTextStyle,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        child: subtitle!,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 16),
+              trailingControl!,
+            ] else if (showChevron && onRightPressed != null) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: SettingsStyle.controlNormal,
+              ),
             ],
-          ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget? _nativeCheckbox(Widget? widget) {
+    if (widget is! Icon ||
+        !const [
+          Icons.check_box,
+          Icons.check_box_outline_blank,
+        ].contains(widget.icon)) {
+      return widget;
+    }
+    return Icon(
+      widget.icon,
+      size: 24,
+      color: widget.icon == Icons.check_box
+          ? SettingsStyle.accent
+          : SettingsStyle.controlNormal,
     );
   }
 }

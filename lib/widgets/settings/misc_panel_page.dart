@@ -22,7 +22,7 @@ class MiscPanelPage extends StatelessWidget {
         SettingsPageHeader(title: localizations.miscellaneous),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               RoundedSwitchListTile(
                 autofocus: true,

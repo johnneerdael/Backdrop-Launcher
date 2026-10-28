@@ -17,6 +17,7 @@
  */
 
 import 'package:flutter/material.dart';
+import 'settings/settings_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
 import 'package:flauncher/providers/apps_service.dart';
@@ -68,51 +69,50 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
         return KeyEventResult.ignored;
       },
       child: SidePanelDialog(
-        width: 300,
-        isRightSide: false,
-        child: Column(
+        builder: (context) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                if (widget.applicationIcon != null)
-                  Image(image: widget.applicationIcon!, width: 50)
-                else
-                  const Icon(Icons.image_not_supported_outlined),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    widget.application.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            SettingsPageHeader(title: widget.application.name),
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
+              child: Row(
+                children: [
+                  if (widget.applicationIcon != null)
+                    Image(image: widget.applicationIcon!, width: 32, height: 32)
+                  else
+                    const Icon(Icons.image_not_supported_outlined, size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.application.packageName,
+                          style: Theme.of(context).textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'v' + widget.application.version,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              widget.application.packageName,
-              style: Theme.of(context).textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              "v${widget.application.version}",
-              style: Theme.of(context).textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Divider(),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
                     // Add to Category button (First as requested)
                     TextButton(
+                      style: SettingsStyle.actionButtonStyle,
                       autofocus: true,
                       child: Row(
                         children: [
                           const Icon(Icons.add_box_outlined),
-                          Container(width: 8),
+                          const SizedBox(width: 16),
                           Flexible(
                             child: Text(
                               localizations.addToCategory,
@@ -127,7 +127,7 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                         Navigator.of(
                           context,
                         ).pop(ApplicationInfoPanelResult.none);
-                        await showDialog(
+                        await SidePanelDialog.show(
                           context: context,
                           builder: (context) =>
                               AddToCategoryDialog(widget.application),
@@ -137,10 +137,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                     // Reorder button (Second as requested)
                     if (widget.category?.sort == CategorySort.manual)
                       TextButton(
+                        style: SettingsStyle.actionButtonStyle,
                         child: Row(
                           children: [
                             const Icon(Icons.open_with),
-                            Container(width: 8),
+                            const SizedBox(width: 16),
                             Flexible(
                               child: Text(
                                 localizations.reorder,
@@ -156,10 +157,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                         ).pop(ApplicationInfoPanelResult.reorderApp),
                       ),
                     TextButton(
+                      style: SettingsStyle.actionButtonStyle,
                       child: Row(
                         children: [
                           const Icon(Icons.open_in_new),
-                          Container(width: 8),
+                          const SizedBox(width: 16),
                           Flexible(
                             child: Text(
                               localizations.open,
@@ -180,6 +182,7 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                       },
                     ),
                     TextButton(
+                      style: SettingsStyle.actionButtonStyle,
                       child: Row(
                         children: [
                           Icon(
@@ -187,7 +190,7 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                                 ? Icons.visibility
                                 : Icons.visibility_off_outlined,
                           ),
-                          Container(width: 8),
+                          const SizedBox(width: 16),
                           Text(
                             widget.application.hidden
                                 ? localizations.show
@@ -213,10 +216,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                     ),
                     if (widget.category != null)
                       TextButton(
+                        style: SettingsStyle.actionButtonStyle,
                         child: Row(
                           children: [
                             const Icon(Icons.delete_sweep_outlined),
-                            Container(width: 8),
+                            const SizedBox(width: 16),
                             Flexible(
                               child: Text(
                                 localizations.removeFrom(widget.category!.name),
@@ -237,7 +241,7 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                           ).pop(ApplicationInfoPanelResult.none);
                         },
                       ),
-                    const Divider(),
+                    const SettingsSectionDivider(),
                     FutureBuilder<bool>(
                       future: _hasCustomBannerFuture,
                       builder: (context, snapshot) {
@@ -246,10 +250,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             TextButton(
+                              style: SettingsStyle.actionButtonStyle,
                               child: Row(
                                 children: [
                                   const Icon(Icons.image_search),
-                                  Container(width: 8),
+                                  const SizedBox(width: 16),
                                   Flexible(
                                     child: Text(
                                       localizations.setCustomBanner,
@@ -304,10 +309,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                             ),
                             if (hasCustom)
                               TextButton(
+                                style: SettingsStyle.actionButtonStyle,
                                 child: Row(
                                   children: [
                                     const Icon(Icons.hide_image_outlined),
-                                    Container(width: 8),
+                                    const SizedBox(width: 16),
                                     Flexible(
                                       child: Text(
                                         localizations.clearCustomBanner,
@@ -361,12 +367,13 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                         );
                       },
                     ),
-                    const Divider(),
+                    const SettingsSectionDivider(),
                     TextButton(
+                      style: SettingsStyle.actionButtonStyle,
                       child: Row(
                         children: [
                           const Icon(Icons.info_outlined),
-                          Container(width: 8),
+                          const SizedBox(width: 16),
                           Flexible(
                             child: Text(
                               localizations.appInfo,
@@ -382,10 +389,11 @@ class _ApplicationInfoPanelState extends State<ApplicationInfoPanel> {
                       ),
                     ),
                     TextButton(
+                      style: SettingsStyle.actionButtonStyle,
                       child: Row(
                         children: [
                           const Icon(Icons.delete_outlined),
-                          Container(width: 8),
+                          const SizedBox(width: 16),
                           Flexible(
                             child: Text(
                               localizations.uninstall,

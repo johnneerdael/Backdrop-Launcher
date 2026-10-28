@@ -9,6 +9,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get generalSettings => 'General settings';
+
+  @override
   String get aboutFlauncher => 'About Backdrop Launcher';
 
   @override

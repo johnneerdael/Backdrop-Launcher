@@ -4,7 +4,8 @@
     "Real native TV screenshots; no brand-kit interface studies.",
     "Selected older captures retain current controls without retired features or old launcher-name strings.",
     "No pending Trakt QR/code, private tokens or authentication screens.",
-    "Marketing clock source is verified against corrected native Elegant follow-up capture; provider selection was fixed before this capture."
+    "Marketing clock source is verified against corrected native Elegant follow-up capture; provider selection was fixed before this capture.",
+    "Native right-pane settings and expanded 52-icon picker were recaptured on the real TV on 2026-10-28 from the production-signed local release preview; no retouching or composites."
   ],
   "screenshots": [
     {
@@ -57,8 +58,8 @@
     },
     {
       "file": "assets/screenshots/app-rows.webp",
-      "source": "marketing/screenshots/04-custom-app-rows.png",
-      "source_sha256": "5ae7f08535de64475460c8ca80ddd2f248e168da0d46466a2c10037ab684ae1d",
+      "source": "docs/native-settings-verification/2026-10-28/app-rows.png",
+      "source_sha256": "98379b83688e2ed50d084295fe30a490fe1cb466cd9e7ed6ea018102c849f35f",
       "source_dimensions": [
         1920,
         1080
@@ -67,14 +68,17 @@
         1280,
         720
       ],
-      "output_bytes": 47284,
-      "output_sha256": "089d6aa86e0a60739663d3b729dc5d646b8089cbf008544ae8d9f6580d4eb6f2",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 33270,
+      "output_sha256": "dd706f98a9bd76777532fecc63ff2473096f4017564738fa10ad35c1042c83c5",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/manage-apps.webp",
-      "source": "marketing/screenshots/05-hide-and-manage-apps.png",
-      "source_sha256": "2d6dfed12235ec2d4f4055700a460da196ddc8755280f9b29559e72b607d8f09",
+      "source": "docs/native-settings-verification/2026-10-28/manage-apps.png",
+      "source_sha256": "74094f05cb155051935f5aa638ccab3bda98382d93cc56b678089ab19f16d6c9",
       "source_dimensions": [
         1920,
         1080
@@ -83,14 +87,17 @@
         1280,
         720
       ],
-      "output_bytes": 41770,
-      "output_sha256": "b69c966835459e8e009e71760bb3069efd23b6be1a06f00212a6928cbcc1c636",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 26940,
+      "output_sha256": "3de401c4dc65058804cf83ef2fb7cc0b9b33f144cb96d536a2d2066d44ae1cb1",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/app-artwork.webp",
-      "source": "marketing/screenshots/06-custom-app-artwork.png",
-      "source_sha256": "648b8e904ae6b3753d146729694779ded06d4b2308da3424ef362e8e12fc918f",
+      "source": "docs/native-settings-verification/2026-10-28/app-artwork.png",
+      "source_sha256": "8f86a9a0b9a19acc298a3b55769a0253b46ef717362bc9720d597a4a924bd182",
       "source_dimensions": [
         1920,
         1080
@@ -99,14 +106,17 @@
         1280,
         720
       ],
-      "output_bytes": 23792,
-      "output_sha256": "f36d7fd74be3089b00b4a26a70e6687f2bb7bf42cd296bf4d2556551bef9e6e5",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 20438,
+      "output_sha256": "334af108888be952f26ed4bad66c33d7e91d1da3b5763e9a0ea925c450ee591b",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/accent-colours.webp",
-      "source": "marketing/screenshots/07-accent-colors.png",
-      "source_sha256": "c29548880626cb378096a3caca5a81d10281fa2f55e4ef0a3b5b854e2c644cb1",
+      "source": "docs/native-settings-verification/2026-10-28/accent-colours.png",
+      "source_sha256": "96cff8760468ed58cc57720da908521411d603bf0d6a0e658c8bb7f5028c4e83",
       "source_dimensions": [
         1920,
         1080
@@ -115,14 +125,17 @@
         1280,
         720
       ],
-      "output_bytes": 48650,
-      "output_sha256": "3c3b763a184cebb24e6c6693b20b51d581b0fedf1ce24ed3ed2599a93fbec25f",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 32284,
+      "output_sha256": "61d3c5168028be96af1bc7b5738b46c8a0e3a052976bd3c016928e8debe497f6",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/card-backgrounds.webp",
-      "source": "marketing/screenshots/08-background-opacity.png",
-      "source_sha256": "284172cb05214f3b0c52eb68d5acdac46131646d5fa3aa6bd529c7a50ddfc7ae",
+      "source": "docs/native-settings-verification/2026-10-28/card-backgrounds.png",
+      "source_sha256": "8a7f10241a991dba02133a6068f99ac5e106dbf59d62288c338f397b10315290",
       "source_dimensions": [
         1920,
         1080
@@ -131,14 +144,17 @@
         1280,
         720
       ],
-      "output_bytes": 37992,
-      "output_sha256": "9badac4d344bb9ede7d73ddc4de551c937fb0c95bcfb7f2d3f186fdf229b0627",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 20196,
+      "output_sha256": "1f504faded1cf439f7e25509703261925e42c44efff4476fdad4a42c6d004512",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/trakt-sources.webp",
-      "source": "marketing/screenshots/09-trakt-backdrop-sources.png",
-      "source_sha256": "40cbbc9851b42340131ac25a00328bc88406d20cead2f9f45c39ca7ba9684825",
+      "source": "docs/native-settings-verification/2026-10-28/trakt-sources.png",
+      "source_sha256": "eb4074de02b21e3229a0b4262e6ebdd60a27d00c7841efbf87c21b227ab3f391",
       "source_dimensions": [
         1920,
         1080
@@ -147,9 +163,12 @@
         1280,
         720
       ],
-      "output_bytes": 56392,
-      "output_sha256": "dff1d0957e83e3b4a5237dd4334b931615b139531d2f634ddf3b919b764d3ff5",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 31458,
+      "output_sha256": "e7998509bd4b22511e5dd4f096220274a86f72b1589f64ab1790be3980b86d79",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/clock.webp",
@@ -169,8 +188,8 @@
     },
     {
       "file": "assets/screenshots/status-bar.webp",
-      "source": "docs/feature-removal/2026-10-28/status-bar-settings.png",
-      "source_sha256": "eda0d90db167501132a72f20441f966ba16b171ee1590e26473b0d6f0408edce",
+      "source": "docs/native-settings-verification/2026-10-28/status-bar.png",
+      "source_sha256": "bbf31779731409c014513999eeb923753840fc7743ea7dcd37e3e616e9875d86",
       "source_dimensions": [
         1920,
         1080
@@ -179,14 +198,17 @@
         1280,
         720
       ],
-      "output_bytes": 30122,
-      "output_sha256": "edcb1f9a6a82541ac2dc3115659bedaa3aafba9a110e4af3f6c5595b4439f3ad",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 22058,
+      "output_sha256": "3c2383b3604b04a84e265c3fa21c6e69ba3baf055d404e118bbf0646e15d1714",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/system.webp",
-      "source": "docs/feature-removal/2026-10-28/system-settings.png",
-      "source_sha256": "4298444a3493bb81e8ee8b92612ecf58b508e4c8cd4446d1f361525810814810",
+      "source": "docs/native-settings-verification/2026-10-28/system.png",
+      "source_sha256": "3301718645502e7fb14a876107a77c32fc2f0d2b0f51c40136d03ec77d6ad4ad",
       "source_dimensions": [
         1920,
         1080
@@ -195,14 +217,17 @@
         1280,
         720
       ],
-      "output_bytes": 31094,
-      "output_sha256": "fcfeac7f5c6ae8037f29fd35ba94778d259f6308eb369f1f2b7315beeb016799",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 21952,
+      "output_sha256": "d9f71d1bb94b01d539fc4d4aceab1f7c1eb927d83cbdeee43da4363652f7b63e",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/row-editor.webp",
-      "source": "docs/user-guide-capture/2026-10-27/screenshots/153-row-editor-empty.png",
-      "source_sha256": "64f3d9a0c50ae8e8f82ff73d1532cc8de10ebfefc91b3e53705e77879eebdac4",
+      "source": "docs/native-settings-verification/2026-10-28/row-editor.png",
+      "source_sha256": "a26c87ece0c77d018a6eea51c5b9fd6cbb5c4c98f90ffb46d9486e3dd8fb81e7",
       "source_dimensions": [
         1920,
         1080
@@ -211,14 +236,17 @@
         1280,
         720
       ],
-      "output_bytes": 32616,
-      "output_sha256": "ac744052e5b84d92f9ad1254c715f0595187f6a54a49f9935a501d3299c82819",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 27440,
+      "output_sha256": "58dba3db2514b05daebbbbf24cfa218861e0ad3aa38b69e06ff96efb0bf78ca8",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/watch-next-settings.webp",
-      "source": "docs/user-guide-capture/2026-10-27/screenshots/227-watch-next-enabled.png",
-      "source_sha256": "73584e73360916d6395897f3c90f3913a79e2d6162b8c1c70f34d25046f984c9",
+      "source": "docs/native-settings-verification/2026-10-28/watch-next-settings.png",
+      "source_sha256": "c6b445c60d4cd8b83940a5eb83a588926b50a98773569e2bd0d973711dd3001c",
       "source_dimensions": [
         1920,
         1080
@@ -227,14 +255,17 @@
         1280,
         720
       ],
-      "output_bytes": 44070,
-      "output_sha256": "9b711f274ede1f7d9ec3d4b1518b0c4cab6ce2a39b7d1a65116463b69dd27404",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 35442,
+      "output_sha256": "fcb91ad9dce3f6bf06da51afa86318966f0edc1075a56eb52ee7bc27330a7d9e",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/backdrops.webp",
-      "source": "docs/user-guide-capture/2026-10-27/screenshots/271-backdrops-connected-top.png",
-      "source_sha256": "1248bbe866233d6fdfd799843a0eb943fa2d3e2166a4b636321dae284a0e3008",
+      "source": "docs/native-settings-verification/2026-10-28/backdrops.png",
+      "source_sha256": "22c13952e779700232a00ad6b85b65cefbaf9389671eaec08d97f5d8d697c02e",
       "source_dimensions": [
         1920,
         1080
@@ -243,14 +274,17 @@
         1280,
         720
       ],
-      "output_bytes": 40658,
-      "output_sha256": "fbb511b29c7fce72123ed377e4fe0fdbb0d4aa234e2bde4b846f41ce3e9554bd",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 33554,
+      "output_sha256": "8dfb5ffb05aa0f7cb8747a41ad8d3b9f081f28b0a367613c14db4a599f5e536c",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/date-formats.webp",
-      "source": "docs/user-guide-capture/2026-10-27/screenshots/072-date-time-format-top.png",
-      "source_sha256": "993761288c4610f129327c1ac07d81dcbb824425d2fbd0f4e0dd49da3cb113c2",
+      "source": "docs/native-settings-verification/2026-10-28/date-formats.png",
+      "source_sha256": "f065b0cbc0d163d5b7792961b540db0521903910e1b7a1384a5073d14a291627",
       "source_dimensions": [
         1920,
         1080
@@ -259,14 +293,17 @@
         1280,
         720
       ],
-      "output_bytes": 58972,
-      "output_sha256": "1ce465fb480634d7ede37b6988db47953a0ce109fb2787a7de8416c01593a66e",
-      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement"
+      "output_bytes": 26106,
+      "output_sha256": "7bff9857d418361bee540dea27b64bd69ef31993c9718afe18de04778013e859",
+      "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
+      "application_id": "nl.neerdael.backdrop_launcher",
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/settings.webp",
-      "source": "docs/branding-verification/2026-10-28/settings.png",
-      "source_sha256": "87fd75fd4d81964b46735ac9010daca8e1638197bc889a42f1ef54a1d5a48877",
+      "source": "docs/native-settings-verification/2026-10-28/settings.png",
+      "source_sha256": "6c0947dc94a04d3b4632733291a4e05d4997afddb667952a0a7ecd9cea835dfd",
       "source_dimensions": [
         1920,
         1080
@@ -275,16 +312,17 @@
         1280,
         720
       ],
-      "output_bytes": 70038,
-      "output_sha256": "68dfb768126f4eeaabd9d25e09ebcb2fc863228a55d98f00bb3b8e14da242ed5",
+      "output_bytes": 25138,
+      "output_sha256": "eefc13294bbdd23bc06538b8eb4ef0db5e9a1f6cf242db38596ac018873a620f",
       "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
       "application_id": "nl.neerdael.backdrop_launcher",
-      "version": "1.3.0 (4127)"
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     },
     {
       "file": "assets/screenshots/about.webp",
-      "source": "docs/branding-verification/2026-10-28/about.png",
-      "source_sha256": "0798196eac4d5572c4cda20386bb577a9a2f320d18ef3cb507ea96a4c3ede5a9",
+      "source": "docs/native-settings-verification/2026-10-28/about.png",
+      "source_sha256": "8cc26cee96e363aadd9611c391c92181a5d91f8a251126430801ccc0202b70bd",
       "source_dimensions": [
         1920,
         1080
@@ -293,11 +331,12 @@
         1280,
         720
       ],
-      "output_bytes": 42950,
-      "output_sha256": "ec6327c69809a737b6736000e9609530934d16af5da35e616d2d9810560a7f31",
+      "output_bytes": 29808,
+      "output_sha256": "78ef83d44a5f51e42deeadcc65f9cb40866cbe270998b199c7bd04c3459038c8",
       "transformation": "RGB conversion, preserve full frame and aspect ratio, downscale only to max width 1280 using Lanczos, WebP quality 88 method 6; no compositing, retouching or text replacement",
       "application_id": "nl.neerdael.backdrop_launcher",
-      "version": "1.3.0 (4127)"
+      "version": "1.3.0 (4127), local production-signed native-settings preview",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db"
     }
   ]
 }

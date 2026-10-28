@@ -37,7 +37,7 @@ class StatusBarPanelPage extends StatelessWidget {
         SettingsPageHeader(title: localizations.statusBar),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               RoundedSwitchListTile(
                 autofocus: true,

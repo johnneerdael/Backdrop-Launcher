@@ -108,3 +108,7 @@ android/fastlane/README.md
 docs/user-guide-capture/
 .venv-docs/
 site/
+
+# Original icon delivery archives and invalid source files stay local.
+appicons/source/
+docs/native-settings-verification/

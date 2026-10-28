@@ -1,5 +1,5 @@
 {
-  "application": "Media Launcher",
+  "application": "Backdrop Launcher",
   "purpose": "Ten selected screenshots for marketing and feature promotion",
   "images": [
     {
@@ -53,14 +53,15 @@
       "headline": "Your apps. Your rows.",
       "caption": "Create, reorder and hide rows to build a home screen around you.",
       "marketing_purpose": "Show organization and control rather than a fixed app grid.",
-      "source_collection": "2026-10-27-fixes",
-      "source_id": "pointer-tools-row-finished",
-      "source_file": "docs/user-guide-capture/2026-10-27-fixes/screenshots/018-pointer-tools-row-finished.png",
-      "source_apk_sha256": "377c1f9af59f2d3377f2fd8b4b924d42302670533bc96e4c336ea484978ccc05",
-      "sha256": "5ae7f08535de64475460c8ca80ddd2f248e168da0d46466a2c10037ab684ae1d",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "app-rows",
+      "source_file": "docs/native-settings-verification/2026-10-28/app-rows.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "98379b83688e2ed50d084295fe30a490fe1cb466cd9e7ed6ea018102c849f35f",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 5,
@@ -68,14 +69,15 @@
       "headline": "Keep the apps you want to see.",
       "caption": "Add apps to rows, hide them from Home, or change their artwork from one menu.",
       "marketing_purpose": "Demonstrate everyday control over the launcher.",
-      "source_collection": "2026-10-27-fixes",
-      "source_id": "pointer-projectm-menu",
-      "source_file": "docs/user-guide-capture/2026-10-27-fixes/screenshots/011-pointer-projectm-menu.png",
-      "source_apk_sha256": "377c1f9af59f2d3377f2fd8b4b924d42302670533bc96e4c336ea484978ccc05",
-      "sha256": "2d6dfed12235ec2d4f4055700a460da196ddc8755280f9b29559e72b607d8f09",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "manage-apps",
+      "source_file": "docs/native-settings-verification/2026-10-28/manage-apps.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "74094f05cb155051935f5aa638ccab3bda98382d93cc56b678089ab19f16d6c9",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 6,
@@ -83,29 +85,31 @@
       "headline": "A fresh look for your app row.",
       "caption": "Choose built-in app artwork for a cleaner, more consistent Home.",
       "marketing_purpose": "A visual customization feature that reads well at a glance.",
-      "source_collection": "2026-10-27",
-      "source_id": "artwork-picker-top",
-      "source_file": "docs/user-guide-capture/2026-10-27/screenshots/184-artwork-picker-top.png",
-      "source_apk_sha256": "5f719702e574410fff3dd0a0d2cb41bb8dd0b821ced391663616445bba893939",
-      "sha256": "648b8e904ae6b3753d146729694779ded06d4b2308da3424ef362e8e12fc918f",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "app-artwork",
+      "source_file": "docs/native-settings-verification/2026-10-28/app-artwork.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "8f86a9a0b9a19acc298a3b55769a0253b46ef717362bc9720d597a4a924bd182",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 7,
       "file": "screenshots/07-accent-colors.png",
       "headline": "Make it your color.",
-      "caption": "Choose an accent color to personalize the launcher’s controls and highlights.",
+      "caption": "Choose an accent color for your Home screen\u2019s cards and focus highlights.",
       "marketing_purpose": "Adds color and makes personalization tangible.",
-      "source_collection": "2026-10-27",
-      "source_id": "accent-purple",
-      "source_file": "docs/user-guide-capture/2026-10-27/screenshots/028-accent-purple.png",
-      "source_apk_sha256": "5f719702e574410fff3dd0a0d2cb41bb8dd0b821ced391663616445bba893939",
-      "sha256": "c29548880626cb378096a3caca5a81d10281fa2f55e4ef0a3b5b854e2c644cb1",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "accent-colours",
+      "source_file": "docs/native-settings-verification/2026-10-28/accent-colours.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "96cff8760468ed58cc57720da908521411d603bf0d6a0e658c8bb7f5028c4e83",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 8,
@@ -113,29 +117,31 @@
       "headline": "Let your backdrop breathe.",
       "caption": "Adjust app-card background opacity from 0% to 100% in 10% steps.",
       "marketing_purpose": "Explain the backdrop-preserving design with a concrete control.",
-      "source_collection": "2026-10-27",
-      "source_id": "icon-background-10",
-      "source_file": "docs/user-guide-capture/2026-10-27/screenshots/017-icon-background-10.png",
-      "source_apk_sha256": "5f719702e574410fff3dd0a0d2cb41bb8dd0b821ced391663616445bba893939",
-      "sha256": "284172cb05214f3b0c52eb68d5acdac46131646d5fa3aa6bd529c7a50ddfc7ae",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "card-backgrounds",
+      "source_file": "docs/native-settings-verification/2026-10-28/card-backgrounds.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "8a7f10241a991dba02133a6068f99ac5e106dbf59d62288c338f397b10315290",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 9,
       "file": "screenshots/09-trakt-backdrop-sources.png",
       "headline": "Keep your backdrop collection fresh.",
-      "caption": "Choose backdrop sources from Trakt’s trending and anticipated movies, shows and popular lists.",
+      "caption": "Choose backdrop sources from Trakt\u2019s trending and anticipated movies, shows and popular lists.",
       "marketing_purpose": "Present Trakt as a backdrop source; this screen does not advertise playback-history sync.",
-      "source_collection": "2026-10-27",
-      "source_id": "trakt-catalogs-all-four",
-      "source_file": "docs/user-guide-capture/2026-10-27/screenshots/298-trakt-catalogs-all-four.png",
-      "source_apk_sha256": "5f719702e574410fff3dd0a0d2cb41bb8dd0b821ced391663616445bba893939",
-      "sha256": "40cbbc9851b42340131ac25a00328bc88406d20cead2f9f45c39ca7ba9684825",
+      "source_collection": "2026-10-28-native-settings",
+      "source_id": "trakt-sources",
+      "source_file": "docs/native-settings-verification/2026-10-28/trakt-sources.png",
+      "source_apk_sha256": "7c51bc2d94a8331c9e11d456d06c45a51bdbf21944f07230feea9273f2b364db",
+      "sha256": "eb4074de02b21e3229a0b4262e6ebdd60a27d00c7841efbf87c21b227ab3f391",
       "width": 1920,
       "height": 1080,
-      "image_changes": "None; byte-identical copy of native TV screenshot"
+      "image_changes": "None; byte-identical copy of native TV screenshot",
+      "source_application": "Backdrop Launcher"
     },
     {
       "order": 10,
@@ -152,5 +158,8 @@
       "height": 1080,
       "image_changes": "None; byte-identical copy of native TV screenshot"
     }
+  ],
+  "notes": [
+    "Settings and artwork picker refreshed from Backdrop Launcher native-settings release preview. Unchanged Home/Continue Watching/clock scenes retain original capture provenance."
   ]
 }

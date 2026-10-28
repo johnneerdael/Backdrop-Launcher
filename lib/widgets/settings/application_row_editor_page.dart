@@ -173,13 +173,8 @@ class _ApplicationRowEditorPageState extends State<ApplicationRowEditorPage> {
       final group = apps.where((app) => app.sideloaded == android).toList();
       if (group.isEmpty) continue;
       entries.add(
-        () => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-          child: Text(
-            android ? 'Android apps' : 'TV apps',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-        ),
+        () =>
+            SettingsSectionHeader(title: android ? 'Android apps' : 'TV apps'),
       );
       for (final app in group) {
         entries.add(
@@ -201,7 +196,7 @@ class _ApplicationRowEditorPageState extends State<ApplicationRowEditorPage> {
     if (apps.isEmpty)
       entries.add(
         () => const Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
           child: Text('No installed apps.'),
         ),
       );
@@ -210,6 +205,7 @@ class _ApplicationRowEditorPageState extends State<ApplicationRowEditorPage> {
         SettingsPageHeader(title: row.name),
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 34),
             itemCount: entries.length,
             itemBuilder: (_, index) => entries[index](),
           ),

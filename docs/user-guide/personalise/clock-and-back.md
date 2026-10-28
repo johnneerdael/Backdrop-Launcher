@@ -6,7 +6,7 @@ Backdrop Launcher has a clock view on Home and a separate Android clock screensa
 
 ## Choose a clock style
 
-Open **Settings → System → Screensaver Clock Style**. Select **Minimal**, **Bold**, **Retro**, **Elegant**, **Neon**, **Pixel** or **Digital**. The check mark identifies the saved style. The picker describes each option; it does not show a live clock preview.
+Open **Settings → System → Screensaver Clock Style**. Select **Minimal**, **Bold**, **Retro**, **Elegant**, **Neon**, **Pixel** or **Digital**. The selected radio button identifies the saved style. The picker describes each option; it does not show a live clock preview.
 
 Date and time use the presets from [Date and time format](status-and-time.md#choose-a-date-or-time-format). Styles differ in typography and treatment, so try the actual clock or screensaver to see your choice at TV size.
 

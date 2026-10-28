@@ -100,7 +100,7 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
         SettingsPageHeader(title: localizations.watchNextSectionTitle),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               RoundedSwitchListTile(
                 autofocus: true,
@@ -123,14 +123,15 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
 
               if (settingsService.showWatchNextSection) ...[
                 if (!watchNextService.hasPermission)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Card(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer.withValues(alpha: 0.5),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
+                  Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                          24,
+                          14,
+                          56,
+                          0,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -143,18 +144,14 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                               localizations.watchNextPermissionBody,
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () =>
-                                  watchNextService.requestPermission(),
-                              child: Text(
-                                localizations.watchNextGrantPermission,
-                              ),
-                            ),
                           ],
                         ),
                       ),
-                    ),
+                      FocusableSettingsTile(
+                        title: Text(localizations.watchNextGrantPermission),
+                        onPressed: () => watchNextService.requestPermission(),
+                      ),
+                    ],
                   ),
 
                 RoundedSwitchListTile(
@@ -200,7 +197,7 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                         : '${settingsService.watchNextMaxItems}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
+                  showChevron: true,
                   onPressed: () => Navigator.of(
                     context,
                   ).pushNamed(WatchNextMaxItemsPage.routeName),
@@ -228,17 +225,9 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                 ),
 
                 const SettingsSectionDivider(),
+                SettingsSectionHeader(title: localizations.watchNextFilterApps),
                 Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 4),
-                  child: Text(
-                    localizations.watchNextFilterApps,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 56, 12),
                   child: Text(
                     localizations.watchNextFilterAppsDescription,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -273,10 +262,7 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                       ),
                       subtitle: Text(
                         pkg,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white54,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                       secondary: _AppIcon(
                         packageName: pkg,
@@ -286,20 +272,15 @@ class _WatchNextPanelPageState extends State<WatchNextPanelPage> {
                   }),
 
                 const SizedBox(height: 8),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () =>
-                        setState(() => _showAllApps = !_showAllApps),
-                    icon: Icon(
-                      _showAllApps ? Icons.filter_list : Icons.apps_outlined,
-                      size: 18,
-                    ),
-                    label: Text(
-                      _showAllApps
-                          ? localizations.watchNextFilterApps
-                          : localizations.watchNextShowAllApps,
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                FocusableSettingsTile(
+                  onPressed: () => setState(() => _showAllApps = !_showAllApps),
+                  leading: Icon(
+                    _showAllApps ? Icons.filter_list : Icons.apps_outlined,
+                  ),
+                  title: Text(
+                    _showAllApps
+                        ? localizations.watchNextFilterApps
+                        : localizations.watchNextShowAllApps,
                   ),
                 ),
                 const SizedBox(height: 16),

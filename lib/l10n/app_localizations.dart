@@ -102,6 +102,12 @@ abstract class AppLocalizations {
     Locale('vi'),
   ];
 
+  /// No description provided for @generalSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'General settings'**
+  String get generalSettings;
+
   /// No description provided for @aboutFlauncher.
   ///
   /// In en, this message translates to:

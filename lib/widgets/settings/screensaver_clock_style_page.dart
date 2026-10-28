@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/widgets/settings/settings_theme.dart';
+import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -139,11 +140,14 @@ class _StyleRadioTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = value == groupValue;
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final textTheme = Theme.of(context).textTheme;
-
-    return SettingsFocusCard(
+    return FocusableSettingsTile(
       autofocus: autofocus,
+      frameLeading: false,
+      leading: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+      ),
+      title: Text(title),
+      subtitle: Text(subtitle),
       onPressed: () => onChanged(value),
       onFocusChange: (focused) {
         if (focused) {
@@ -155,41 +159,6 @@ class _StyleRadioTile extends StatelessWidget {
           );
         }
       },
-      builder: (context, highlighted) => Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.82),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Icon(
-            isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
-            size: 22,
-            color: isSelected
-                ? primaryColor
-                : Colors.white.withValues(alpha: 0.3),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -2,11 +2,13 @@
 
 The accent you choose belongs to your Home screen. Backdrop Launcher keeps that preference across restarts; the guide’s twilight violet is a separate website theme.
 
+Settings uses native Android TV blue for its controls. Your Home accent remains visible in the colour and focus-border previews and in the app icon background slider.
+
 ## Choose your accent
 
 Open **Settings → Interface → Accent Color**. Move through the grid and press **Select** to commit a colour. Focus alone does not change it. A check mark identifies the current selection and the **Preview** area shows it.
 
-![Accent Color settings showing the swatch grid and a purple preview](../assets/screenshots/accent-colours.webp){ width="1280" height="720" loading="lazy" }
+![Accent Color settings showing the swatch grid and live preview](../assets/screenshots/accent-colours.webp){ width="1280" height="720" loading="lazy" }
 
 The palette contains **Purple, Teal, Blue, Orange, Pink, Green, White, Yellow, Red, Cyan, Indigo, Lime, Amber, Rose** and **Ice Blue**. Your choice is used in focus outlines and app-card backgrounds.
 

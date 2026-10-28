@@ -71,24 +71,14 @@ class _DateTimeFormatPageState extends State<DateTimeFormatPage> {
             SettingsPageHeader(title: localizations.dateAndTimeFormat),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.only(bottom: 34),
                 children: [
                   _buildPreview(
                     context,
                     service.dateFormat,
                     service.timeFormat,
                   ),
-                  const SizedBox(height: 24),
-                  const SettingsSectionDivider(),
-
-                  // Date format section
-                  Text(
-                    localizations.date,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  SettingsSectionHeader(title: localizations.date),
 
                   ...dateFormatPresets.asMap().entries.map((entry) {
                     final isSelected = service.dateFormat == entry.value.$1;
@@ -103,19 +93,8 @@ class _DateTimeFormatPageState extends State<DateTimeFormatPage> {
                             ? Theme.of(context).colorScheme.secondary
                             : Colors.grey,
                       ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(entry.value.$2),
-                          Text(
-                            entry.value.$1,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
+                      title: Text(entry.value.$2),
+                      subtitle: Text(entry.value.$1),
                       onPressed: () => service.setDateTimeFormat(
                         entry.value.$1,
                         service.timeFormat,
@@ -123,17 +102,8 @@ class _DateTimeFormatPageState extends State<DateTimeFormatPage> {
                     );
                   }),
 
-                  const SizedBox(height: 16),
                   const SettingsSectionDivider(),
-
-                  // Time format section
-                  Text(
-                    localizations.time,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  SettingsSectionHeader(title: localizations.time),
 
                   ...timeFormatPresets.map((preset) {
                     final isSelected = service.timeFormat == preset.$1;
@@ -147,19 +117,8 @@ class _DateTimeFormatPageState extends State<DateTimeFormatPage> {
                             ? Theme.of(context).colorScheme.secondary
                             : Colors.grey,
                       ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(preset.$2),
-                          Text(
-                            preset.$1,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
+                      title: Text(preset.$2),
+                      subtitle: Text(preset.$1),
                       onPressed: () => service.setDateTimeFormat(
                         service.dateFormat,
                         preset.$1,
@@ -196,20 +155,11 @@ class _DateTimeFormatPageState extends State<DateTimeFormatPage> {
       preview = 'Invalid format';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
       child: Text(
         preview.isEmpty ? 'Select formats below' : preview,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-        ),
-        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
     );
   }

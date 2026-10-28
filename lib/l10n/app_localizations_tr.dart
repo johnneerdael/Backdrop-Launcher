@@ -9,6 +9,9 @@ class AppLocalizationsTr extends AppLocalizations {
   AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
+  String get generalSettings => 'Genel ayarlar';
+
+  @override
   String get aboutFlauncher => 'Backdrop Launcher Hakkında';
 
   @override

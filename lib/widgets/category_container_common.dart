@@ -30,11 +30,9 @@ Widget categoryContainerEmptyState(BuildContext context) {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: InkWell(
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => SettingsPanel(
-                    initialRoute: ApplicationsPanelPage.routeName,
-                  ),
+                onTap: () => SettingsPanel.show(
+                  context,
+                  initialRoute: ApplicationsPanelPage.routeName,
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(8),

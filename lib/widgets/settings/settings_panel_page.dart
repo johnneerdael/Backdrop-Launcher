@@ -44,9 +44,10 @@ class SettingsPanelPage extends StatelessWidget {
         SettingsPageHeader(title: localizations.settings),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 34),
             child: Column(
               children: [
+                SettingsSectionHeader(title: localizations.generalSettings),
                 FocusableSettingsTile(
                   autofocus: true,
                   showChevron: true,
@@ -81,7 +82,6 @@ class SettingsPanelPage extends StatelessWidget {
                     context,
                   ).pushNamed(GeneralSettingsPage.routeName),
                 ),
-                const SettingsSectionDivider(),
                 FocusableSettingsTile(
                   leading: const Icon(Icons.settings_outlined),
                   title: Text(

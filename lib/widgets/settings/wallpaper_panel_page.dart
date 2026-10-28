@@ -40,11 +40,12 @@ class WallpaperPanelPage extends StatelessWidget {
         const SettingsPageHeader(title: 'Backdrops'),
         Expanded(
           child: ListView(
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.zero,
                   child: Image(
                     image: ResizeImage(wallpaper.wallpaper, width: 640),
                     height: 150,
@@ -127,7 +128,7 @@ class WallpaperPanelPage extends StatelessWidget {
               ),
               if (wallpaper.error != null)
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
                   child: Text(wallpaper.error!),
                 ),
               if (trakt.isConnected)
@@ -140,10 +141,10 @@ class WallpaperPanelPage extends StatelessWidget {
                   },
                 ),
               const Padding(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
                 child: Text(
                   'Backdrops provided by TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.',
-                  style: TextStyle(fontSize: 11, color: Colors.white60),
+                  style: SettingsStyle.summaryTextStyle,
                 ),
               ),
             ],

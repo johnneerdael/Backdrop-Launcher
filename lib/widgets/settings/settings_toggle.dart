@@ -2,23 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'settings_theme.dart';
 
-/// A compact, low-overhead switch.
-///
-/// Replaces [Switch] inside settings rows: it is 42x24 instead of the 59x40
-/// Material switch, animates with cheap [AnimatedContainer]s only (no ink, no
-/// layout animation) and never needs an explicit thumb/track theme.
+/// Native TV switch geometry, painted locally without a second focus target.
 class SettingsSwitch extends StatelessWidget {
   final bool value;
   final Color accentColor;
   final Duration duration;
-
-  static const double _width = 42;
-  static const double _height = 24;
-  static const double _knob = 18;
-
-  /// Used instead of a white knob on light accent colours (white, yellow,
-  /// cyan...), which would otherwise paint white on white.
-  static const Color _darkKnob = Color(0xFF1A1A1E);
 
   const SettingsSwitch({
     super.key,
@@ -28,49 +16,53 @@ class SettingsSwitch extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // The knob must stay readable whatever accent the user picked.
-    final lightTrack = accentColor.computeLuminance() > 0.55;
-    final trackColor = value
-        ? accentColor
-        : Colors.white.withValues(alpha: 0.16);
-    final borderColor = value
-        ? (lightTrack
-              ? Colors.black.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.18))
-        : Colors.white.withValues(alpha: 0.08);
-
-    return Semantics(
-      toggled: value,
-      child: AnimatedContainer(
-        duration: duration,
-        curve: Curves.easeOutCubic,
-        width: _width,
-        height: _height,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: trackColor,
-          borderRadius: BorderRadius.circular(_height / 2),
-          border: Border.all(color: borderColor),
-        ),
-        child: AnimatedAlign(
-          duration: duration,
-          curve: Curves.easeOutCubic,
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          child: AnimatedContainer(
-            duration: duration,
-            curve: Curves.easeOutCubic,
-            width: _knob,
-            height: _knob,
-            decoration: BoxDecoration(
-              color: value
-                  ? (lightTrack ? _darkKnob : Colors.white)
-                  : Colors.white.withValues(alpha: 0.78),
-              shape: BoxShape.circle,
-            ),
-          ),
+  Widget build(BuildContext context) => Semantics(
+    toggled: value,
+    child: TweenAnimationBuilder<double>(
+      tween: Tween(begin: value ? 1 : 0, end: value ? 1 : 0),
+      duration: MediaQuery.maybeOf(context)?.disableAnimations == true
+          ? Duration.zero
+          : duration,
+      curve: Curves.easeOutCubic,
+      builder: (context, position, _) => SizedBox(
+        width: 48,
+        height: 27.25,
+        child: CustomPaint(
+          painter: _NativeSwitchPainter(position, accentColor),
         ),
       ),
+    ),
+  );
+}
+
+class _NativeSwitchPainter extends CustomPainter {
+  final double position;
+  final Color accent;
+  const _NativeSwitchPainter(this.position, this.accent);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = position.clamp(0.0, 1.0);
+    final track = Rect.fromLTWH(10.5, (size.height - 14) / 2, 27, 14);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(track, const Radius.circular(7)),
+      Paint()
+        ..color = Color.lerp(Colors.white, accent, t)!.withValues(alpha: .3),
+    );
+    final centre = Offset(13.625 + 20.75 * t, size.height / 2);
+    canvas.drawCircle(
+      centre.translate(0, .5),
+      11,
+      Paint()..color = const Color(0x20000000),
+    );
+    canvas.drawCircle(
+      centre,
+      10,
+      Paint()..color = Color.lerp(const Color(0xFFB9B9B9), accent, t)!,
     );
   }
+
+  @override
+  bool shouldRepaint(covariant _NativeSwitchPainter oldDelegate) =>
+      oldDelegate.position != position || oldDelegate.accent != accent;
 }

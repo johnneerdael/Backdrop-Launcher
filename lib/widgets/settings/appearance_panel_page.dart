@@ -21,7 +21,7 @@ class AppearancePanelPage extends StatelessWidget {
         SettingsPageHeader(title: localizations.appearanceSettings),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(bottom: 34),
             children: [
               FocusableSettingsTile(
                 autofocus: true,
@@ -85,7 +85,7 @@ class _AppIconOpacitySliderState extends State<_AppIconOpacitySlider> {
     final settings = context.watch<SettingsService>();
     final percent = (settings.appIconBackgroundOpacity * 100).round();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 56, 13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -93,13 +93,21 @@ class _AppIconOpacitySliderState extends State<_AppIconOpacitySlider> {
             'App icon background · $percent%',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          Slider(
-            focusNode: _focusNode,
-            value: settings.appIconBackgroundOpacity,
-            divisions: 10,
-            label: '$percent%',
-            semanticFormatterCallback: (value) => '${(value * 100).round()}%',
-            onChanged: settings.setAppIconBackgroundOpacity,
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: settings.accentColor,
+              thumbColor: settings.accentColor,
+              inactiveTrackColor: settings.accentColor.withValues(alpha: .3),
+              overlayColor: settings.accentColor.withValues(alpha: .12),
+            ),
+            child: Slider(
+              focusNode: _focusNode,
+              value: settings.appIconBackgroundOpacity,
+              divisions: 10,
+              label: '$percent%',
+              semanticFormatterCallback: (value) => '${(value * 100).round()}%',
+              onChanged: settings.setAppIconBackgroundOpacity,
+            ),
           ),
         ],
       ),

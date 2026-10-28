@@ -1,5 +1,7 @@
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flutter/material.dart';
+import 'settings/settings_theme.dart';
+import 'settings/focusable_settings_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 
@@ -26,35 +28,26 @@ class AddToCategoryDialog extends StatelessWidget {
       AppLocalizations localizations = AppLocalizations.of(context)!;
 
       return SidePanelDialog(
-        width: 300,
-        isRightSide: false,
-        child: Column(
+        builder: (context) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              localizations.withEllipsisAddTo,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            SizedBox(height: 16),
+            SettingsPageHeader(title: localizations.withEllipsisAddTo),
             Expanded(
               child: ListView.builder(
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    margin: EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      onTap: () async {
-                        await context.read<AppsService>().addToCategory(
-                          selectedApplication,
-                          category,
-                        );
-                        Navigator.of(context).pop();
-                      },
-                      title: Text(category.name),
-                    ),
+                  return FocusableSettingsTile(
+                    autofocus: index == 0,
+                    title: Text(category.name),
+                    onPressed: () async {
+                      await context.read<AppsService>().addToCategory(
+                        selectedApplication,
+                        category,
+                      );
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
                   );
                 },
               ),

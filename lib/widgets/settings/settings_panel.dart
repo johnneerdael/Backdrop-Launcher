@@ -45,6 +45,12 @@ class SettingsPanel extends StatefulWidget {
 
   const SettingsPanel({Key? key, this.initialRoute}) : super(key: key);
 
+  static Future<void> show(BuildContext context, {String? initialRoute}) =>
+      SidePanelDialog.show<void>(
+        context: context,
+        builder: (_) => SettingsPanel(initialRoute: initialRoute),
+      );
+
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
 }
@@ -60,24 +66,17 @@ class _SettingsPanelState extends State<SettingsPanel> {
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            // Tap outside to close. A single gradient scrim adds depth next to
-            // the panel without a second full-screen colour layer.
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Color(0x8C000000), Color(0x1A000000)],
-                  ),
-                ),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).pop(),
+                child: const SizedBox.expand(),
               ),
             ),
             // The side panel
             SidePanelDialog(
               width: SettingsStyle.panelWidth,
-              isRightSide: false,
+              isRightSide: true,
               child: Navigator(
                 key: _navigatorKey,
                 initialRoute:
