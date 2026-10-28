@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get aboutFlauncher => 'Acerca de FLauncher';
+  String get aboutFlauncher => 'Acerca de Backdrop Launcher';
 
   @override
   String get addCategory => 'Agregar categoría';

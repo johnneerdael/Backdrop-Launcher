@@ -7,6 +7,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Every supported locale names Backdrop Launcher in About', () async {
+    for (final locale in AppLocalizations.supportedLocales) {
+      final strings = await AppLocalizations.delegate.load(locale);
+      expect(
+        strings.aboutFlauncher,
+        contains('Backdrop Launcher'),
+        reason: locale.toLanguageTag(),
+      );
+    }
+  });
+
   test(
     'Vietnamese translations cover every message and preserve placeholders',
     () {
@@ -50,7 +61,7 @@ void main() {
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
         ],
         home: Builder(
