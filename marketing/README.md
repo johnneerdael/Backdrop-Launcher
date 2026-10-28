@@ -1,4 +1,4 @@
-# Media Launcher marketing screenshots
+# Backdrop Launcher marketing screenshots
 
 10 selected, unmodified **1920 × 1080 PNGs**, numbered in the recommended presentation order. Start with **01** for the main product overview; use **03** when the backdrop itself should lead. Captions are suggestions and are kept separate from the images.
 
@@ -17,6 +17,6 @@
 
 The selection covers Home, Continue Watching, cinematic backdrops, custom rows, app hiding/management, app artwork, accent colors, background opacity, Trakt backdrop sources and the native clock screensaver.
 
-Images were selected from the original capture and the verified follow-up build. [manifest.json](manifest.json) records the source capture, APK hash and image hash for each file.
+These real captures predate the Backdrop Launcher name change and show the same Home and settings capabilities. Images were selected from the original capture and the verified follow-up build. [manifest.json](manifest.json) records the source capture, APK hash and image hash for each file.
 
 Continue Watching depends on compatible TV apps. Trakt is shown here as a source for backdrops.
