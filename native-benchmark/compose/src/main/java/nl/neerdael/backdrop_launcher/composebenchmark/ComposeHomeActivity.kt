@@ -54,9 +54,13 @@ class ComposeHomeActivity : ComponentActivity() {
             MaterialTheme {
                 val data = home
                 if (data == null) LoadingHome(error)
-                else key(data.scene) {
-                    ComposeHome(data, selection, artwork, resumed, artworkRevision,
-                        ::launchApp, ::launchResume, { safeLaunch(Intent(Settings.ACTION_SETTINGS)) })
+                else {
+                    // Avoid hashing every row/tile on resume just to identify the scene composition.
+                    val sceneToken = remember(data.scene) { Any() }
+                    key(sceneToken) {
+                        ComposeHome(data, selection, artwork, resumed, artworkRevision,
+                            ::launchApp, ::launchResume, { safeLaunch(Intent(Settings.ACTION_SETTINGS)) })
+                    }
                 }
             }
         }

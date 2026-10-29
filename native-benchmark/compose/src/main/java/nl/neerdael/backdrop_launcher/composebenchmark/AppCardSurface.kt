@@ -51,7 +51,11 @@ internal fun AppCardSurface(
         modifier = modifier
             // A transform-only RenderNode does not request an offscreen composition buffer.
             // Keep alpha at 1 and clipping off; apply tile opacity once to the fill below.
-            .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+            .graphicsLayer {
+                val currentScale = scale.value
+                scaleX = currentScale
+                scaleY = currentScale
+            }
             .zIndex(if (focused) .5f else 0f)
             .drawWithCache {
                 val radius = CornerRadius(12.dp.toPx())

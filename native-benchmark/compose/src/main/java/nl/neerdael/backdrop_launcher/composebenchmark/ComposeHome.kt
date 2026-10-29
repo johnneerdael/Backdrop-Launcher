@@ -4,12 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
 import android.text.format.DateFormat
 import android.util.Log
+import androidx.collection.LongSparseArray
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,19 +20,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.LayoutBoundsHolder
+import androidx.compose.ui.layout.layoutBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.packInts
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.*
 import kotlinx.coroutines.launch
@@ -65,18 +65,22 @@ fun ComposeHome(
 ) {
     val scene = data.scene
     val context = LocalContext.current
-    val font = remember { FontFamily(Font("fonts/Inter.ttf", context.assets)) }
-    val appRequesters = remember { mutableMapOf<Pair<Int, Int>, FocusRequester>() }
+    val font = remember(context) { FontFamily(Font("fonts/Inter.ttf", context.assets)) }
+    val density = LocalDensity.current
+    val appImageSize = with(density) { IntSize(146.dp.roundToPx(), 82.dp.roundToPx()) }
+    val itemKeys = remember(scene.rows) { HomeItemKeys(scene.rows) }
+    val appsViewport = remember { LayoutBoundsHolder() }
+    val appRequesters = remember { LongSparseArray<FocusRequester>() }
     val settingsFocus = remember { FocusRequester() }
     val watchFocus = remember { FocusRequester() }
     val rowState = rememberLazyListState(initialFirstVisibleItemIndex = selection.app?.row ?: 0)
     val scope = rememberCoroutineScope()
     var details by remember { mutableStateOf(false) }
-    var resumeIndex by remember { mutableIntStateOf(selection.resumeIndex) }
+    var resumeIndex by remember(selection) { mutableIntStateOf(selection.resumeIndex) }
 
     fun focusApp() {
         val app = selection.app ?: return
-        appRequesters[app.row to app.tile]?.requestFocus()
+        appRequesters.get(packInts(app.row, app.tile))?.requestFocus()
     }
     LaunchedEffect(resumed, details) {
         if (!resumed || details) return@LaunchedEffect
@@ -91,16 +95,10 @@ fun ComposeHome(
     }
     CompositionLocalProvider(LocalTextStyle provides TextStyle(
         color = Color.White, fontFamily = font, shadow = Shadow(Color.Black, blurRadius = 3f))) {
-        BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
             Artwork(scene.backdropFor(resumeIndex), artwork, resumed, artworkRevision,
-                Modifier.fillMaxSize(), ContentScale.Crop, retain = false)
-            if (scene.scrim || (scene.bigPicture && scene.watchNext.isNotEmpty())) {
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
-                    0f to Color(0x59000000), .25f to Color.Transparent,
-                    .65f to Color(0x80000000), 1f to Color(0xe0000000))))
-                Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(
-                    0f to Color(0xa6000000), .35f to Color(0x40000000), .7f to Color.Transparent)))
-            }
+                Modifier.fillMaxSize().cinematicScrim(scene.scrim || (scene.bigPicture && scene.watchNext.isNotEmpty())),
+                ContentScale.Crop, retain = false)
             Row(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 32.dp).height(40.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 HomeSurface({ details = true }, Modifier.size(36.dp).focusRequester(settingsFocus)
@@ -154,20 +152,21 @@ fun ComposeHome(
                     }
                 }
             }
-            val appsTop = maxHeight * .62f
-            LazyColumn(state = rowState, modifier = Modifier.fillMaxWidth().height(maxHeight - appsTop)
-                .align(Alignment.BottomStart)) {
-                itemsIndexed(scene.rows) { rowIndex, row ->
+            LazyColumn(state = rowState, modifier = Modifier.fillMaxWidth().fillMaxHeight(.38f)
+                .align(Alignment.BottomStart).layoutBounds(appsViewport)) {
+                itemsIndexed(scene.rows, key = { index, _ -> itemKeys.rows[index] }, contentType = { _, _ -> "app-row" }) { rowIndex, row ->
                     val tileState = rememberLazyListState(initialFirstVisibleItemIndex =
                         selection.app?.takeIf { it.row == rowIndex }?.tile ?: 0)
                     LazyRow(state = tileState, contentPadding = PaddingValues(start = 32.dp, end = 32.dp, top = 8.dp, bottom = 18.dp),
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                         modifier = Modifier.height(150.dp).semantics { contentDescription = row.name }) {
-                        itemsIndexed(row.apps, key = { index, app -> "$index:${app.packageName}" }) { tileIndex, app ->
+                        itemsIndexed(row.apps, key = { index, _ -> itemKeys.apps[rowIndex][index] },
+                            contentType = { _, _ -> "app-tile" }) { tileIndex, app ->
                             val focus = remember { FocusRequester() }
-                            DisposableEffect(focus) {
-                                appRequesters[rowIndex to tileIndex] = focus
-                                onDispose { appRequesters.remove(rowIndex to tileIndex) }
+                            val slot = packInts(rowIndex, tileIndex)
+                            DisposableEffect(appRequesters, slot, focus) {
+                                appRequesters.put(slot, focus)
+                                onDispose { if (appRequesters.get(slot) === focus) appRequesters.remove(slot) }
                             }
                             Column(Modifier.width(146.dp)) {
                                 AppCardSurface({ launch(app) }, Modifier.size(146.dp, 82.dp).focusRequester(focus)
@@ -185,8 +184,7 @@ fun ComposeHome(
                                     Color(scene.accent).copy(alpha = scene.tileOpacity)) {
                                     Artwork(app.artwork ?: "package:${app.packageName}", artwork, resumed, artworkRevision,
                                         Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp), ContentScale.Fit,
-                                        decodeSize = IntSize(with(androidx.compose.ui.platform.LocalDensity.current) { 146.dp.roundToPx() },
-                                            with(androidx.compose.ui.platform.LocalDensity.current) { 82.dp.roundToPx() }))
+                                        decodeSize = appImageSize, viewport = appsViewport)
                                 }
                                 if (scene.showAppNames) Text(app.label, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
                                     fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -206,7 +204,7 @@ fun ComposeHome(
                     HomeSurface({ details = false }, Modifier.focusRequester(close)) { Text("Close", Modifier.padding(12.dp)) }
                     HomeSurface(settings) { Text("TV settings", Modifier.padding(12.dp)) }
                 }
-                LaunchedEffect(Unit) { close.requestFocus() }
+                LaunchedEffect(close) { withFrameNanos { }; close.requestFocus() }
             }
         }
         BackHandler(!details) {
@@ -237,15 +235,19 @@ private fun HomeSurface(
 @Composable
 private fun Clock(active: Boolean, modifier: Modifier) {
     val context = LocalContext.current
-    var time by remember { mutableStateOf(DateFormat.getTimeFormat(context).format(Date())) }
-    DisposableEffect(active) {
+    val clock = remember(context) { HomeClock(context) }
+    var time by remember(clock) { mutableStateOf(clock.text()) }
+    DisposableEffect(context, clock, active) {
         val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) { time = DateFormat.getTimeFormat(context).format(Date()) }
+            override fun onReceive(context: Context, intent: Intent) {
+                time = clock.text(refresh = intent.action != Intent.ACTION_TIME_TICK)
+            }
         }
         if (active) {
-            time = DateFormat.getTimeFormat(context).format(Date())
+            time = clock.text(refresh = true)
             context.registerReceiver(receiver, IntentFilter().apply {
-                addAction(Intent.ACTION_TIME_TICK); addAction(Intent.ACTION_TIME_CHANGED); addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                addAction(Intent.ACTION_TIME_TICK); addAction(Intent.ACTION_TIME_CHANGED)
+                addAction(Intent.ACTION_TIMEZONE_CHANGED); addAction(Intent.ACTION_LOCALE_CHANGED)
             })
         }
         onDispose { if (active) context.unregisterReceiver(receiver) }
@@ -253,24 +255,25 @@ private fun Clock(active: Boolean, modifier: Modifier) {
     Text(time, modifier, fontSize = 22.sp)
 }
 
-@Composable
-private fun Artwork(
-    path: String?, loader: ComposeArtwork, active: Boolean, revision: Int,
-    modifier: Modifier, contentScale: ContentScale, retain: Boolean = true, decodeSize: IntSize? = null,
-) {
-    var size by remember { mutableStateOf(IntSize.Zero) }
-    var visible by remember { mutableStateOf(false) }
-    var bitmap by remember(path, revision) { mutableStateOf<Bitmap?>(null) }
-    val target = decodeSize ?: size
-    DisposableEffect(path, active, revision, target, visible) {
-        val release = if (active && visible && path != null && target.width > 0 && target.height > 0)
-            loader.observe(path, target.width, target.height, retain) { bitmap = it } else ({ bitmap = null })
-        onDispose { release() }
+private class HomeClock(private val context: Context) {
+    private var formatter = DateFormat.getTimeFormat(context)
+    private val now = Date()
+    fun text(refresh: Boolean = false): String {
+        if (refresh) formatter = DateFormat.getTimeFormat(context)
+        now.time = System.currentTimeMillis()
+        return formatter.format(now)
     }
-    Box(modifier.onSizeChanged { size = it }.onGloballyPositioned {
-        val bounds = it.boundsInWindow()
-        visible = it.isAttached && bounds.width > 0f && bounds.height > 0f
-    }) {
-        bitmap?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = contentScale) }
+}
+
+private fun Modifier.cinematicScrim(enabled: Boolean): Modifier = if (!enabled) this else drawWithCache {
+    val vertical = Brush.verticalGradient(
+        0f to Color(0x59000000), .25f to Color.Transparent,
+        .65f to Color(0x80000000), 1f to Color(0xe0000000))
+    val horizontal = Brush.horizontalGradient(
+        0f to Color(0xa6000000), .35f to Color(0x40000000), .7f to Color.Transparent)
+    onDrawWithContent {
+        drawContent()
+        drawRect(vertical)
+        drawRect(horizontal)
     }
 }
