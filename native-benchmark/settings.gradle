@@ -7,3 +7,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = 'BackdropNativeBenchmark'
 include ':app'
+include ':compose'

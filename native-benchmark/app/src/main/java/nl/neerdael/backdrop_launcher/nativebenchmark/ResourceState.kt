@@ -40,5 +40,6 @@ class ImageRequests<T> {
         pending.remove(batch.key)
         return batch.targets
     }
+    fun remove(target: T) { pending.values.forEach { it.targets.remove(target) } }
     fun clear() { pending.clear() }
 }

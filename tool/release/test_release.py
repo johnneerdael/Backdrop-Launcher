@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
+import zipfile
 
 
 SCRIPT = Path(__file__).with_name('release.py')
@@ -18,6 +20,24 @@ else:
 
 SHA = 'a' * 40
 REPO = 'johnneerdael/Backdrop-Launcher'
+
+
+def native_source(root, version='1.3.0', code=4127):
+    native = root / 'native-launcher'
+    (native / 'app').mkdir(parents=True, exist_ok=True)
+    (native / 'gradle/wrapper').mkdir(parents=True, exist_ok=True)
+    (native / 'version.properties').write_text(f'version={version}\ncode={code}\n')
+    (native / 'build.gradle').write_text("id 'com.android.application' version '8.13.2' apply false\nid 'org.jetbrains.kotlin.android' version '2.3.21' apply false\n")
+    (native / 'app/build.gradle').write_text("compileSdk 36\nimplementation 'androidx.compose.ui:ui:1.11.4'\nimplementation 'androidx.tv:tv-material:1.1.0'\n")
+    (native / 'gradle/wrapper/gradle-wrapper.properties').write_text('distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.2-all.zip\n')
+
+
+def native_apk(path, extra=None):
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr('AndroidManifest.xml', b'native manifest fixture')
+        archive.writestr('classes.dex', b'native code fixture')
+        for name, value in (extra or {}).items():
+            archive.writestr(name, value)
 
 
 def green_run(**overrides):
@@ -48,11 +68,11 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             release.select_version('1.3.0', ['1.3.0', 'v1.3.0'])
 
-    def test_pubspec_requires_exactly_one_valid_version(self):
-        self.assertEqual(release.parse_pubspec('name: flauncher\nversion: 1.3.0+4127\n'), ('1.3.0', 4127))
-        for content in ['version: 1.3.0', 'version: 1.3.0+0', 'version: 1.3.0+4127\nversion: 1.3.0+4127', 'version: 1.3.0+4127; ls']:
+    def test_native_version_properties_require_one_valid_version_and_bounded_code(self):
+        self.assertEqual(release.parse_version_properties('# Native release floor\nversion=1.4.0\ncode=4133\n'), ('1.4.0', 4133))
+        for content in ['version=1.4.0', 'version=1.4.0\ncode=0', 'version=1.4.0\nversion=1.4.0\ncode=4133', 'version=1.4.0\ncode=4133; echo secret', 'version=1.4.0\ncode=2100000001']:
             with self.subTest(content=content), self.assertRaises(ValueError):
-                release.parse_pubspec(content)
+                release.parse_version_properties(content)
 
     def test_android_code_preserves_first_base_and_increases_published_codes(self):
         self.assertEqual(release.select_build_number(4127, 3, []), 4127)
@@ -133,21 +153,49 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             release.read_manifest('{"schema":1,"schema":2}', 'v1.3.0')
 
-    def test_apk_inputs_require_all_three_unique_variants(self):
+    def test_native_apk_input_is_one_universal_payload_with_compatible_aliases(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for abi in release.ABIS:
-                (root / f'backdrop-launcher-{abi}-release.apk').write_bytes(abi.encode())
-            self.assertEqual(set(release.find_apks(root)), set(release.ABIS))
+            apk = root / 'app-github-release.apk'
+            native_apk(apk)
+            found = release.find_apks(root)
+            self.assertEqual(set(found), set(release.ABIS))
+            self.assertEqual(set(found.values()), {apk})
             nested = root / 'duplicate'
             nested.mkdir()
-            (nested / 'backdrop-launcher-universal-release.apk').write_bytes(b'duplicate')
+            native_apk(nested / apk.name)
             with self.assertRaisesRegex(ValueError, 'exactly one'):
                 release.find_apks(root)
-            (nested / 'backdrop-launcher-universal-release.apk').unlink()
-            (root / 'backdrop-launcher-arm64-v8a-release.apk').unlink()
-            with self.assertRaisesRegex(ValueError, 'exactly one'):
+            (nested / apk.name).unlink()
+            apk.write_bytes(b'')
+            with self.assertRaisesRegex(ValueError, 'nonempty'):
                 release.find_apks(root)
+
+    def test_native_apk_identity_and_flutter_runtime_are_verified_before_packaging(self):
+        with tempfile.TemporaryDirectory() as directory:
+            apk = Path(directory) / 'app-github-release.apk'
+            native_apk(apk)
+            plan = {'version': '1.4.0', 'android_version_code': 4133}
+            good = "package: name='nl.neerdael.backdrop_launcher' versionCode='4133' versionName='1.4.0' platformBuildVersionName='16'\n"
+            with mock.patch.object(release, 'command', return_value=good) as command:
+                self.assertEqual(release.verify_apk_identity(release.find_apks(apk.parent), plan, 'aapt2'), [])
+                command.assert_called_once_with(['aapt2', 'dump', 'badging', str(apk)])
+            for report in [good.replace('4133', '4132'), good.replace("versionName='1.4.0'", "versionName='1.3.5'"), good.replace('nl.neerdael.backdrop_launcher', 'nl.neerdael.backdrop_launcher.debug')]:
+                with self.subTest(report=report), mock.patch.object(release, 'command', return_value=report), self.assertRaises(ValueError):
+                    release.verify_apk_identity(release.find_apks(apk.parent), plan, 'aapt2')
+            for name in ['lib/arm64-v8a/libflutter.so', 'lib/arm64-v8a/libapp.so', 'assets/flutter_assets/kernel_blob.bin']:
+                native_apk(apk, {name: b'old Flutter runtime'})
+                with mock.patch.object(release, 'command', return_value=good), self.assertRaisesRegex(ValueError, 'Flutter'):
+                    release.verify_apk_identity(release.find_apks(apk.parent), plan, 'aapt2')
+
+    def test_universal_payload_records_actual_native_libraries_and_rejects_incomplete_arm_support(self):
+        with tempfile.TemporaryDirectory() as directory:
+            apk = Path(directory) / 'app-github-release.apk'
+            native_apk(apk, {'lib/arm64-v8a/libgraphics.so': b'arm64'})
+            with self.assertRaisesRegex(ValueError, 'both advertised ARM'):
+                release.native_payload(apk)
+            native_apk(apk, {'lib/arm64-v8a/libgraphics.so': b'arm64', 'lib/armeabi-v7a/libgraphics.so': b'arm32'})
+            self.assertEqual(release.native_payload(apk), ['arm64-v8a', 'armeabi-v7a'])
 
 class PackageTests(unittest.TestCase):
     def test_distribution_includes_exact_apks_source_credits_manifest_and_checksums(self):
@@ -159,16 +207,17 @@ class PackageTests(unittest.TestCase):
             for args in [('user.name', 'Release Test'), ('user.email', 'release@example.invalid')]:
                 subprocess.run(['git', '-C', str(root), 'config', *args], check=True)
             (root / 'LICENSE').write_text('GPL source license\n')
-            subprocess.run(['git', '-C', str(root), 'add', 'LICENSE'], check=True)
+            native_source(root)
+            subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
             subprocess.run(['git', '-C', str(root), 'commit', '-qm', 'feat: initial home'], check=True)
             sha = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
             apk_dir = root / 'apks'
             apk_dir.mkdir()
-            for abi in ('universal', 'arm64-v8a', 'armeabi-v7a'):
-                (apk_dir / f'backdrop-launcher-{abi}-release.apk').write_bytes(abi.encode())
+            native_apk(apk_dir / 'app-github-release.apk')
             plan = {'schema': 1, 'repository': REPO, 'source_sha': sha, 'version': '1.3.0',
                     'tag': 'v1.3.0', 'android_version_code': 4127, 'checks_run_id': 123,
-                    'checks_run_attempt': 1, 'release_run_id': 234, 'notes': '- New home.'}
+                    'checks_run_attempt': 1, 'release_run_id': 234, 'notes': '- New home.',
+                    'build_toolchain': release.native_toolchain(root)}
             certificates = {abi: release.SIGNING_CERTIFICATE_SHA256 for abi in release.ABIS}
             output = root / 'dist'
             release.package_assets(plan, apk_dir, output, root, certificates)
@@ -187,6 +236,14 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(set(checksums), files - {'SHA256SUMS'})
             manifest = release.read_manifest((output / 'release-manifest.json').read_text(), 'v1.3.0')
             self.assertEqual(manifest['checks_run_id'], 123)
+            self.assertEqual(manifest['implementation'], 'kotlin-compose')
+            self.assertNotIn('flutter_version', manifest)
+            self.assertEqual(manifest['build_toolchain']['kotlin'], '2.3.21')
+            self.assertEqual(manifest['build_toolchain']['compose'], '1.11.4')
+            self.assertEqual(manifest['apk_distribution']['architecture'], 'architecture-neutral')
+            self.assertTrue(manifest['apk_distribution']['identical_aliases'])
+            self.assertEqual(len({path.read_bytes() for path in output.glob('*.apk')}), 1)
+            self.assertNotIn('Flutter and Dart:', (output / 'CREDITS.md').read_text())
             self.assertEqual(manifest['apks']['backdrop-launcher.apk']['sha256'], checksums['backdrop-launcher.apk'])
             self.assertEqual(manifest['signing_certificate_sha256'], release.SIGNING_CERTIFICATE_SHA256)
             self.assertEqual((output / 'backdrop-launcher.apk').read_bytes(), (output / 'backdrop-launcher-1.3.0.apk').read_bytes())
@@ -216,6 +273,21 @@ class PackageTests(unittest.TestCase):
                 release.verify_distribution(plan, output)
             manifest_path.write_text(original_manifest)
             checksum_path.write_text(original_checksums)
+            for change in [
+                {'implementation': 'flutter'}, {'flutter_version': '3.41.9'},
+                {'build_toolchain': dict(plan['build_toolchain'], kotlin='9.0.0')},
+                {'apk_distribution': {'architecture': 'split-apks', 'native_abis': [], 'identical_aliases': False}},
+            ]:
+                with self.subTest(change=change):
+                    manifest_path.write_text(json.dumps(dict(json.loads(original_manifest), **change)))
+                    checksum_path.write_text('\n'.join(
+                        f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}'
+                        for path in sorted(output.iterdir()) if path.name != 'SHA256SUMS'
+                    ) + '\n')
+                    with self.assertRaises(ValueError):
+                        release.verify_distribution(plan, output)
+            manifest_path.write_text(original_manifest)
+            checksum_path.write_text(original_checksums)
             with self.assertRaisesRegex(ValueError, 'empty'):
                 release.package_assets(plan, apk_dir, output, root, certificates)
 
@@ -237,7 +309,7 @@ class PlanTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
             for args in [('user.name', 'Release Test'), ('user.email', 'release@example.invalid')]:
                 subprocess.run(['git', '-C', str(root), 'config', *args], check=True)
-            (root / 'pubspec.yaml').write_text('version: 1.3.0+4127\n')
+            native_source(root)
             (root / 'docs/releases').mkdir(parents=True)
             (root / 'docs/releases/1.3.0.md').write_text('- Welcome to Backdrop Launcher.\n')
             subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
@@ -261,7 +333,7 @@ class PlanTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
             for args in [('user.name', 'Release Test'), ('user.email', 'release@example.invalid')]:
                 subprocess.run(['git', '-C', str(root), 'config', *args], check=True)
-            (root / 'pubspec.yaml').write_text('version: 1.3.0+4127\n')
+            native_source(root)
             subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
             subprocess.run(['git', '-C', str(root), 'commit', '-qm', 'docs: clarify developer setup'], check=True)
             sha = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
@@ -301,7 +373,7 @@ class HistoryTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
             for args in [('user.name', 'Release Test'), ('user.email', 'release@example.invalid')]:
                 subprocess.run(['git', '-C', str(root), 'config', *args], check=True)
-            (root / 'pubspec.yaml').write_text('version: 1.3.0+4127\n')
+            native_source(root)
             subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
             subprocess.run(['git', '-C', str(root), 'commit', '-qm', 'feat: branded home'], check=True)
             prior = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()

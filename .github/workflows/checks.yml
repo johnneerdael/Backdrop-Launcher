@@ -13,9 +13,6 @@ concurrency:
   group: checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  FLUTTER_VERSION: '3.41.9'
-
 jobs:
   release-tools:
     name: Release tooling
@@ -32,7 +29,7 @@ jobs:
       - run: python -W error -m unittest discover -s tool/native_benchmark -p 'test_*.py' -v
 
   native-home:
-    name: Native Home benchmark
+    name: Views and Compose Home benchmarks
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -45,14 +42,20 @@ jobs:
           java-version: '17'
       - name: Install native benchmark SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ''platforms;android-36'' ''build-tools;35.0.0'''
-      - name: Test, lint and build optimized native benchmark
+      - name: Test, lint and build optimized Views and Compose benchmarks
         working-directory: native-benchmark
-        run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --console plain
+        run: ./gradlew :app:testReleaseUnitTest :compose:testReleaseUnitTest :app:lintRelease :compose:lintRelease :app:assembleRelease :compose:assembleRelease --console plain
 
-  flutter:
-    name: Flutter and Android
+  native-launcher:
+    name: Kotlin and Compose production launcher
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      SIGNING_KEYSTORE_PASSWORD: ci-smoke-only
+      SIGNING_KEY_ALIAS: ci-smoke
+      SIGNING_KEY_PASSWORD: ci-smoke-only
+      TMDB_API_KEY: ci-placeholder
+      TRAKT_CLIENT_ID: ci-placeholder
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,35 +64,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get --enforce-lockfile
-      - run: flutter analyze --no-fatal-infos
-      - run: flutter test --reporter expanded
-      - name: Configure smoke build without production credentials
-        env:
-          TMDB_API_KEY: ci-placeholder
-          TRAKT_CLIENT_ID: ci-placeholder
-        run: python3 tool/write_build_config.py
+      - name: Install production Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ''platforms;android-36'' ''build-tools;36.0.0'''
       - name: Create disposable smoke signing key
         run: |
-          keytool -genkeypair -noprompt -keystore android/app/upload-keystore.jks \
+          export BACKDROP_KEYSTORE_FILE="$RUNNER_TEMP/backdrop-ci.jks"
+          echo "BACKDROP_KEYSTORE_FILE=$BACKDROP_KEYSTORE_FILE" >> "$GITHUB_ENV"
+          keytool -genkeypair -noprompt -keystore "$BACKDROP_KEYSTORE_FILE" \
             -storetype JKS -storepass ci-smoke-only -keypass ci-smoke-only \
             -alias ci-smoke -keyalg RSA -keysize 2048 -validity 2 \
             -dname 'CN=Disposable CI smoke build'
-      - name: Compile GitHub release APKs
-        env:
-          SIGNING_KEYSTORE_PASSWORD: ci-smoke-only
-          SIGNING_KEY_ALIAS: ci-smoke
-          SIGNING_KEY_PASSWORD: ci-smoke-only
-        run: |
-          flutter build apk --release --flavor github \
-            --target-platform android-arm,android-arm64 \
-            --dart-define-from-file=.dart_tool/trakt-config.json \
-            --dart-define=ENABLE_SELF_UPDATER=true
+      - name: Test, lint and compile optimized production APK
+        working-directory: native-launcher
+        run: ./gradlew :app:testGithubReleaseUnitTest :app:lintGithubRelease :app:assembleGithubRelease --console plain
       - name: Remove disposable signing material
         if: always()
-        run: rm -f android/app/upload-keystore.jks .dart_tool/trakt-config.json
+        run: rm -f "$BACKDROP_KEYSTORE_FILE"

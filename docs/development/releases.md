@@ -7,8 +7,9 @@ The user guide is built with MkDocs and hosted at
 
 ## What triggers a release
 
-1. A push to `main` runs **Checks**: Python release-tool tests, Flutter analysis,
-   the Flutter test suite and an Android GitHub-flavor release compilation.
+1. A push to `main` runs **Checks**: Python release/benchmark-tool tests, native
+   benchmark validation, and Kotlin/Compose production unit tests, Android lint
+   and a GitHub-flavor release compilation.
    The smoke APK uses a disposable signing key and placeholder API credentials;
    it is never uploaded or published. Pull requests run the same checks without
    production secrets.
@@ -27,6 +28,8 @@ The user guide is built with MkDocs and hosted at
    create automatic releases.
 5. The exact checked source is built again with the production key. All APKs must
    verify successfully with `apksigner` and the pinned Backdrop signing certificate.
+   `aapt2` verifies the package ID, semantic version and Android code against the
+   immutable plan; packaging rejects Flutter runtime libraries and assets.
    The publish job checks the source and successful Checks run again, validates
    every artifact checksum, uploads to a draft and publishes after upload succeeds.
 
@@ -46,17 +49,18 @@ without verifying its complete asset set and source.
 
 ## Version and Android build-number policy
 
-`pubspec.yaml` supplies the stable semantic version and minimum Android code. For
-example, `1.3.0+4127` sets a version floor of `1.3.0` and code floor of `4127`.
+`native-launcher/version.properties` supplies the stable semantic version and
+minimum Android code. `version=1.4.0` and `code=4133` set the native migration
+floors; the historical Flutter pubspec no longer selects production versions.
 
 - If that semantic version is newer than every published stable version, use it.
   Otherwise increment the highest published stable version’s patch component.
   Legacy `1.2.0` and modern `v1.3.0` tags are understood; both spellings for the
   same version are rejected as ambiguous. Prereleases are excluded.
 - The Android versionCode is
-  `max(pubspec code, GITHUB_RUN_NUMBER, highest published manifest code + 1)`.
-  With no branded release history, a small run number and base `4127`, the first
-  code is `4127`; the next published release is at least `4128`. A higher base or
+  `max(native code floor, GITHUB_RUN_NUMBER, highest published manifest code + 1)`.
+  With published codes below `4133` and a small run number, the native release
+  code is `4133`; its next published release is at least `4134`. A higher base or
   workflow run number raises the floor. Workflow reorganization or a run-number
   reset cannot lower it.
 - Every published Backdrop release from `1.3.0` onward must retain its
@@ -64,12 +68,12 @@ example, `1.3.0+4127` sets a version floor of `1.3.0` and code floor of `4127`.
   published codes stop publication. Legacy Media Launcher releases below `1.3.0`
   may lack this manifest. Android’s maximum accepted code is `2100000000`.
 
-A normal automatic patch release does not need a pubspec edit. Bump the pubspec
-version for a deliberate minor or major release, and add matching curated notes.
-`pubspec.yaml` remains the local development default; CI passes the selected
-`--build-name` and `--build-number` explicitly. Keep release manifests and tags
-intact, and use this pipeline for every production release so code history stays
-complete.
+A normal automatic patch release does not need a version-file edit. Raise the
+native version for a deliberate minor or major release, and add matching curated
+notes. Local builds use `native-launcher/version.properties`; CI passes the
+selected `-PreleaseVersion=<version>` and `-PreleaseCode=<code>` explicitly.
+Keep release manifests and tags intact, and use this pipeline for every
+production release so code history stays complete.
 
 ## Assets and verification
 
@@ -78,13 +82,20 @@ Each release contains:
 | Asset | Purpose |
 | --- | --- |
 | `backdrop-launcher.apk` | Stable universal alias for `/releases/latest/download/backdrop-launcher.apk` |
-| `backdrop-launcher-<version>.apk` | Versioned universal ARM32/ARM64 APK |
-| `backdrop-launcher-<version>-arm64-v8a.apk` | ARM64 APK |
-| `backdrop-launcher-<version>-armeabi-v7a.apk` | ARM32 APK |
+| `backdrop-launcher-<version>.apk` | Versioned native universal APK |
+| `backdrop-launcher-<version>-arm64-v8a.apk` | Universal APK under the retained ARM64 compatibility name |
+| `backdrop-launcher-<version>-armeabi-v7a.apk` | Universal APK under the retained ARM32 compatibility name |
 | `backdrop-launcher-<version>-source.tar.gz` | Corresponding source from the exact checked Git commit |
 | `release-manifest.json` | Source, versionCode, workflow runs, APK hashes, signing fingerprint and build configuration |
 | `LICENSE`, `CREDITS.md` | License and project/dependency attribution |
 | `SHA256SUMS` | Checksums for all other release assets |
+
+The four APK download names contain identical bytes. The ARM aliases preserve
+existing links; they are not separately optimized architecture splits. The
+manifest records Kotlin, Compose, Compose for TV, AGP, Gradle, Java and compile
+SDK versions from the checked native build. It records an architecture-neutral
+payload when no native libraries are bundled, or the actual native ABIs for a
+universal payload. It does not claim a Flutter SDK built the production APK.
 
 Download all assets into one directory and run `sha256sum --check SHA256SUMS`.
 To check an APK signature with Android build tools, run
@@ -112,13 +123,15 @@ Provision these GitHub Actions repository secrets; never commit their values:
 | `TMDB_API_KEY` | Bundled TMDB client configuration |
 | `TRAKT_CLIENT_ID` | Bundled Trakt client configuration |
 
-`TRAKT_REDIRECT_URI` is an optional repository variable. The workflow writes
-`.dart_tool/trakt-config.json` through `tool/write_build_config.py`, and passes
-`ENABLE_SELF_UPDATER=true` for the GitHub flavor. Signing material and build
-configuration are removed after the build. No Firebase configuration or Google
-Play credentials are required, and this workflow does not publish to Google Play.
-Preserve the signing key securely: changing it prevents in-place updates for
-already installed Backdrop APKs.
+`TRAKT_REDIRECT_URI` is an optional repository variable. Gradle reads provider
+configuration directly from these environment variables into native BuildConfig;
+no Dart configuration file or Flutter setup is needed. The GitHub production
+flavor enables the updater; benchmark builds disable it. The workflow restores
+the private JKS to the runner temporary directory, exports `BACKDROP_KEYSTORE_FILE`
+and passes the existing `SIGNING_*` secrets to Gradle. The key is removed even
+when the build fails. No Firebase configuration or Google Play credentials are
+required, and this workflow does not publish to Google Play. Preserve the
+signing key securely: changing it prevents in-place Backdrop updates.
 
 **Optional VirusTotal scan** is manual-only. It submits a chosen published stable
 release when `VIRUS_TOTAL_API_KEY` is configured and appends direct analysis links
