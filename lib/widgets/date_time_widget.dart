@@ -42,10 +42,11 @@ class DateTimeWidget extends StatefulWidget {
   State<DateTimeWidget> createState() => _DateTimeWidgetState();
 }
 
-class _DateTimeWidgetState extends State<DateTimeWidget> {
+class _DateTimeWidgetState extends State<DateTimeWidget>
+    with WidgetsBindingObserver {
   late DateFormat _dateFormat;
   late DateTime _now;
-  late Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -53,10 +54,25 @@ class _DateTimeWidgetState extends State<DateTimeWidget> {
 
     _dateFormat = DateFormat(widget._dateTimeFormatString, Platform.localeName);
     _now = DateTime.now();
+    WidgetsBinding.instance.addObserver(this);
+    _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _timer = null;
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle != null && lifecycle != AppLifecycleState.resumed) return;
     _timer = Timer.periodic(
       widget.updateInterval ?? _defaultInterval(),
       (_) => _refreshTime(),
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _restartTimer();
+    if (state == AppLifecycleState.resumed) _refreshTime();
   }
 
   /// Returns 1-second interval if format contains seconds, otherwise 1-minute.
@@ -81,11 +97,15 @@ class _DateTimeWidgetState extends State<DateTimeWidget> {
         _now = DateTime.now();
       });
     }
+    if (oldWidget._dateTimeFormatString != widget._dateTimeFormatString ||
+        oldWidget.updateInterval != widget.updateInterval)
+      _restartTimer();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

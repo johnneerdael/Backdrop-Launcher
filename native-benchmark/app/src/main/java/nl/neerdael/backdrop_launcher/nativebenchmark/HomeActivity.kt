@@ -13,13 +13,24 @@ import android.widget.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.concurrent.Executors
+import java.io.File
+import java.io.FileDescriptor
+import java.io.PrintWriter
 
 /** Engine-free Home prototype. No HOME intent filter and no production preference/database access. */
 class HomeActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var artwork: ArtworkLoader
     private val dataWorker = Executors.newSingleThreadExecutor()
-    private var epoch = 0
+    private val refreshState = HomeRefreshState()
+    private lateinit var sources: HomeSources
+    private var loading = false
+    private var renderedScene: Scene? = null
+    private var sourceStamp: String? = null
+    private var packagesDirty = true
+    private var artworkStamp: String? = null
+    private var dataLoads = 0
+    private var renders = 0
     private var resumeIndex = 0
     private var appFocus: AppFocus? = null
     private enum class FocusArea { APPS, WATCH_NEXT, SETTINGS }
@@ -38,25 +49,62 @@ class HomeActivity : Activity() {
         font = try { Typeface.createFromAsset(assets, "fonts/Inter.ttf") } catch (_: Exception) { Typeface.DEFAULT }
         root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
         setContentView(root)
+        sources = HomeSources(this) { artworkChanged ->
+            if (!isDestroyed) {
+                refreshState.invalidate()
+                if (artworkChanged) { packagesDirty = true; artwork.invalidate() }
+                refreshHome()
+            }
+        }
     }
 
     override fun onStart() {
         super.onStart()
         active = true
-        val request = ++epoch
+        val file = File(getExternalFilesDir(null), "scene.json")
+        val stamp = "${file.lastModified()}:${file.length()}:${checkSelfPermission("android.permission.READ_TV_LISTINGS")}"
+        if (sourceStamp != stamp) { sourceStamp = stamp; refreshState.invalidate() }
+        home?.let {
+            val currentArtwork = sources.artworkStamp(it.scene)
+            if (artworkStamp != currentArtwork) { artworkStamp = currentArtwork; artwork.invalidate() }
+            if (renderedScene != it.scene) render(it)
+        }
+        refreshHome()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        artwork.setActive(true)
+    }
+
+    private fun refreshHome() {
+        if (!active || !refreshState.dirty || loading || isDestroyed) return
+        val request = refreshState.version
+        loading = true
+        dataLoads++
+        val knownRows = if (packagesDirty) null else home?.scene?.rows
+        Log.i("BackdropBenchmark", "HOME_DATA_LOAD")
         dataWorker.execute {
             try {
-                val loaded = loadHome(this)
+                val loaded = loadHome(this, knownRows)
                 runOnUiThread {
-                    if (!active || request != epoch) return@runOnUiThread
+                    loading = false
+                    if (isDestroyed) return@runOnUiThread
+                    if (!refreshState.accept(request)) { refreshHome(); return@runOnUiThread }
+                    packagesDirty = false
                     home = loaded
-                    render(loaded)
+                    sources.watchArtwork(loaded.scene)
+                    artworkStamp = sources.artworkStamp(loaded.scene)
+                    if (active && renderedScene != loaded.scene) render(loaded)
                 }
             } catch (e: Exception) {
                 Log.e("BackdropBenchmark", "Scene rejected", e)
                 runOnUiThread {
-                    if (active && request == epoch) {
+                    loading = false
+                    if (!isDestroyed && request != refreshState.version) { refreshHome(); return@runOnUiThread }
+                    if (!isDestroyed && active && request == refreshState.version) {
                         root.removeAllViews()
+                        home = null; renderedScene = null
                         root.addView(text("Scene could not be loaded: ${e.message}", 20f))
                     }
                 }
@@ -70,8 +118,11 @@ class HomeActivity : Activity() {
     }
 
     private fun render(data: HomeData) {
+        renders++
+        Log.i("BackdropBenchmark", "HOME_RENDER")
         root.removeAllViews()
         val scene = data.scene
+        renderedScene = scene
         val restoreArea = focusArea
         val restoreFocus = scene.restoreAppFocus(appFocus).takeIf { restoreArea == FocusArea.APPS }
         val background = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
@@ -223,13 +274,17 @@ class HomeActivity : Activity() {
     }
     private fun toast(message: String) { Toast.makeText(this, message, Toast.LENGTH_SHORT).show() }
 
+    override fun dump(prefix: String, fd: FileDescriptor?, writer: PrintWriter, args: Array<out String>?) {
+        super.dump(prefix, fd, writer, args)
+        writer.println("${prefix}backdropBenchmark: loads=$dataLoads renders=$renders version=${refreshState.version} active=$active focus=${currentFocus?.contentDescription}")
+    }
+
     override fun onStop() {
-        active = false; epoch++
-        artwork.clear()
-        root.removeAllViews()
+        active = false
+        artwork.setActive(false)
         super.onStop()
     }
-    override fun onDestroy() { artwork.close(); dataWorker.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { sources.close(); artwork.close(); dataWorker.shutdownNow(); super.onDestroy() }
 }
 
 private class CinematicScrim(context: android.content.Context) : View(context) {

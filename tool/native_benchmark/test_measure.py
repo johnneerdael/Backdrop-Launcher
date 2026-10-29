@@ -1,6 +1,6 @@
 import unittest
 
-from measure import foreground_package, parse_meminfo, restore_foreground, summarize
+from measure import foreground_package, parse_meminfo, parse_cpu_stat, cpu_usage, restore_foreground, summarize
 from unittest.mock import Mock, patch
 
 
@@ -17,6 +17,20 @@ Applications Memory Usage (in Kilobytes):
 
 
 class MemoryParsingTests(unittest.TestCase):
+    def test_cpu_counters_handle_parentheses_and_reject_process_restarts(self):
+        fields = ["S"] + ["0"] * 19
+        fields[11], fields[12], fields[19] = "100", "20", "456"
+        before = parse_cpu_stat("123 (launcher (worker)) " + " ".join(fields))
+        fields[11] = "110"
+        after = parse_cpu_stat("123 (launcher (worker)) " + " ".join(fields))
+        self.assertEqual(before, {"pid": 123, "ticks": 120, "start_ticks": 456})
+        self.assertEqual(cpu_usage(before, after, 2, 100)["one_core_percent"], 5)
+        with self.assertRaises(ValueError):
+            cpu_usage(before, dict(after, start_ticks=999), 2, 100)
+        for text in ("Permission denied", "123 (truncated) S 1"):
+            with self.assertRaises(ValueError):
+                parse_cpu_stat(text)
+
     def test_parses_summary_without_confusing_pss_with_rss(self):
         self.assertEqual(parse_meminfo(MEMINFO), {
             "pid": 1234, "pss_kib": 112668, "rss_kib": 164396,

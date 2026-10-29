@@ -17,6 +17,8 @@ import '../mocks.mocks.dart';
 
 class TestWatchNextService extends ChangeNotifier implements WatchNextService {
   @override
+  void setActive(bool active) {}
+  @override
   Future<void> get ready => Future<void>.value();
   @override
   Future<void> startBackgroundRefresh() => refreshPermissionAndItems();

@@ -15,6 +15,8 @@ The analyzer currently has pre-existing informational diagnostics. Warnings and 
 
 The separate [native Home benchmark](../../native-benchmark/README.md) evaluates a possible Android Views migration. It has its own package and build, and is not a replacement production launcher.
 
+The [resource optimization results](resource-optimization-results.md) document the first image/lifecycle pass, native reuse, separate Flutter test APK and the remaining product acceptance gate.
+
 ## API configuration
 
 The ten packaged backdrops work without API credentials. For authenticated Trakt backdrops, create these ignored files in the project root:

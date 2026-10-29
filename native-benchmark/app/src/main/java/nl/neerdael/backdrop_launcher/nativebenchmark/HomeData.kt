@@ -8,11 +8,13 @@ import java.io.File
 
 data class HomeData(val scene: Scene, val providerStatus: String)
 
-fun loadHome(context: Context): HomeData {
+fun loadHome(context: Context, knownRows: List<AppRow>? = null): HomeData {
     val file = File(context.getExternalFilesDir(null), "scene.json")
     require(!file.exists() || file.length() <= 1024 * 1024) { "Scene exceeds 1 MiB" }
     var scene = Scene.parse(if (file.isFile) file.readText() else context.assets.open("scene.json").bufferedReader().use { it.readText() })
     if (scene.discoverApps && scene.rows.isEmpty()) {
+        if (knownRows != null) scene = scene.copy(rows = knownRows)
+        else {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
         val apps = context.packageManager.queryIntentActivities(intent, 0)
             .filter { it.activityInfo.packageName != context.packageName }
@@ -20,6 +22,7 @@ fun loadHome(context: Context): HomeData {
             .map { AppTile(it.activityInfo.packageName, it.loadLabel(context.packageManager).toString(), null) }
             .sortedBy { it.label.lowercase() }
         scene = scene.copy(rows = listOf(AppRow("Applications", apps)))
+        }
     }
     if (scene.watchNext.isNotEmpty()) return HomeData(scene, "Local scene Continue Watching")
     if (android.os.Build.VERSION.SDK_INT < 26) return HomeData(scene, "Watch Next requires Android 8 or later")

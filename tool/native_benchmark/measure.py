@@ -16,6 +16,30 @@ METRICS = ("pss_kib", "rss_kib", "swap_pss_kib", "graphics_kib")
 COMPONENT = re.compile(r"[A-Za-z][A-Za-z0-9_.]+/\.?[A-Za-z][A-Za-z0-9_.]+")
 
 
+def parse_cpu_stat(text: str) -> dict:
+    start, end = text.find("("), text.rfind(")")
+    if start < 1 or end <= start:
+        raise ValueError("Missing process CPU counters")
+    fields = text[end + 1:].split()
+    if len(fields) < 20:
+        raise ValueError("Truncated process CPU counters")
+    try:
+        return {"pid": int(text[:start].strip()), "ticks": int(fields[11]) + int(fields[12]),
+                "start_ticks": int(fields[19])}
+    except ValueError as error:
+        raise ValueError("Invalid process CPU counters") from error
+
+
+def cpu_usage(before: dict, after: dict, elapsed: float, frequency: int) -> dict:
+    if (before["pid"], before["start_ticks"]) != (after["pid"], after["start_ticks"]):
+        raise ValueError("Process restarted during CPU capture")
+    ticks = after["ticks"] - before["ticks"]
+    if ticks < 0 or elapsed <= 0 or frequency <= 0:
+        raise ValueError("Invalid CPU interval")
+    seconds = ticks / frequency
+    return {"cpu_seconds": seconds, "elapsed_seconds": elapsed, "one_core_percent": 100 * seconds / elapsed}
+
+
 def parse_meminfo(text: str) -> dict:
     if len(re.findall(r"\*\* MEMINFO in pid \d+ \[", text)) != 1:
         raise ValueError("Expected exactly one process; multiple processes require separate aggregation")
@@ -82,6 +106,16 @@ class Device:
         if "Error" in output or "Exception" in output:
             raise ValueError(output)
 
+    def cpu_snapshot(self, package: str) -> tuple[dict, float, str]:
+        pids = self.run("shell", "pidof", package).split()
+        if len(pids) != 1 or not pids[0].isdigit():
+            raise ValueError("CPU capture requires exactly one live process")
+        text = self.run("shell", "cat", f"/proc/{pids[0]}/stat", "/proc/uptime")
+        lines = text.strip().splitlines()
+        if len(lines) != 2:
+            raise ValueError("Missing CPU uptime/counters")
+        return parse_cpu_stat(lines[0]), float(lines[1].split()[0]), text
+
 
 def positive(value: str) -> int:
     number = int(value)
@@ -113,6 +147,8 @@ def main():
     parser.add_argument("--settle", type=positive, default=12)
     parser.add_argument("--state", action="append", choices=("settled", "navigated", "background", "returned"),
                         help="Capture only these states; repeat as needed. Default: all four states")
+    parser.add_argument("--cpu-seconds", type=positive, default=0, help="Optional bounded process CPU interval")
+    parser.add_argument("--cpu-workload", choices=("idle", "navigation"), default="idle")
     parser.add_argument("--scene", type=Path, help="Exact local scene used for native, when supplied")
     parser.add_argument("--scope", required=True, help="Describe content/settings parity and known mismatches")
     args = parser.parse_args()
@@ -120,6 +156,8 @@ def main():
         parser.error("Targets must be explicit package/activity components")
     if args.background.split("/")[0] in {item.split("/")[0] for item in args.target}:
         parser.error("Background activity must belong to a separate package")
+    if args.cpu_workload == "navigation" and (args.state is None or "background" in args.state):
+        parser.error("Navigation CPU capture requires explicit foreground states")
     args.output.mkdir(parents=True, exist_ok=False)
     device = Device(args.serial)
     initial = device.focus()
@@ -140,6 +178,8 @@ def main():
         (args.output / "scene.json").write_bytes(data)
     error = None
     try:
+        frequency = int(device.run("shell", "getconf", "CLK_TCK").strip()) if args.cpu_seconds else None
+        result["cpu_parameters"] = {"seconds": args.cpu_seconds, "workload": args.cpu_workload, "ticks_per_second": frequency}
         for component in args.target:
             package = component.split("/", 1)[0]
             directory = args.output / package
@@ -178,12 +218,26 @@ def main():
                 print(f"{package}: {state}", flush=True)
                 for index in range(args.samples):
                     device.require_foreground(expected)
+                    cpu = None
+                    if args.cpu_seconds:
+                        before, uptime_before, raw_before = device.cpu_snapshot(package)
+                        if args.cpu_workload == "navigation":
+                            for key in ("KEYCODE_DPAD_RIGHT", "KEYCODE_DPAD_LEFT") * 3:
+                                device.run("shell", "input", "keyevent", key)
+                                time.sleep(args.cpu_seconds / 6)
+                        else:
+                            time.sleep(args.cpu_seconds)
+                        after, uptime_after, raw_after = device.cpu_snapshot(package)
+                        device.require_foreground(expected)
+                        cpu = cpu_usage(before, after, uptime_after - uptime_before, frequency)
+                        cpu["actions"] = 6 if args.cpu_workload == "navigation" else 0
+                        (directory / f"{state}-{index + 1}-cpu.txt").write_text(raw_before + "\n" + raw_after)
                     text = device.run("shell", "dumpsys", "meminfo", "-a", package)
                     (directory / f"{state}-{index + 1}.txt").write_text(text)
                     metrics = parse_meminfo(text)
                     device.require_foreground(expected)
                     result["samples"].append({"package": package, "state": state, "index": index + 1,
-                        "captured_at": datetime.now(timezone.utc).isoformat(), **metrics})
+                        "captured_at": datetime.now(timezone.utc).isoformat(), "cpu": cpu, **metrics})
                     if index + 1 < args.samples:
                         time.sleep(args.interval)
                 (directory / f"{state}-gfxinfo.txt").write_text(device.run("shell", "dumpsys", "gfxinfo", package, "framestats"))
