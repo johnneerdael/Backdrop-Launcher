@@ -20,9 +20,6 @@ concurrency:
   group: backdrop-release
   cancel-in-progress: false
 
-env:
-  FLUTTER_VERSION: '3.41.9'
-
 jobs:
   gate:
     if: >-
@@ -90,18 +87,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - run: flutter pub get --enforce-lockfile
-      - name: Configure Trakt backdrops
+      - name: Install production Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ''platforms;android-36'' ''build-tools;36.0.0'''
+      - name: Validate native provider configuration
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_REDIRECT_URI: ${{ vars.TRAKT_REDIRECT_URI }}
-        run: python3 tool/write_build_config.py
+        run: |
+          python3 - <<'PY'
+          import os
+          for name in ('TMDB_API_KEY', 'TRAKT_CLIENT_ID'):
+              if not os.environ.get(name, '').strip():
+                  raise SystemExit(f'Missing repository secret: {name}')
+          PY
       - name: Restore signing key
         env:
           SIGNING_JKS_FILE_BASE64: ${{ secrets.SIGNING_JKS_FILE_BASE64 }}
@@ -109,6 +107,8 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          export BACKDROP_KEYSTORE_FILE="$RUNNER_TEMP/backdrop-production.jks"
+          echo "BACKDROP_KEYSTORE_FILE=$BACKDROP_KEYSTORE_FILE" >> "$GITHUB_ENV"
           python3 - <<'PY'
           import base64
           import os
@@ -117,33 +117,35 @@ jobs:
           for name in names:
               if not os.environ.get(name, '').strip():
                   raise SystemExit(f'Missing repository secret: {name}')
-          path = Path('android/app/upload-keystore.jks')
+          path = Path(os.environ['BACKDROP_KEYSTORE_FILE'])
           data = base64.b64decode(''.join(os.environ['SIGNING_JKS_FILE_BASE64'].split()), validate=True)
           descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
           with os.fdopen(descriptor, 'wb') as stream:
               stream.write(data)
           PY
-      - name: Build signed GitHub APKs
+      - name: Build signed native GitHub APK
+        working-directory: native-launcher
         env:
           VERSION: ${{ needs.gate.outputs.version }}
           VERSION_CODE: ${{ needs.gate.outputs.code }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_REDIRECT_URI: ${{ vars.TRAKT_REDIRECT_URI }}
         run: |
-          flutter build apk --release --flavor github \
-            --target-platform android-arm,android-arm64 \
-            --dart-define-from-file=.dart_tool/trakt-config.json \
-            --dart-define=ENABLE_SELF_UPDATER=true \
-            --build-name "$VERSION" --build-number "$VERSION_CODE"
+          ./gradlew :app:assembleGithubRelease \
+            "-PreleaseVersion=$VERSION" "-PreleaseCode=$VERSION_CODE" --console plain
       - name: Prepare APK signature verifier
         run: bash tool/release/prepare_android_verifier.sh
       - name: Verify signatures and prepare distribution
         run: |
           python3 tool/release/release.py package \
             --plan build/release-metadata/release-plan.json \
-            --apk-dir build/app/outputs/apk/github/release \
+            --apk-dir native-launcher/app/build/outputs/apk/github/release \
             --apksigner "$ANDROID_HOME/build-tools/36.0.0/apksigner" \
+            --aapt2 "$ANDROID_HOME/build-tools/36.0.0/aapt2" \
             --output build/release-dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -151,9 +153,9 @@ jobs:
           path: build/release-dist/
           retention-days: 7
           if-no-files-found: error
-      - name: Remove signing material and API build definitions
+      - name: Remove production signing material
         if: always()
-        run: rm -f android/app/upload-keystore.jks .dart_tool/trakt-config.json
+        run: rm -f "$BACKDROP_KEYSTORE_FILE"
 
   publish:
     needs: [gate, package]

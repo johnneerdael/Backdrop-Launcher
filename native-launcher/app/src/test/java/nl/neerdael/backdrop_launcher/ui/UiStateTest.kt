@@ -1,0 +1,135 @@
+package nl.neerdael.backdrop_launcher.ui
+
+import nl.neerdael.backdrop_launcher.core.*
+import org.junit.Assert.*
+import org.junit.Test
+
+class UiStateTest {
+    private val a = AppTile("a", "A", null)
+    private val b = AppTile("b", "B", null)
+    private fun scene(rows: List<AppRow>, watch: List<ResumeItem> = emptyList()) =
+        Scene("Home", "wall.jpg", rows, watch, false, false, -1, .1f, false, false)
+    private fun item(id: Long) = ResumeItem("item$id", "", null, 0, null, "app", id, "same-content")
+
+    @Test fun eachPersistentRowRemembersItsAppAcrossReorderAndDeletion() {
+        val before = scene(listOf(AppRow("first", listOf(a, b), 10), AppRow("second", listOf(b, a), 20)))
+        val selection = HomeSelection()
+        selection.remember(before, 0, 1)
+        selection.remember(before, 1, 1)
+        assertEquals("b", selection.focusForRow(before, 0)?.packageName)
+        val reordered = scene(listOf(before.rows[1].copy(apps = listOf(a, b)), before.rows[0]))
+        selection.reconcile(reordered)
+        assertEquals(20L, selection.rowId)
+        assertEquals(AppFocus(0, 0, "a"), selection.app)
+        val removed = scene(listOf(reordered.rows[0].copy(apps = listOf(b))))
+        selection.reconcile(removed)
+        assertEquals("b", selection.app?.packageName)
+        selection.reconcile(scene(emptyList()))
+        assertEquals(HomeSelection.Area.SETTINGS, selection.area)
+    }
+
+    @Test fun providerIdKeepsResumeSelectionWhenAnotherItemIsInserted() {
+        val selection = HomeSelection()
+        val initial = scene(emptyList(), listOf(item(5), item(6)))
+        selection.reconcile(initial)
+        selection.selectResume(initial, 1)
+        selection.reconcile(scene(emptyList(), listOf(item(9), item(5), item(6))))
+        assertEquals(2, selection.resumeIndex)
+        selection.cycle(3, -4)
+        assertEquals(1, selection.resumeIndex)
+        selection.cycle(3, 10, wrap = false)
+        assertEquals(2, selection.resumeIndex)
+        selection.cycle(0, -1)
+        assertEquals(0, selection.resumeIndex)
+    }
+
+    @Test fun removingHiddenFocusedAppDoesNotEraseOtherRowMemory() {
+        val initial = scene(listOf(AppRow("one", listOf(a, b), 1), AppRow("two", listOf(a, b), 2)))
+        val selection = HomeSelection()
+        selection.remember(initial, 0, 1)
+        selection.remember(initial, 1, 0)
+        val hidden = scene(listOf(initial.rows[0].copy(apps = listOf(a)), initial.rows[1]))
+        selection.reconcile(hidden)
+        assertEquals("a", selection.focusForRow(hidden, 0)?.packageName)
+        assertEquals("a", selection.focusForRow(hidden, 1)?.packageName)
+        selection.area = HomeSelection.Area.SETTINGS
+        selection.reconcile(hidden)
+        assertEquals(HomeSelection.Area.SETTINGS, selection.area)
+    }
+
+    @Test fun appearancePreservesLegacyDefaultsAndDisablesAnimationWithoutBorders() {
+        val prefs = MemoryPreferences()
+        val defaults = HomeAppearance.read(prefs)
+        assertEquals(0xffffffffL, defaults.accent)
+        assertEquals(.1f, defaults.opacity)
+        assertEquals(1.5f, defaults.borderDp)
+        assertFalse(defaults.animateBorder)
+        assertTrue(defaults.showTime)
+        assertFalse(defaults.showDate)
+        prefs.putDouble("app_icon_background_opacity", .46)
+        prefs.putDouble("focus_border_thickness", 2.0)
+        prefs.putString("accent_color", "7C4DFF")
+        prefs.putBool("app_highlight_animation_enabled", true)
+        prefs.putBool("show_focus_borders", false)
+        val changed = HomeAppearance.read(prefs)
+        assertEquals(.5f, changed.opacity)
+        assertEquals(0xff7c4dffL, changed.accent)
+        assertFalse(changed.animateBorder)
+        assertEquals(2f, changed.borderDp)
+    }
+
+    @Test fun rowGeometryFitsEverySupportedHeightWithLabelsAndTitlesOnSmallWindows() {
+        for (height in listOf(82, 110, 140)) {
+            assertTrue(homeRowExtent(151f, height, true, true) >= height + 80f)
+        }
+        assertEquals(302.4f, homeRowExtent(420f, 110, false, false), .01f)
+    }
+
+    @Test fun releaseNotesAreReadableWithoutImageOrLinkMarkup() {
+        val lines = readableNoteLines("![banner](https://example.test/a.png)\n## What's new\n- **Rows** and [downloads](https://example.test)\n<p>Ready &amp; signed</p>")
+        assertEquals(listOf("What's new", "- Rows and downloads", "Ready & signed"), lines)
+    }
+
+    @Test fun membershipChangesRetainGloballyHiddenMembersAndTheirOrder() {
+        val library = MembershipLibrary()
+        toggleRowMembership(library, 8, "new")
+        assertEquals(listOf("visible", "hidden", "new"), library.members)
+        toggleRowMembership(library, 8, "visible")
+        assertEquals(listOf("hidden", "new"), library.members)
+    }
+}
+
+internal class MemoryPreferences : PreferenceAccess {
+    private val values = mutableMapOf<String, Any>()
+    override fun bool(key: String, default: Boolean) = values[key] as? Boolean ?: default
+    override fun string(key: String, default: String) = values[key] as? String ?: default
+    override fun int(key: String, default: Int) = values[key] as? Int ?: default
+    override fun long(key: String, default: Long) = values[key] as? Long ?: default
+    override fun double(key: String, default: Double) = values[key] as? Double ?: default
+    @Suppress("UNCHECKED_CAST") override fun strings(key: String, default: List<String>) = values[key] as? List<String> ?: default
+    override fun putBool(key: String, value: Boolean) { values[key] = value }
+    override fun putString(key: String, value: String) { values[key] = value }
+    override fun putInt(key: String, value: Int) { values[key] = value }
+    override fun putLong(key: String, value: Long) { values[key] = value }
+    override fun putDouble(key: String, value: Double) { values[key] = value }
+    override fun putStrings(key: String, value: List<String>) { values[key] = value }
+    override fun remove(key: String) { values.remove(key) }
+    override fun listen(changed: (String) -> Unit): () -> Unit = {}
+}
+
+private class MembershipLibrary : LibraryAccess {
+    var members = listOf("visible", "hidden")
+    override fun rowPackages(id: Long) = members
+    override fun setRowApps(id: Long, packages: List<String>) { members = packages }
+    override fun snapshot(refreshInstalled: Boolean) = LibrarySnapshot(emptyList(), emptyList())
+    override fun createRow(name: String) = 1L
+    override fun renameRow(id: Long, name: String) {}
+    override fun updateRow(id: Long, hidden: Boolean, sort: Int, height: Int) {}
+    override fun moveRow(id: Long, delta: Int) {}
+    override fun deleteRow(id: Long) {}
+    override fun moveApp(rowId: Long, packageName: String, delta: Int) {}
+    override fun setHidden(packageName: String, hidden: Boolean) {}
+    override fun setArtwork(packageName: String, asset: String?) {}
+    override fun recordLaunch(packageName: String) {}
+    override fun close() {}
+}

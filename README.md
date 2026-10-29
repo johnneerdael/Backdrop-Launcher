@@ -45,6 +45,8 @@
 </tr>
 </table>
 
+The screenshots above illustrate the earlier Flutter release. The native interface retains these workflows; its implementation and current validation are described in [Kotlin/Compose validation](docs/development/compose-production-validation.md).
+
 The [illustrated user guide](https://backdrop-launcher.neerdael.nl/) walks through every settings page, remote controls, app management, backdrops, clocks and troubleshooting. The [ten-image screenshot pack](marketing/README.md) includes captions and capture provenance.
 
 ## Get started
@@ -61,15 +63,14 @@ Continue Watching depends on your TV’s public Watch Next provider and apps tha
 
 ## Build and contribute
 
-Use Flutter **3.41.9**, Android SDK API **36**, and Java **17 or 21**. Build and test instructions, local API configuration and release signing are documented in [Building Backdrop Launcher](docs/development/building.md) and [Release automation](docs/development/releases.md).
+The production launcher uses **Kotlin and Jetpack Compose for TV**, Android SDK API **36**, and Java **17 or 21**. Build and test instructions, local API configuration and release signing are documented in [Building Backdrop Launcher](docs/development/building.md) and [Release automation](docs/development/releases.md).
 
 ```sh
-flutter pub get --enforce-lockfile
-flutter analyze --no-fatal-infos
-flutter test
+cd native-launcher
+./gradlew :app:testGithubReleaseUnitTest :app:lintGithubRelease :app:assembleGithubRelease
 ```
 
-The internal Dart package remains `flauncher` to preserve the upstream source structure. Android components, the application ID and public product identity use Backdrop Launcher. Source copyright notices and the GPL remain intact.
+The native build retains the production application ID, signing identity and existing launcher data. Historical Dart sources remain as migration references; production APKs contain no Flutter engine. Source copyright notices and the GPL remain intact.
 
 ## Credits and licence
 

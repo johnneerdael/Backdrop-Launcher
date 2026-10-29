@@ -16,10 +16,12 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 from typing import Any
 
 REPOSITORY = 'johnneerdael/Backdrop-Launcher'
 ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a')
+APPLICATION_ID = 'nl.neerdael.backdrop_launcher'
 MAX_VERSION_CODE = 2_100_000_000
 # Public fingerprint of the production key; changing this requires an explicit signing migration.
 SIGNING_CERTIFICATE_SHA256 = '18a076c8f5666fb103184caf1a98c753a044cc54ffc8ddc54cdd13ccc339f93d'
@@ -53,17 +55,47 @@ def select_version(base: str, tags: list[str]) -> str:
     return '.'.join(map(str, selected))
 
 
-def parse_pubspec(content: str) -> tuple[str, int]:
-    lines = re.findall(r'^version:\s*(.*?)\s*$', content, re.MULTILINE)
-    if len(lines) != 1:
-        raise ValueError('pubspec.yaml must contain exactly one version')
-    match = re.fullmatch(rf'({VERSION_RE})\+([1-9][0-9]*)', lines[0])
-    if not match:
-        raise ValueError('pubspec version must be stable major.minor.patch+positiveAndroidCode')
-    code = int(match[5])
-    if code > MAX_VERSION_CODE:
-        raise ValueError('pubspec Android versionCode exceeds Android limit')
-    return match[1], code
+def parse_version_properties(content: str) -> tuple[str, int]:
+    values = {}
+    for line in content.splitlines():
+        if not line.strip() or line.lstrip().startswith(('#', '!')):
+            continue
+        match = re.fullmatch(r'\s*(version|code)\s*=\s*([^\s]+)\s*', line)
+        if not match or match[1] in values:
+            raise ValueError('native-launcher/version.properties must contain one version and code')
+        values[match[1]] = match[2]
+    if set(values) != {'version', 'code'}:
+        raise ValueError('Native version and Android code are required')
+    version_tuple(values['version'])
+    if not re.fullmatch(r'[1-9][0-9]*', values['code']):
+        raise ValueError('Native Android code must be a positive integer')
+    code = int(values['code'])
+    select_build_number(code, 1, [])
+    return values['version'], code
+
+
+def native_toolchain(root: Path) -> dict:
+    """Record the actual checked Gradle declarations, never an obsolete Flutter SDK."""
+    native = root / 'native-launcher'
+    build = (native / 'build.gradle').read_text()
+    app = (native / 'app/build.gradle').read_text()
+    wrapper = (native / 'gradle/wrapper/gradle-wrapper.properties').read_text()
+
+    def one(pattern: str, source: str, field: str) -> str:
+        matches = re.findall(pattern, source)
+        if len(matches) != 1:
+            raise ValueError(f'Expected one checked native toolchain declaration: {field}')
+        return matches[0]
+
+    return {
+        'kotlin': one(r"id ['\"]org\.jetbrains\.kotlin\.android['\"] version ['\"]([^'\"]+)['\"]", build, 'kotlin'),
+        'compose': one(r"implementation ['\"]androidx\.compose\.ui:ui:([^'\"]+)['\"]", app, 'compose'),
+        'tv_material': one(r"implementation ['\"]androidx\.tv:tv-material:([^'\"]+)['\"]", app, 'tv_material'),
+        'android_gradle_plugin': one(r"id ['\"]com\.android\.application['\"] version ['\"]([^'\"]+)['\"]", build, 'android_gradle_plugin'),
+        'gradle': one(r'distributionUrl=.*?/gradle-([0-9.]+)-(?:all|bin)\.zip', wrapper, 'gradle'),
+        'compile_sdk': int(one(r'\bcompileSdk\s+([0-9]+)', app, 'compile_sdk')),
+        'java': '17',
+    }
 
 
 def select_build_number(base: int, run_number: int, published_codes: list[int]) -> int:
@@ -151,9 +183,9 @@ def render_notes(repository: str, sha: str, version: str, code: int,
 
 | Package | Download | Use it for |
 | --- | --- | --- |
-| Universal APK | [backdrop-launcher-{version}.apk]({download}/backdrop-launcher-{version}.apk) | Recommended; ARM32 and ARM64 Android TV devices |
-| ARM64 APK | [backdrop-launcher-{version}-arm64-v8a.apk]({download}/backdrop-launcher-{version}-arm64-v8a.apk) | 64-bit ARM devices |
-| ARM32 APK | [backdrop-launcher-{version}-armeabi-v7a.apk]({download}/backdrop-launcher-{version}-armeabi-v7a.apk) | 32-bit ARM devices |
+| Universal APK | [backdrop-launcher-{version}.apk]({download}/backdrop-launcher-{version}.apk) | Recommended native Kotlin/Compose launcher |
+| ARM64 compatibility alias | [backdrop-launcher-{version}-arm64-v8a.apk]({download}/backdrop-launcher-{version}-arm64-v8a.apk) | Identical universal APK; retained download name |
+| ARM32 compatibility alias | [backdrop-launcher-{version}-armeabi-v7a.apk]({download}/backdrop-launcher-{version}-armeabi-v7a.apk) | Identical universal APK; retained download name |
 | Stable download link | [backdrop-launcher.apk]({base}/releases/latest/download/backdrop-launcher.apk) | Always the latest universal APK |
 
 Backdrop Launcher is a **separate install from Media Launcher**. Set it as your TV’s home app after installation. See the [installation guide](https://backdrop-launcher.neerdael.nl/get-started/install/).
@@ -164,7 +196,7 @@ Backdrop Launcher is a **separate install from Media Launcher**. Set it as your 
 - [SHA256SUMS]({download}/SHA256SUMS) covers all release assets. Download the assets together and run `sha256sum --check SHA256SUMS`.
 - [Release manifest]({download}/release-manifest.json) records the exact source, successful Checks run, Android versionCode, APK checksums and signing certificate SHA-256.
 - [Corresponding source archive]({download}/backdrop-launcher-{version}-source.tar.gz) · [Source commit `{sha[:12]}`]({base}/tree/{sha}) · [Full changelog]({history}).
-- [GPL-3.0 license]({download}/LICENSE) · [Credits]({download}/CREDITS.md). Built on FLauncher by Étienne Fesser and the Media Launcher community; Flutter and third-party notices remain available in the app.
+- [GPL-3.0 license]({download}/LICENSE) · [Credits]({download}/CREDITS.md). Native Kotlin/Compose implementation based on FLauncher by Étienne Fesser and the Media Launcher community. The source archive retains historical contributions and dependency attribution.
 '''
 
 
@@ -192,13 +224,35 @@ def read_manifest(content: str, tag: str) -> dict:
 
 
 def find_apks(root: Path) -> dict[str, Path]:
-    found = {}
-    for abi in ABIS:
-        candidates = list(root.rglob(f'backdrop-launcher-{abi}-release.apk'))
-        if len(candidates) != 1 or not candidates[0].is_file() or candidates[0].stat().st_size == 0:
-            raise ValueError(f'Expected exactly one nonempty {abi} release APK under {root}')
-        found[abi] = candidates[0]
-    return found
+    candidates = list(root.rglob('app-github-release.apk'))
+    if len(candidates) != 1 or not candidates[0].is_file() or candidates[0].stat().st_size == 0:
+        raise ValueError(f'Expected exactly one nonempty native GitHub release APK under {root}')
+    # Preserve public updater/download names without claiming these are architecture splits.
+    return {abi: candidates[0] for abi in ABIS}
+
+
+def native_payload(path: Path) -> list[str]:
+    with zipfile.ZipFile(path) as archive:
+        names = archive.namelist()
+        if 'AndroidManifest.xml' not in names or 'classes.dex' not in names:
+            raise ValueError('Native APK lacks its manifest or application code')
+        if any(name.startswith('assets/flutter_assets/') or name.endswith(('/libflutter.so', '/libapp.so')) for name in names):
+            raise ValueError('Production native APK must not contain the Flutter runtime or assets')
+        architectures = sorted({name.split('/')[1] for name in names if re.fullmatch(r'lib/[^/]+/[^/]+\.so', name)})
+        if architectures and not {'armeabi-v7a', 'arm64-v8a'}.issubset(architectures):
+            raise ValueError('Universal APK must retain both advertised ARM architectures')
+        return architectures
+
+
+def verify_apk_identity(apks: dict[str, Path], plan: dict, aapt2: str) -> list[str]:
+    architectures = set()
+    for path in set(apks.values()):
+        report = command([aapt2, 'dump', 'badging', str(path)])
+        packages = re.findall(r"^package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'", report, re.MULTILINE)
+        if packages != [(APPLICATION_ID, str(plan['android_version_code']), plan['version'])]:
+            raise ValueError('APK package/version/code differs from the production release plan')
+        architectures.update(native_payload(path))
+    return sorted(architectures)
 
 
 class NotReady(ValueError):
@@ -275,7 +329,7 @@ def make_plan(repository: str, sha: str, run_number: int, run_id: int, *,
     checks = require_checks(runs, sha, repository, expected_run_id)
     published, manifests, all_releases = release_history(api, repository, root)
     require_source(sha, main_sha, [entry['source_sha'] for entry in published], repository)
-    base, code_floor = parse_pubspec((root / 'pubspec.yaml').read_text())
+    base, code_floor = parse_version_properties((root / 'native-launcher/version.properties').read_text())
     version = select_version(base, [entry['tag_name'] for entry in published])
     code = select_build_number(code_floor, run_number, [entry['android_version_code'] for entry in manifests])
     tag = f'v{version}'
@@ -310,6 +364,7 @@ def make_plan(repository: str, sha: str, run_number: int, run_id: int, *,
         'tag': tag, 'android_version_code': code, 'previous_tag': previous_tag,
         'checks_run_id': checks['id'], 'checks_run_attempt': checks['run_attempt'],
         'release_run_id': run_id, 'release_run_number': run_number, 'notes': notes,
+        'build_toolchain': native_toolchain(root),
     }
 
 
@@ -338,12 +393,15 @@ def require_certificates(certificates: dict[str, str]) -> str:
 
 def verify_apk_signatures(apks: dict[str, Path], apksigner: str) -> dict[str, str]:
     certificates = {}
+    verified = {}
     for abi, path in apks.items():
-        report = command([apksigner, 'verify', '--verbose', '--print-certs', str(path)])
-        fingerprints = re.findall(r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$', report, re.MULTILINE)
-        if len(fingerprints) != 1:
-            raise ValueError(f'{abi} APK must have exactly one verified signer')
-        certificates[abi] = fingerprints[0].lower()
+        if path not in verified:
+            report = command([apksigner, 'verify', '--verbose', '--print-certs', str(path)])
+            fingerprints = re.findall(r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$', report, re.MULTILINE)
+            if len(fingerprints) != 1:
+                raise ValueError(f'{abi} APK must have exactly one verified signer')
+            verified[path] = fingerprints[0].lower()
+        certificates[abi] = verified[path]
     require_certificates(certificates)
     return certificates
 
@@ -357,6 +415,10 @@ def package_assets(plan: dict, apk_dir: Path, output: Path, root: Path,
         raise ValueError('Release output directory must be empty')
     output.mkdir(parents=True, exist_ok=True)
     apks = find_apks(apk_dir)
+    toolchain = native_toolchain(root)
+    if plan.get('build_toolchain') != toolchain:
+        raise ValueError('Native build toolchain differs from the checked release plan')
+    architectures = native_payload(apks['universal'])
     version = plan['version']
     version_tuple(version)
     names = {
@@ -378,11 +440,14 @@ Backdrop Launcher is developed by John Neerdael and contributors.
 - FLauncher by Étienne Fesser: https://gitlab.com/flauncher/flauncher
 - Arc/Media Launcher by Badis Meddouri and contributors: https://github.com/meddouribadis/arclauncher
 - LTvLauncher © 2026 LeanBitLab; retained source copyright headers identify upstream contributions.
-- Flutter and Dart: https://flutter.dev/
+- Kotlin: https://kotlinlang.org/
+- Android Jetpack Compose and Compose for TV: https://developer.android.com/compose
 
 The corresponding source archive contains copyright headers, the GPL-3.0 license,
-Flutter dependency versions in pubspec.lock, build configuration and build tooling.
-Third-party software notices are also available through the app’s license screen.
+Native dependency declarations are in native-launcher/app/build.gradle, with the
+Kotlin/AGP versions and Gradle wrapper pinned alongside it. Historical Flutter/Dart
+source and dependency attribution remain in the source archive for provenance;
+the production APK does not embed the Flutter runtime.
 TMDB and Trakt supply metadata and imagery; their inclusion does not imply endorsement.
 ''')
     apk_info = {
@@ -391,7 +456,10 @@ TMDB and Trakt supply metadata and imagery; their inclusion does not imply endor
     }
     manifest = {key: value for key, value in plan.items() if key != 'notes'}
     manifest.update({'signing_certificate_sha256': certificate, 'apks': apk_info,
-                     'flutter_version': '3.41.9', 'java_version': '17', 'flavor': 'github',
+                     'implementation': 'kotlin-compose', 'application_id': APPLICATION_ID,
+                     'build_toolchain': toolchain, 'flavor': 'github', 'build_variant': 'githubRelease',
+                     'apk_distribution': {'architecture': 'architecture-neutral' if not architectures else 'universal',
+                                          'native_abis': architectures, 'identical_aliases': True},
                      'self_updater_enabled': True})
     (output / 'release-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     hashes = [f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}' for path in sorted(output.iterdir())]
@@ -432,8 +500,20 @@ def verify_distribution(plan: dict, output: Path) -> list[Path]:
             raise ValueError(f'Release manifest APK metadata differs for {name}')
     if entries['backdrop-launcher.apk'] != entries[f'backdrop-launcher-{version}.apk']:
         raise ValueError('Stable alias differs from the universal APK')
+    if any(entries[name] != entries['backdrop-launcher.apk'] for name in expected_apks):
+        raise ValueError('Compatibility aliases differ from the universal native APK')
     if manifest.get('signing_certificate_sha256') != SIGNING_CERTIFICATE_SHA256:
         raise ValueError('Release manifest certificate differs from the production signing key')
+    if (manifest.get('implementation') != 'kotlin-compose' or manifest.get('application_id') != APPLICATION_ID
+            or manifest.get('build_toolchain') != plan.get('build_toolchain') or 'flutter_version' in manifest
+            or manifest.get('flavor') != 'github' or manifest.get('build_variant') != 'githubRelease'
+            or manifest.get('self_updater_enabled') is not True):
+        raise ValueError('Release manifest native build provenance differs from the release plan')
+    architectures = native_payload(output / 'backdrop-launcher.apk')
+    distribution = {'architecture': 'architecture-neutral' if not architectures else 'universal',
+                    'native_abis': architectures, 'identical_aliases': True}
+    if manifest.get('apk_distribution') != distribution:
+        raise ValueError('Release manifest architecture metadata differs from the native APK')
     return sorted(output.iterdir())
 
 
@@ -499,6 +579,7 @@ def main() -> int:
     package.add_argument('--apk-dir', type=Path, required=True)
     package.add_argument('--output', type=Path, required=True)
     package.add_argument('--apksigner', required=True)
+    package.add_argument('--aapt2', required=True, help='Android build-tools verifier for APK package/version/code')
     publication = commands.add_parser('publish', help='Publish verified assets, resuming only a matching draft')
     publication.add_argument('--plan', type=Path, required=True)
     publication.add_argument('--dist', type=Path, required=True)
@@ -517,6 +598,7 @@ def main() -> int:
         elif args.command == 'package':
             plan = read_plan(args.plan)
             certificates = verify_apk_signatures(find_apks(args.apk_dir), args.apksigner)
+            verify_apk_identity(find_apks(args.apk_dir), plan, args.aapt2)
             package_assets(plan, args.apk_dir, args.output, Path('.'), certificates)
             verify_distribution(plan, args.output)
             print(f'Prepared and verified {len(list(args.output.iterdir()))} release assets')
@@ -525,7 +607,7 @@ def main() -> int:
     except NotReady as error:
         write_outputs({'ok': 'false'})
         print(f'Release skipped: {error}')
-    except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
+    except (ValueError, KeyError, OSError, zipfile.BadZipFile, subprocess.CalledProcessError) as error:
         print(f'Release failed: {error}', file=sys.stderr)
         return 1
     return 0
