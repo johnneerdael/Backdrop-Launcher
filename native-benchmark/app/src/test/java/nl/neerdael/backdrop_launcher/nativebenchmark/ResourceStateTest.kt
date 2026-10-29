@@ -35,11 +35,22 @@ class ResourceStateTest {
         assertEquals(listOf("new"), requests.complete(fresh))
     }
 
+    @Test fun disposedImagesLeaveNoDeliveryTargetButSharedVisibleImagesSurvive() {
+        val requests = ImageRequests<String>()
+        val batch = requests.join("same", "disposed").first
+        requests.join("same", "visible")
+        requests.remove("disposed")
+        assertEquals(listOf("visible"), requests.complete(batch))
+        val abandoned = requests.join("offscreen", "gone").first
+        requests.remove("gone")
+        assertTrue(requests.complete(abandoned).isEmpty())
+    }
+
     @Test fun nestedLocalArtworkRevisionChangesWithoutChangingTheScene() {
         val root = Files.createTempDirectory("backdrop-artwork-test").toFile()
         try {
             val image = root.resolve("appicons/custom.png")
-            image.parentFile.mkdirs()
+            requireNotNull(image.parentFile).mkdirs()
             image.writeText("first")
             val paths = listOf("appicons/custom.png")
             val before = localArtworkStamp(root, paths)

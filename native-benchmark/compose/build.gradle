@@ -1,0 +1,66 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+android {
+    namespace 'nl.neerdael.backdrop_launcher.composebenchmark'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'nl.neerdael.backdrop_launcher.composebenchmark'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '0.1-compose-benchmark'
+    }
+    buildFeatures { compose true }
+    buildTypes {
+        release {
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    sourceSets {
+        main {
+            java.srcDir layout.buildDirectory.dir('generated/sharedSources')
+            assets.srcDir '../app/src/main/assets'
+            assets.srcDir layout.buildDirectory.dir('generated/sharedAssets')
+            res.srcDir '../app/src/main/res'
+        }
+        test.java.srcDir '../app/src/test/java'
+    }
+}
+
+// Compile identical contracts/policies, without linking the Views UI or RecyclerView.
+def sharedSources = tasks.register('sharedSources', Sync) {
+    into layout.buildDirectory.dir('generated/sharedSources')
+    from('../app/src/main/java') {
+        include '**/Scene.kt', '**/HomeData.kt', '**/HomeSources.kt', '**/ResourceState.kt', '**/ArtworkDecoder.kt'
+    }
+}
+def sharedAssets = tasks.register('sharedAssets', Sync) {
+    into layout.buildDirectory.dir('generated/sharedAssets')
+    from('../../backdrops') { into 'backdrops'; include '*.jpg' }
+    from('../../appicons') { into 'appicons'; include '*.png' }
+    from('../../assets/branding/fonts') { into 'fonts'; include '*.ttf' }
+}
+tasks.named('preBuild').configure { dependsOn sharedSources, sharedAssets }
+
+dependencies {
+    implementation 'androidx.activity:activity-compose:1.12.4'
+    implementation 'androidx.compose.foundation:foundation:1.11.4'
+    implementation 'androidx.compose.ui:ui:1.11.4'
+    implementation 'androidx.compose.runtime:runtime:1.11.4'
+    implementation 'androidx.tv:tv-material:1.1.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}
