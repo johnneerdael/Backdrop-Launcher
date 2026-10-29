@@ -1,6 +1,6 @@
 # Compose for TV evaluation — 29 October 2026
 
-**Status:** the final audited Kotlin/Compose candidate has now passed core device checks and an identical-scene navigation comparison. For CPU and memory alone, the Views control remains the preferred Home implementation: about one quarter of the sampled navigation CPU time and 15 MiB less PSS in the latest pass. Compose remains an experimental alternative, not an adopted production migration. The earlier asleep/disconnected attempts were rejected and are excluded.
+**Status:** the final audited Kotlin/Compose candidate has passed core device checks and an identical-scene navigation comparison. Views remains the lower-resource control: about one quarter of the sampled navigation CPU time and 15 MiB less PSS in the latest pass. The owner subsequently selected Kotlin + Compose for TV as the preferred product direction for easier UI feature development and alignment with current Android UI tooling. The complete production migration and lower-than-Projectivy acceptance remain open. Earlier asleep/disconnected attempts were rejected and are excluded.
 
 Production release [1.3.5](https://github.com/johnneerdael/Backdrop-Launcher/releases/tag/v1.3.5) remains the current Flutter launcher with the first resource-work improvements. It was merged through PR #1, built from source `d0d3750d262dd8fb5f10fb09c01fadf9dc1980a8`, published with Android code 4132, and independently downloaded/verified against all distribution checksums and the production signing certificate. The Compose work is separate.
 
@@ -52,7 +52,9 @@ The final matched pass recorded Compose RSS 131.22 MiB and Swap PSS 0.60 MiB, ve
 
 Still unverified: a horizontally scrolled second-row launch target, actual Continue Watching playback (the local fixture has no playback intents), fullscreen scrim/hero screenshot equivalence and app-specific generated baseline-profile results. These remain production behavior gates; no full feature/data migration is claimed.
 
-**Resource-only decision:** use Kotlin with native Android Views for the launcher Home hot path. Compose's tooling/maintenance benefits may justify selected future screens, but its measured extra RAM and approximately fourfold navigation CPU cost do not earn a blanket Home replacement under the owner's utilization priority. Retain the Compose branch as a comparative candidate. Any later adoption needs its own benefit/resource and full-capability acceptance.
+**Resource-only finding:** Views is the measured minimum for this Home workload.
+
+**Product direction, clarified by the owner:** proceed toward Kotlin + Compose for TV because reusable declarative UI, state-driven updates, previews/testing, consistent theming and the modern TV ecosystem support faster feature development. This preference was expressed after reviewing the measured Views/Compose tradeoff. Keep the lean Foundation hot-card path, bounded hardware images and lifecycle controls; retain Views as a benchmark reference. The owner's lower-than-Projectivy requirement still applies to the complete product, and remains a release acceptance gate. Selecting the architecture does not mean the production launcher has already been migrated.
 
 ## Artifacts
 

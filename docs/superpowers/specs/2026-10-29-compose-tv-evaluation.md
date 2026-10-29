@@ -2,6 +2,10 @@
 
 Owner direction: migrate toward Jetpack Compose with Kotlin where beneficial, preserving the requirement for lower utilization than Projectivy. Keep the production optimization release separate and moving through its existing signing/publication gates. The Medium article motivates productivity and maintainability; it supplies no Android TV memory benchmark.
 
+## Owner clarification
+
+After the measured comparison, the owner prefers Kotlin + Compose for TV for future UI tooling, compatibility direction and easier feature development. Views remains the lower-resource benchmark reference. This is an architecture selection, not completed production adoption; the lower-than-Projectivy utilization and full feature/data acceptance gates remain binding.
+
 ## Design
 
 Add a separately identified Compose Home application alongside the existing Kotlin/Views control under the standalone native build. Reuse the scene/model/provider contracts and bounded hardware image-decoding policy. Implement actual Compose UI and focus/navigation, including app rows, the same artwork/backdrop, Continue Watching, clock and benchmark details. Use TV Material components where appropriate and current non-deprecated Foundation lazy lists. Do not replace the whole screen with AndroidView wrappers and call that a pure Compose result.
