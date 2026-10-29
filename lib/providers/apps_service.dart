@@ -135,12 +135,12 @@ class AppsService extends ChangeNotifier {
     final newlyInstalled = await _refreshState(shouldNotifyListeners: false);
     await _migrateApplicationRows();
     await _assignNewApplications(newlyInstalled);
-    await Future.wait(
-      {
-        for (final row in _launcherSections.where((row) => !row.hidden))
-          for (final app in row.applications) app.packageName,
-      }.map(_prepareAppImage),
-    );
+    // Decode only the first visible row's initial viewport. Other cards load on demand.
+    final firstRow = _launcherSections.where((row) => !row.hidden).firstOrNull;
+    final initial = firstRow?.applications.take(7) ?? const <App>[];
+    for (final app in initial) {
+      await _prepareAppImage(app.packageName);
+    }
     await _imageCache.prune({
       for (final app in _applications.values)
         for (final kind in ['banner', 'icon']) _imageKey(app.packageName, kind),

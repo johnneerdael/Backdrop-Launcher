@@ -10,11 +10,13 @@ import 'package:transparent_image/transparent_image.dart';
 import '../application_rows_test_support.dart';
 
 class ArtworkChannel extends RowsChannel {
+  final requested = <String>[];
   bool offline = false;
   Uint8List banner = kTransparentImage;
   ArtworkChannel() : super([installedApp('tv.one')]);
   @override
   Future<Uint8List> getApplicationBanner(String package) async {
+    requested.add(package);
     if (offline) throw StateError('Native artwork unavailable');
     return banner;
   }
@@ -124,6 +126,22 @@ void main() {
       final restarted = await start();
       expect(await restarted.getAppBanner('tv.one'), isEmpty);
       expect(await restarted.getAppIcon('tv.one'), kTransparentImage);
+    },
+  );
+
+  test(
+    'startup only prepares a bounded first row and loads later artwork on demand',
+    () async {
+      channel.installed = List.generate(
+        30,
+        (index) => installedApp('tv.app${index.toString().padLeft(2, '0')}'),
+      );
+      final service = await start();
+      expect(channel.requested.length, lessThanOrEqualTo(7));
+      expect(channel.requested, isNotEmpty);
+      expect(channel.requested, isNot(contains('tv.app29')));
+      expect(await service.getAppBanner('tv.app29'), kTransparentImage);
+      expect(channel.requested, contains('tv.app29'));
     },
   );
 }

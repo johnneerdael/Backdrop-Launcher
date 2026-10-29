@@ -157,6 +157,31 @@ void main() {
   });
 
   test(
+    'hiding during cached image preparation preserves valid offline artwork',
+    () async {
+      await populate();
+      final preparing = Completer<void>();
+      final decoded = Completer<bool>();
+      final cache = LocalMediaCache('watch', directory: () async => directory);
+      final service = WatchNextService(
+        channel,
+        cache: cache,
+        autoRefresh: false,
+        imagePreparer: (_) {
+          preparing.complete();
+          return decoded.future;
+        },
+      );
+      services.add(service);
+      await preparing.future;
+      service.setActive(false);
+      decoded.complete(true);
+      await service.ready;
+      expect(await cache.readBytes('content://wuplay/poster/7'), isNotNull);
+    },
+  );
+
+  test(
     'prefetch follows restored selection and protects both visible posters within the cache budget',
     () async {
       final entries = List.generate(
@@ -181,14 +206,14 @@ void main() {
       final service = start(autoRefresh: false);
       await service.ready;
       await service.startBackgroundRefresh();
+      expect(channel.requested, isEmpty);
+      // The selected pair is already restored. Later artwork starts only on demand.
+      for (var i = 9; i <= 12; i++) {
+        service.ensurePosterLoaded('content://wuplay/poster/$i');
+      }
       expect(
         await channel.firstPosterRequest.future,
-        isIn([
-          'content://wuplay/poster/9',
-          'content://wuplay/poster/10',
-          'content://wuplay/poster/11',
-          'content://wuplay/poster/12',
-        ]),
+        'content://wuplay/poster/9',
       );
       final deadline = DateTime.now().add(const Duration(seconds: 5));
       while (service.getCachedPoster('content://wuplay/poster/12') == null) {

@@ -34,6 +34,7 @@ class WatchNextService extends ChangeNotifier {
   final SettingsService? _settingsService;
   final http.Client _client;
   final LocalMediaCache _cache;
+  final Future<bool> Function(ImageProvider) _imagePreparer;
   late final Future<void> _ready;
   Future<void> get ready => _ready;
   bool _refreshEnabled;
@@ -42,6 +43,8 @@ class WatchNextService extends ChangeNotifier {
   bool _isLoading = false;
   bool _hasPermission = false;
   bool _disposed = false;
+  bool _active = true;
+  bool _cacheRestored = false;
   bool _wasEnabled = false;
   int _generation = 0;
   int _activeHeroIndex = 0;
@@ -70,6 +73,7 @@ class WatchNextService extends ChangeNotifier {
       _items.isNotEmpty ? _items[_activeHeroIndex] : null;
   bool get _enabled =>
       !_disposed && (_settingsService?.showWatchNextSection ?? true);
+  bool get _canLoad => _enabled && _active;
   Set<String> get availablePackageNames =>
       _allRawItems.map((i) => i.packageName).whereType<String>().toSet();
 
@@ -78,10 +82,12 @@ class WatchNextService extends ChangeNotifier {
     SettingsService? settingsService,
     http.Client? client,
     LocalMediaCache? cache,
+    Future<bool> Function(ImageProvider)? imagePreparer,
     bool autoRefresh = true,
   }) : _settingsService = settingsService,
        _client = client ?? http.Client(),
        _cache = cache ?? LocalMediaCache('continue_watching'),
+       _imagePreparer = imagePreparer ?? prepareImage,
        _refreshEnabled = autoRefresh {
     _ready = Future<void>.microtask(_restoreCache);
     _settingsService?.addListener(_onSettingsChanged);
@@ -89,17 +95,18 @@ class WatchNextService extends ChangeNotifier {
   }
 
   Future<void> _restoreCache() async {
-    if (!_enabled) return;
+    if (!_canLoad) return;
     final generation = _generation;
     try {
       final saved = await _cache.readJson('feed');
+      if (!_canLoad || generation != _generation) return;
       if (saved is! Map || saved['items'] is! List) return;
       final items = (saved['items'] as List)
           .take(50)
           .map((item) => WatchNextItem.fromMap(item as Map))
           .toList();
       final allowed = await _fLauncherChannel.checkWatchNextPermission();
-      if (!_enabled || generation != _generation) return;
+      if (!_canLoad || generation != _generation) return;
       if (!allowed) {
         await _cache.prune({});
         return;
@@ -122,13 +129,15 @@ class WatchNextService extends ChangeNotifier {
             item.posterUri,
           ].whereType<String>()) {
             final bytes = await _cache.readBytes(uri, maxBytes: maxPosterBytes);
-            if (!_enabled || generation != _generation) return;
+            if (!_canLoad || generation != _generation) return;
             if (bytes == null || bytes.isEmpty) continue;
-            if (await prepareImage(
-                  ResizeImage(MemoryImage(bytes), width: 540),
-                ) &&
-                _enabled &&
-                generation == _generation) {
+            final image = ResizeImage(MemoryImage(bytes), width: 540);
+            final valid = await _imagePreparer(image);
+            if (!_canLoad || generation != _generation) {
+              unawaited(image.evict());
+              return;
+            }
+            if (valid) {
               _posterCache[uri] = bytes;
               return;
             }
@@ -139,6 +148,8 @@ class WatchNextService extends ChangeNotifier {
       if (_enabled && generation == _generation) _notify();
     } catch (_) {
       // A stale or unavailable cache must not block the provider refresh.
+    } finally {
+      if (_canLoad && generation == _generation) _cacheRestored = true;
     }
   }
 
@@ -160,11 +171,9 @@ class WatchNextService extends ChangeNotifier {
       _generation++;
       _refreshTimer?.cancel();
       if (_enabled) {
+        _cacheRestored = false;
         unawaited(refreshPermissionAndItems());
-        _refreshTimer = Timer.periodic(
-          const Duration(minutes: 5),
-          (_) => unawaited(refreshPermissionAndItems()),
-        );
+        _restartRefreshTimer();
       } else {
         _allRawItems = [];
         _items = [];
@@ -177,6 +186,34 @@ class WatchNextService extends ChangeNotifier {
       }
     }
     _applyFilterAndNotify();
+  }
+
+  void _restartRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = _canLoad
+        ? Timer.periodic(
+            const Duration(minutes: 5),
+            (_) => unawaited(refreshPermissionAndItems()),
+          )
+        : null;
+  }
+
+  void setActive(bool active) {
+    if (_disposed || _active == active) return;
+    _active = active;
+    _generation++;
+    _isLoading = false;
+    _pendingPosters.clear();
+    _loadingPosters.clear();
+    _permissionRefresh = null;
+    _itemsRefresh = null;
+    _posterNotifyDebounce?.cancel();
+    _posterNotifyDebounce = null;
+    _restartRefreshTimer();
+    if (_canLoad) {
+      _preloadInitialPosters(_generation);
+      unawaited(refreshPermissionAndItems());
+    }
   }
 
   String? getPosterUriForItem(WatchNextItem? item) {
@@ -215,7 +252,7 @@ class WatchNextService extends ChangeNotifier {
   }
 
   Future<void> checkPermission() async {
-    if (!_enabled) return;
+    if (!_canLoad) return;
     final generation = _generation;
     bool allowed;
     try {
@@ -245,17 +282,23 @@ class WatchNextService extends ChangeNotifier {
   }
 
   Future<void> refreshPermissionAndItems() {
-    if (!_refreshEnabled) return ready;
-    return _permissionRefresh ??= _refreshPermissionAndItems().whenComplete(
-      () => _permissionRefresh = null,
-    );
+    if (!_refreshEnabled || !_canLoad) return ready;
+    if (_permissionRefresh != null) return _permissionRefresh!;
+    late final Future<void> pending;
+    pending = _refreshPermissionAndItems().whenComplete(() {
+      if (identical(_permissionRefresh, pending)) _permissionRefresh = null;
+    });
+    return _permissionRefresh = pending;
   }
 
   Future<void> _refreshPermissionAndItems() async {
+    final generation = _generation;
     await ready;
-    if (!_enabled) return;
+    if (!_canLoad || generation != _generation) return;
+    if (!_cacheRestored) await _restoreCache();
+    if (!_canLoad || generation != _generation) return;
     await checkPermission();
-    if (!_enabled) return;
+    if (!_canLoad || generation != _generation) return;
     if (_hasPermission) {
       await refreshItems();
     } else {
@@ -266,18 +309,24 @@ class WatchNextService extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshItems() => _itemsRefresh ??= _refreshItems().whenComplete(
-    () => _itemsRefresh = null,
-  );
+  Future<void> refreshItems() {
+    if (!_canLoad) return Future<void>.value();
+    if (_itemsRefresh != null) return _itemsRefresh!;
+    late final Future<void> pending;
+    pending = _refreshItems().whenComplete(() {
+      if (identical(_itemsRefresh, pending)) _itemsRefresh = null;
+    });
+    return _itemsRefresh = pending;
+  }
 
   Future<void> _refreshItems() async {
-    if (!_enabled || _isLoading || !_hasPermission) return;
+    if (!_canLoad || _isLoading || !_hasPermission) return;
     final generation = _generation;
     _isLoading = true;
     _notify();
     try {
       final results = await _fLauncherChannel.getWatchNextItems();
-      if (!_enabled || generation != _generation) return;
+      if (!_canLoad || generation != _generation) return;
       _allRawItems = results.take(50).map(WatchNextItem.fromMap).toList();
       _applyFilterAndNotify();
       // The first visible cards are prefetched; later cards request images on demand.
@@ -322,13 +371,13 @@ class WatchNextService extends ChangeNotifier {
 
   void _preloadInitialPosters(int generation) {
     if (generation != _generation) return;
-    for (final item in _items.skip(_activeHeroIndex).take(6)) {
+    for (final item in _items.skip(_activeHeroIndex).take(2)) {
       ensurePosterLoaded(getPosterUriForItem(item));
     }
   }
 
   void ensurePosterLoaded(String? uri) {
-    if (!_enabled ||
+    if (!_canLoad ||
         uri == null ||
         _posterCache.containsKey(uri) ||
         _failedPosters.contains(uri) ||
@@ -339,7 +388,7 @@ class WatchNextService extends ChangeNotifier {
   }
 
   void _drainPosterQueue() {
-    while (_enabled &&
+    while (_canLoad &&
         _loadingPosters.length < 2 &&
         _pendingPosters.isNotEmpty) {
       final ready = _pendingPosters.where(
@@ -358,10 +407,12 @@ class WatchNextService extends ChangeNotifier {
     try {
       Uint8List bytes;
       var cached = await _cache.readBytes(uri, maxBytes: maxPosterBytes);
+      if (!_canLoad || generation != _generation) return;
       if (cached != null && !await validImageBytes(cached)) {
         await _cache.remove(uri);
         cached = null;
       }
+      if (!_canLoad || generation != _generation) return;
       if (cached != null && cached.isNotEmpty) {
         bytes = cached;
       } else if (uri.startsWith('content://')) {
@@ -373,6 +424,10 @@ class WatchNextService extends ChangeNotifier {
         final response = await _client
             .send(http.Request('GET', url))
             .timeout(const Duration(seconds: 10));
+        if (!_canLoad || generation != _generation) {
+          await response.stream.listen((_) {}).cancel();
+          return;
+        }
         if (response.statusCode != 200 ||
             (response.contentLength ?? 0) > maxPosterBytes) {
           await response.stream.listen((_) {}).cancel();
@@ -382,17 +437,19 @@ class WatchNextService extends ChangeNotifier {
         await for (final chunk in response.stream.timeout(
           const Duration(seconds: 10),
         )) {
+          if (!_canLoad || generation != _generation) return;
           if (builder.length + chunk.length > maxPosterBytes)
             throw const FormatException('Poster too large');
           builder.add(chunk);
         }
         bytes = builder.takeBytes();
       }
-      if (!_enabled || generation != _generation) return;
+      if (!_canLoad || generation != _generation) return;
       if (bytes.isEmpty ||
           bytes.length > maxPosterBytes ||
           !await validImageBytes(bytes))
         throw const FormatException('Invalid poster');
+      if (!_canLoad || generation != _generation) return;
       _posterCache[uri] = bytes;
       final protected = <String?>{
         getPosterUriForItem(activeHeroItem),

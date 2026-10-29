@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/local_media_cache.dart';
@@ -16,6 +17,22 @@ LocalMediaCache noDiskCache() => LocalMediaCache(
   'test',
   directory: () async => throw StateError('Storage unavailable'),
 );
+
+class DeferredCache extends LocalMediaCache {
+  final Completer<Uint8List?>? poster;
+  int feedReads = 0;
+  DeferredCache({this.poster})
+    : super('deferred', directory: () async => throw StateError('No disk'));
+  @override
+  Future<dynamic> readJson(String key) async {
+    feedReads++;
+    return null;
+  }
+
+  @override
+  Future<Uint8List?> readBytes(String key, {int maxBytes = 16 * 1024 * 1024}) =>
+      poster?.future ?? Future.value(null);
+}
 
 Future<void> waitUntil(bool Function() ready) async {
   final deadline = DateTime.now().add(const Duration(seconds: 3));
@@ -79,6 +96,140 @@ void main() {
     verifyNever(channel.getWatchNextItems());
     expect(service.items, isEmpty);
   });
+
+  test('hidden startup does not restore the disk feed', () async {
+    final cache = DeferredCache();
+    final service = WatchNextService(
+      MockFLauncherChannel(),
+      cache: cache,
+      autoRefresh: false,
+    );
+    addTearDown(service.dispose);
+    service.setActive(false);
+    await service.ready;
+    expect(cache.feedReads, 0);
+  });
+
+  test('a disk miss completing hidden cannot start an HTTP request', () async {
+    final disk = Completer<Uint8List?>();
+    var requests = 0;
+    final service = WatchNextService(
+      MockFLauncherChannel(),
+      autoRefresh: false,
+      cache: DeferredCache(poster: disk),
+      client: MockClient((_) async {
+        requests++;
+        return http.Response.bytes(kTransparentImage, 200);
+      }),
+    );
+    addTearDown(service.dispose);
+    await service.ready;
+    service.ensurePosterLoaded('https://poster.test/late');
+    await Future<void>.delayed(Duration.zero);
+    service.setActive(false);
+    disk.complete(null);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(requests, 0);
+  });
+
+  test(
+    'return restarts missing selected artwork even when the provider is unavailable',
+    () async {
+      final channel = MockFLauncherChannel();
+      when(channel.checkWatchNextPermission()).thenAnswer((_) async => true);
+      when(channel.getWatchNextItems()).thenAnswer(
+        (_) async => [
+          {'id': 1, 'title': 'One', 'posterUri': 'https://poster.test/one'},
+          {'id': 2, 'title': 'Two', 'posterUri': 'https://poster.test/two'},
+        ],
+      );
+      final pending = Completer<http.Response>();
+      var resumed = false;
+      final requested = <String>[];
+      final service = WatchNextService(
+        channel,
+        cache: noDiskCache(),
+        client: MockClient((request) async {
+          requested.add(request.url.path);
+          return resumed
+              ? http.Response.bytes(kTransparentImage, 200)
+              : pending.future;
+        }),
+      );
+      addTearDown(service.dispose);
+      try {
+        await service.refreshPermissionAndItems();
+        await waitUntil(() => requested.length == 2);
+        service.setActive(false);
+        when(
+          channel.getWatchNextItems(),
+        ).thenThrow(StateError('Provider offline'));
+        resumed = true;
+        service.setActive(true);
+        await waitUntil(
+          () =>
+              service.getCachedPoster('https://poster.test/one') != null &&
+              service.getCachedPoster('https://poster.test/two') != null,
+        );
+        expect(service.items.length, 2);
+      } finally {
+        pending.complete(http.Response.bytes(kTransparentImage, 200));
+      }
+    },
+  );
+
+  test(
+    'hidden Home does not refresh or start poster work and resumes the selected pair',
+    () async {
+      final channel = MockFLauncherChannel();
+      when(channel.checkWatchNextPermission()).thenAnswer((_) async => true);
+      when(channel.getWatchNextItems()).thenAnswer(
+        (_) async => [
+          for (var i = 0; i < 8; i++)
+            {'id': i, 'title': '$i', 'posterUri': 'https://poster.test/$i'},
+        ],
+      );
+      final requested = <String>[];
+      final service = WatchNextService(
+        channel,
+        cache: noDiskCache(),
+        client: MockClient((request) async {
+          requested.add(request.url.path);
+          return http.Response.bytes(kTransparentImage, 200);
+        }),
+      );
+      addTearDown(service.dispose);
+      service.setActive(false);
+      await service.refreshPermissionAndItems();
+      service.ensurePosterLoaded('https://poster.test/hidden');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(requested, isEmpty);
+      verifyNever(channel.getWatchNextItems());
+      service.setActive(true);
+      await service.refreshPermissionAndItems();
+      await waitUntil(() => requested.length >= 2);
+      expect(requested, ['/0', '/1']);
+    },
+  );
+
+  test(
+    'a poster finishing after Home is hidden cannot refill its cache',
+    () async {
+      final gate = Completer<http.Response>();
+      final service = WatchNextService(
+        MockFLauncherChannel(),
+        cache: noDiskCache(),
+        client: MockClient((_) => gate.future),
+      );
+      addTearDown(service.dispose);
+      service.ensurePosterLoaded('https://poster.test/pending');
+      await Future<void>.delayed(Duration.zero);
+      service.setActive(false);
+      gate.complete(http.Response.bytes(kTransparentImage, 200));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(service.getCachedPoster('https://poster.test/pending'), isNull);
+    },
+  );
 
   test('enabling loads WuPlay entries and disabling releases them', () async {
     SharedPreferences.setMockInitialValues({});

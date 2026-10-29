@@ -24,7 +24,17 @@ void main() {
     prefs = await SharedPreferences.getInstance();
     directory = await Directory.systemTemp.createTemp('arc-backdrops-test');
   });
-  tearDown(() async => directory.delete(recursive: true));
+  tearDown(() async {
+    // An in-flight atomic-cache cleanup can remove a child during recursive deletion.
+    for (var attempt = 0; attempt < 5 && await directory.exists(); attempt++) {
+      try {
+        await directory.delete(recursive: true);
+      } on PathNotFoundException {
+        // Retry only the missing-child race; other filesystem errors still fail.
+      }
+    }
+    expect(await directory.exists(), isFalse);
+  });
 
   testWidgets('activation waits a fresh configured interval before rotating', (
     tester,
