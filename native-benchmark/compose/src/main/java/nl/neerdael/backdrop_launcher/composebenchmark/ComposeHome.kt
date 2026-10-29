@@ -170,7 +170,7 @@ fun ComposeHome(
                                 onDispose { appRequesters.remove(rowIndex to tileIndex) }
                             }
                             Column(Modifier.width(146.dp)) {
-                                HomeSurface({ launch(app) }, Modifier.size(146.dp, 82.dp).focusRequester(focus)
+                                AppCardSurface({ launch(app) }, Modifier.size(146.dp, 82.dp).focusRequester(focus)
                                     .onFocusChanged {
                                         if (it.isFocused) {
                                             selection.area = HomeSelection.Area.APPS

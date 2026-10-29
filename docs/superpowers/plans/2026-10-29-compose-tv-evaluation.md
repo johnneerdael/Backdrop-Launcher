@@ -28,3 +28,9 @@
 ## Independent implementation review
 
 A fresh reviewer reported no must-fix findings after checking decoder parity, pause/resume subscription renewal, disposal/stale completions and source refresh versioning. One nonblocking overload limitation is documented: rejected jobs from a full 32-slot queue do not retry until subscription changes. Fixed-content comparison must confirm every visible image loaded; broader production scene support needs a retry/cancellation policy. Parent still owns final integration review and TV acceptance, especially launch/return from a horizontally scrolled tile in a nonfirst row, carousel/backdrop replacement and details/settings return focus.
+
+## Parent-directed hot-card follow-up
+
+Replace only app-card TV Material surfaces after parent-observed navigation CPU/cache differences prompted source investigation. TV Material1.1 source installs scale, rounded clip/alpha and nested content-alpha layers. Use Foundation clickable with one transform-only layer, direct rounded fill/stroke, unchanged artwork bounds/opacity/resolution, and no redundant clip because artwork is inset inside the corners. Match the Views120ms accelerate/decelerate focus transition and1.06 scale, with immediate z-order; retain remote release activation and pressed feedback. Keep TV Material elsewhere.
+
+Preserve the original077309 APK by hash before rebuilding. Candidate Compose release tests (15), lint (zero errors) and optimized assembly pass. A fresh reviewer checked final source against the exact TV Material/Foundation source versions and reported no substantive findings. Source review does not establish GPU/CPU savings; parent owns repeat warm navigation, screenshots and memory/cache sampling.
