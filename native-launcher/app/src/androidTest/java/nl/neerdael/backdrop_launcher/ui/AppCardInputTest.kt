@@ -54,19 +54,20 @@ class AppCardInputTest {
         compose.onNodeWithTag("first").performKeyInput { pressKey(Key.DirectionCenter) }
         compose.runOnIdle { assertEquals(1, held); assertEquals(1, launches) }
     }
-    @Test fun busySettingsHeaderCannotNavigateBackDuringAMutation() {
-        var backs = 0
+    @Test fun busySettingsPreferenceCannotMutate() {
+        var mutations = 0
         compose.setContent {
             val context = LocalContext.current
             val artwork = remember(context) { ComposeArtwork(context) }
             DisposableEffect(artwork) { onDispose { artwork.close() } }
             MaterialTheme {
-                SettingsPanel("Settings", emptyList(), { backs++ }, artwork, false, 0, "Saving…", null)
+                SettingsPanel("Settings", listOf(SettingsEntry("save", "Save") { mutations++ }), artwork, true, 0, "Saving…", null)
             }
         }
-        compose.onNodeWithText("‹  Settings").assertIsNotEnabled()
-        compose.onNodeWithText("‹  Settings").performKeyInput { pressKey(Key.DirectionCenter) }
-        compose.runOnIdle { assertEquals(0, backs) }
+        compose.onNodeWithText("Settings").assertHasNoClickAction()
+        compose.onNodeWithContentDescription("Save").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Save").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.runOnIdle { assertEquals(0, mutations) }
     }
 
 }

@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -92,7 +94,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     fun change(task: () -> Unit) = execute("Saving…", task = task)
     fun mutate(task: () -> Unit) = execute("Saving applications…", reload = true, task = task)
     fun toggle(key: String, title: String, default: Boolean = false, enabled: Boolean = true): SettingsEntry =
-        SettingsEntry(key, title, checked = prefs.bool(key, default), enabled = enabled) {
+        SettingsEntry(key, title, checked = prefs.bool(key, default), enabled = enabled, control = SettingsControl.SWITCH) {
             change {
                 val next = !prefs.bool(key, default)
                 prefs.putBool(key, next)
@@ -162,12 +164,13 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     var note: String? = null
     when (page.section) {
         "settings" -> {
-            entries += SettingsEntry("apps", "Applications", subtitle = "Manage rows and installed apps") { go("rows") }
-            entries += SettingsEntry("interface", "Interface", subtitle = "Continue Watching, backdrops and appearance") { go("interface") }
-            entries += SettingsEntry("system", "System", subtitle = "Screensaver, clock, formats and Back button") { go("system") }
-            entries += SettingsEntry("android", "System settings", onClick = actions::systemSettings)
-            if (updates.enabled) entries += SettingsEntry("check", "Check for updates", onClick = ::checkUpdates)
-            entries += SettingsEntry("about", "About Backdrop Launcher") { go("about") }
+            entries += SettingsEntry("general", "General settings", section = true) {}
+            entries += SettingsEntry("apps", "Applications", icon = SettingsIcon.APPS) { go("rows") }
+            entries += SettingsEntry("interface", "Interface", icon = SettingsIcon.INTERFACE) { go("interface") }
+            entries += SettingsEntry("system", "System", icon = SettingsIcon.SYSTEM) { go("system") }
+            entries += SettingsEntry("android", "System settings", icon = SettingsIcon.SETTINGS) { close(); actions.systemSettings() }
+            if (updates.enabled) entries += SettingsEntry("check", "Check for updates", icon = SettingsIcon.UPDATE, onClick = ::checkUpdates)
+            entries += SettingsEntry("about", "About Backdrop Launcher", icon = SettingsIcon.INFO) { go("about") }
         }
         "interface" -> {
             title = "Interface"
@@ -201,7 +204,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
                     val sizes = listOf(82, 110, 140); val next = sizes[(sizes.indexOf(row.height) + 1) % sizes.size]
                     mutate { actions.library.updateRow(row.id, row.hidden, row.sort, next) }
                 }
-                entries += SettingsEntry("visible", "Show on home screen", checked = !row.hidden) { mutate { actions.library.updateRow(row.id, !row.hidden, row.sort, row.height) } }
+                entries += SettingsEntry("visible", "Show on home screen", checked = !row.hidden, control = SettingsControl.SWITCH) { mutate { actions.library.updateRow(row.id, !row.hidden, row.sort, row.height) } }
                 entries += SettingsEntry("up", "Move row up") { mutate { actions.library.moveRow(row.id, -1) } }
                 entries += SettingsEntry("down", "Move row down") { mutate { actions.library.moveRow(row.id, 1) } }
                 entries += SettingsEntry("delete", "Delete row") { confirmation = Confirmation("Delete ${row.name}?", "Applications stay installed. Only this row and its membership are removed.", "Delete") {
@@ -258,11 +261,11 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "border" -> {
             title = "Focus border thickness"
-            listOf(1.0, 1.5, 2.0, 3.0).forEach { size -> entries += SettingsEntry("border:$size", "$size dp", checked = prefs.double("focus_border_thickness", 1.5) == size) { change { prefs.putDouble("focus_border_thickness", size) } } }
+            listOf(1.0, 1.5, 2.0, 3.0).forEach { size -> entries += SettingsEntry("border:$size", "$size dp", control = SettingsControl.RADIO, checked = prefs.double("focus_border_thickness", 1.5) == size) { change { prefs.putDouble("focus_border_thickness", size) } } }
         }
         "opacity" -> {
             title = "App icon background opacity"
-            (0..10).forEach { value -> entries += SettingsEntry("opacity:$value", "${value * 10}%", checked = kotlin.math.abs(prefs.double("app_icon_background_opacity", .1) - value / 10.0) < .05) { change { prefs.putDouble("app_icon_background_opacity", value / 10.0) } } }
+            (0..10).forEach { value -> entries += SettingsEntry("opacity:$value", "${value * 10}%", control = SettingsControl.RADIO, checked = kotlin.math.abs(prefs.double("app_icon_background_opacity", .1) - value / 10.0) < .05) { change { prefs.putDouble("app_icon_background_opacity", value / 10.0) } } }
         }
         "misc" -> {
             title = "Miscellaneous"
@@ -275,7 +278,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         "accent" -> {
             title = "Accent color"
             val colors = listOf("FFFFFF" to "White", "7C4DFF" to "Purple", "00BFA5" to "Teal", "2979FF" to "Blue", "FF6D00" to "Orange", "F50057" to "Pink", "00C853" to "Green", "FFD600" to "Yellow", "D50000" to "Red", "00E5FF" to "Cyan", "536DFE" to "Indigo", "AEEA00" to "Lime", "FFAB00" to "Amber", "FF4081" to "Rose", "80D8FF" to "Ice blue")
-            colors.forEach { (color, label) -> entries += SettingsEntry(color, label, checked = prefs.string("accent_color", "FFFFFF") == color) { change { prefs.putString("accent_color", color) } } }
+            colors.forEach { (color, label) -> entries += SettingsEntry(color, label, control = SettingsControl.RADIO, checked = prefs.string("accent_color", "FFFFFF") == color) { change { prefs.putString("accent_color", color) } } }
             entries += SettingsEntry("custom", "Custom hex color", subtitle = "Six hexadecimal digits, for example A78BFA") { prompt = TextPrompt("Accent color", prefs.string("accent_color", "FFFFFF")) { hex -> change {
                 val value = hex.removePrefix("#"); require(value.matches(Regex("[0-9a-fA-F]{6}"))) { "Enter exactly six hexadecimal digits" }; prefs.putString("accent_color", value.uppercase())
             } } }
@@ -298,11 +301,11 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "clockstyle" -> {
             title = "Screensaver clock style"
-            listOf("minimal", "bold", "retro", "elegant", "neon", "pixel", "digital").forEach { value -> entries += SettingsEntry(value, value.replaceFirstChar { it.uppercase() }, checked = prefs.string("screensaver_clock_style", "minimal") == value) { change { prefs.putString("screensaver_clock_style", value) } } }
+            listOf("minimal", "bold", "retro", "elegant", "neon", "pixel", "digital").forEach { value -> entries += SettingsEntry(value, value.replaceFirstChar { it.uppercase() }, control = SettingsControl.RADIO, checked = prefs.string("screensaver_clock_style", "minimal") == value) { change { prefs.putString("screensaver_clock_style", value) } } }
         }
         "back" -> {
             title = "Back button action"
-            listOf("" to "Do nothing", "CLOCK" to "Show clock", "SCREENSAVER" to "Start screensaver").forEach { (value, label) -> entries += SettingsEntry("back:$value", label, checked = prefs.string("back_button_action") == value) { change { prefs.putString("back_button_action", value) } } }
+            listOf("" to "Do nothing", "CLOCK" to "Show clock", "SCREENSAVER" to "Start screensaver").forEach { (value, label) -> entries += SettingsEntry("back:$value", label, control = SettingsControl.RADIO, checked = prefs.string("back_button_action") == value) { change { prefs.putString("back_button_action", value) } } }
         }
         "formats" -> {
             title = "Date and time formats"
@@ -310,7 +313,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             val timeOptions = listOf("H:mm", "hh:mm", "h:mm a", "hh:mm a", "HH:mm")
             listOf("date_format" to dateOptions, "time_format" to timeOptions).forEach { (key, formats) ->
                 val current = prefs.string(key, if (key == "date_format") "EEEE d" else "H:mm")
-                formats.forEach { format -> entries += SettingsEntry("$key:$format", format, checked = current == format,
+                formats.forEach { format -> entries += SettingsEntry("$key:$format", format, control = SettingsControl.RADIO, checked = current == format,
                     subtitle = SimpleDateFormat(format, locale).format(java.util.Date())) { change { prefs.putString(key, format) } } }
                 entries += SettingsEntry("custom:$key", if (key == "date_format") "Custom date format" else "Custom time format", value = current) { prompt = TextPrompt("Format pattern", current) { format -> change { SimpleDateFormat(format, locale); prefs.putString(key, format) } } }
             }
@@ -330,7 +333,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "watchcount" -> {
             title = "Maximum Continue Watching items"
-            listOf(0, 5, 10, 15, 20, 25, 30, 50).forEach { value -> entries += SettingsEntry("count:$value", if (value == 0) "Unlimited" else value.toString(), checked = prefs.int("watch_next_max_items") == value) { change { prefs.putInt("watch_next_max_items", value) } } }
+            listOf(0, 5, 10, 15, 20, 25, 30, 50).forEach { value -> entries += SettingsEntry("count:$value", if (value == 0) "Unlimited" else value.toString(), control = SettingsControl.RADIO, checked = prefs.int("watch_next_max_items") == value) { change { prefs.putInt("watch_next_max_items", value) } } }
         }
         "backdrops" -> {
             title = "Backdrops"
@@ -347,7 +350,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "interval" -> {
             title = "Change backdrop every"
-            listOf(5, 10, 30, 60).forEach { value -> entries += SettingsEntry("interval:$value", "$value minutes", checked = prefs.int("backdrop_interval_minutes", 10) == value) { change { prefs.putInt("backdrop_interval_minutes", value) } } }
+            listOf(5, 10, 30, 60).forEach { value -> entries += SettingsEntry("interval:$value", "$value minutes", control = SettingsControl.RADIO, checked = prefs.int("backdrop_interval_minutes", 10) == value) { change { prefs.putInt("backdrop_interval_minutes", value) } } }
         }
         "auth" -> {
             title = "Connect Trakt"
@@ -382,14 +385,17 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         "about" -> {
             title = "About Backdrop Launcher"
             note = "Backdrop Launcher v$appVersion ($appCode)\n\nYour TV. Your way.\nCustomized by John Neerdael\nBased on Arc Launcher by Badis Meddouri and LTvLauncher © 2026 LeanBitLab; FLauncher © Étienne Fesser.\n\nGNU General Public License version 3 or later.\nhttps://github.com/johnneerdael/Backdrop-Launcher"
-            if (updates.enabled) entries += SettingsEntry("check", "Check for updates", onClick = ::checkUpdates)
+            if (updates.enabled) entries += SettingsEntry("check", "Check for updates", icon = SettingsIcon.UPDATE, onClick = ::checkUpdates)
         }
     }
     Dialog(onDismissRequest = { if (busy == null) back() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Color(0x55000000))) {
+        // Paint one measured scrim; the platform Dialog must not apply another dim layer.
+        val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect { window?.setDimAmount(0f) }
+        Box(Modifier.fillMaxSize().background(NativeSettingsStyle.scrim)) {
             Box(Modifier.align(Alignment.CenterEnd)) {
-                SettingsPanel(title, entries, ::back, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships")) {
-                    if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp).widthIn(max = 490.dp), fontSize = if (page.section == "auth") 22.sp else 14.sp)
+                SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships")) {
+                    if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp), style = if (page.section == "auth") NativeSettingsStyle.titleStyle else NativeSettingsStyle.summaryStyle)
                     if (page.section == "update" && !update?.notes.isNullOrBlank()) ReadableText(update!!.notes, Modifier.padding(top = 10.dp))
                 }
             }

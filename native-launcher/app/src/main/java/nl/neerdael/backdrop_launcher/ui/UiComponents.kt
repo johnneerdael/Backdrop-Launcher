@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
@@ -24,7 +26,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutBoundsHolder
 import androidx.compose.ui.layout.layoutBounds
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -36,12 +40,14 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import androidx.tv.material3.LocalTextStyle
 import kotlinx.coroutines.launch
 
 internal data class SettingsEntry(
     val id: String, val title: String, val subtitle: String = "", val value: String = "",
     val checked: Boolean? = null, val enabled: Boolean = true, val artwork: String? = null,
     val localize: Boolean = true,
+    val control: SettingsControl = SettingsControl.CHECKBOX, val icon: SettingsIcon? = null, val section: Boolean = false,
     val onHold: (() -> Unit)? = null, val onKey: ((KeyEvent) -> Boolean)? = null,
     val onClick: () -> Unit,
 )
@@ -59,41 +65,73 @@ internal fun UiButton(onClick: () -> Unit, modifier: Modifier = Modifier, enable
 }
 
 @Composable
-internal fun SettingsPanel(title: String, entries: List<SettingsEntry>, back: () -> Unit,
+internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
                            artwork: ComposeArtwork, active: Boolean, revision: Int,
                            busy: String?, error: String?, translateTitle: Boolean = true, footer: @Composable () -> Unit = {}) {
     val labels = LocalUiLanguage.current
     val first = remember { FocusRequester() }
+    val firstId = entries.firstOrNull { !it.section && it.enabled }?.id
     val viewport = remember { LayoutBoundsHolder() }
     val list = rememberLazyListState()
-    LaunchedEffect(title) { list.scrollToItem(0); withFrameNanos { }; first.requestFocus() }
-    Column(Modifier.fillMaxHeight().width(540.dp).background(Color(0xf51b1b1f)).padding(24.dp)) {
-        UiButton(back, Modifier.focusRequester(first), enabled = busy == null) { Text("‹  " + if (translateTitle) labels[title] ?: title else title, Modifier.padding(14.dp), fontSize = 24.sp) }
-        Spacer(Modifier.height(12.dp))
-        busy?.let { Text(it, color = Color(0xffffd180), modifier = Modifier.padding(8.dp), fontSize = 16.sp) }
-        error?.let { Text(it, color = Color(0xffff8a80), modifier = Modifier.padding(8.dp), fontSize = 16.sp) }
-        LazyColumn(state = list, modifier = Modifier.weight(1f).layoutBounds(viewport),
-            verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-            itemsIndexed(entries, key = { _, entry -> entry.id }, contentType = { _, _ -> "setting" }) { _, entry ->
-                UiButton(entry.onClick, enabled = entry.enabled && busy == null, onLongClick = entry.onHold,
-                    modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { entry.onKey?.invoke(it) == true }
-                        .semantics { contentDescription = listOf(entry.title, entry.value, entry.subtitle).filter { it.isNotBlank() }.joinToString(", ") }) {
-                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (entry.artwork != null) {
-                            Artwork(entry.artwork, artwork, active, revision, Modifier.size(88.dp, 50.dp), ContentScale.Fit, viewport = viewport)
-                            Spacer(Modifier.width(12.dp))
+    LaunchedEffect(title, firstId, active) {
+        if (active && firstId != null) { list.scrollToItem(0); withFrameNanos { }; first.requestFocus() }
+    }
+    CompositionLocalProvider(LocalTextStyle provides NativeSettingsStyle.primaryStyle) {
+        Column(Modifier.fillMaxHeight().width(NativeSettingsStyle.panelWidth).shadow(6.dp, RectangleShape, clip = false).background(NativeSettingsStyle.body)) {
+            Box(Modifier.fillMaxWidth().height(NativeSettingsStyle.headerHeight).background(NativeSettingsStyle.header)
+                .padding(start = 24.dp, end = 56.dp, top = 27.dp), contentAlignment = Alignment.CenterStart) {
+                Text(if (translateTitle) labels[title] ?: title else title, style = NativeSettingsStyle.titleStyle,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            busy?.let { Text(it, modifier = Modifier.padding(start = 24.dp, end = 56.dp, top = 8.dp), style = NativeSettingsStyle.summaryStyle) }
+            error?.let { Text(it, modifier = Modifier.padding(start = 24.dp, end = 56.dp, top = 8.dp), style = NativeSettingsStyle.summaryStyle.copy(color = Color(0xffff8a80))) }
+            LazyColumn(state = list, modifier = Modifier.weight(1f).layoutBounds(viewport), contentPadding = PaddingValues(bottom = 34.dp)) {
+                itemsIndexed(entries, key = { _, entry -> entry.id }, contentType = { _, entry -> if (entry.section) "section" else "setting" }) { _, entry ->
+                    if (entry.section) {
+                        Box(Modifier.fillMaxWidth().height(38.dp).padding(start = 24.dp, end = 56.dp), contentAlignment = Alignment.CenterStart) {
+                            Text(labels[entry.title] ?: entry.title, style = NativeSettingsStyle.sectionStyle)
                         }
-                        Column(Modifier.weight(1f)) {
-                            Text((entry.checked?.let { if (it) "☑  " else "☐  " } ?: "") + (if (entry.localize) labels[entry.title] ?: entry.title else entry.title),
-                                color = if (entry.enabled) Color.White else Color.LightGray, fontSize = 18.sp)
-                            if (entry.subtitle.isNotBlank()) Text(entry.subtitle, fontSize = 13.sp, color = Color(0xffcccccc))
+                    } else {
+                        val color = if (entry.enabled) NativeSettingsStyle.primary else NativeSettingsStyle.disabled
+                        val focus = if (entry.id == firstId) Modifier.focusRequester(first) else Modifier
+                        NativeSettingsSurface(entry.onClick, enabled = entry.enabled, blocked = busy != null, onLongClick = entry.onHold,
+                            modifier = Modifier.fillMaxWidth().then(focus).onPreviewKeyEvent {
+                                busy != null || entry.onKey?.invoke(it) == true
+                            }.semantics(mergeDescendants = true) {
+                                contentDescription = listOf(entry.title, entry.value, entry.subtitle).filter { it.isNotBlank() }.joinToString(", ")
+                                entry.checked?.let { checked ->
+                                    role = when (entry.control) { SettingsControl.SWITCH -> Role.Switch; SettingsControl.RADIO -> Role.RadioButton; else -> Role.Checkbox }
+                                    if (entry.control == SettingsControl.RADIO) selected = checked
+                                    else toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
+                                }
+                            }) {
+                            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 24.dp, end = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                                if (entry.icon != null) { NativeSettingsIcon(entry.icon); Spacer(Modifier.width(16.dp)) }
+                                else if (entry.checked != null && entry.control != SettingsControl.SWITCH && entry.artwork == null) {
+                                    NativeSettingsControl(entry.checked, entry.control, entry.enabled); Spacer(Modifier.width(16.dp))
+                                } else if (entry.artwork != null) {
+                                    Artwork(entry.artwork, artwork, active, revision, Modifier.size(40.dp, 24.dp), ContentScale.Fit, viewport = viewport)
+                                    Spacer(Modifier.width(16.dp))
+                                }
+                                Column(Modifier.weight(1f).padding(top = 14.dp, bottom = 13.dp)) {
+                                    Text(if (entry.localize) labels[entry.title] ?: entry.title else entry.title,
+                                        style = NativeSettingsStyle.primaryStyle.copy(color = color))
+                                    if (entry.subtitle.isNotBlank()) {
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(entry.subtitle, style = NativeSettingsStyle.summaryStyle.copy(color = if (entry.enabled) NativeSettingsStyle.secondary else NativeSettingsStyle.disabled),
+                                            maxLines = 4, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                                if (entry.checked != null && (entry.control == SettingsControl.SWITCH || entry.artwork != null)) {
+                                    Spacer(Modifier.width(16.dp)); NativeSettingsControl(entry.checked, entry.control, entry.enabled)
+                                } else if (entry.value.isNotBlank()) Text(entry.value, Modifier.padding(start = 16.dp).widthIn(max = 112.dp), style = NativeSettingsStyle.primaryStyle.copy(color = color), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
                         }
-                        if (entry.value.isNotBlank()) Text(entry.value, Modifier.padding(start = 10.dp), fontSize = 15.sp)
                     }
                 }
             }
+            Box(Modifier.fillMaxWidth().padding(start = 24.dp, end = 56.dp, bottom = 16.dp)) { footer() }
         }
-        footer()
     }
 }
 
@@ -110,12 +148,12 @@ internal fun PromptDialog(prompt: TextPrompt, close: () -> Unit) {
     val keyboard = LocalSoftwareKeyboardController.current
     fun submit() { if (text.isNotBlank()) { prompt.save(text.trim()); close() } }
     Dialog(close) {
-        Column(Modifier.width(500.dp).background(Color(0xff202024), RoundedCornerShape(12.dp)).padding(24.dp),
+        Column(Modifier.width(NativeSettingsStyle.panelWidth).background(NativeSettingsStyle.body, RoundedCornerShape(2.dp)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(prompt.title, fontSize = 24.sp)
-            UiButton({ editing = true; field.requestFocus(); keyboard?.show() }, Modifier.fillMaxWidth()) {
-                BasicTextField(text, { text = it }, textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
-                    singleLine = true, cursorBrush = SolidColor(Color.White), readOnly = !editing,
+            Text(prompt.title, style = NativeSettingsStyle.titleStyle)
+            NativeSettingsSurface({ editing = true; field.requestFocus(); keyboard?.show() }, Modifier.fillMaxWidth()) {
+                BasicTextField(text, { text = it }, textStyle = NativeSettingsStyle.primaryStyle,
+                    singleLine = true, cursorBrush = SolidColor(NativeSettingsStyle.accent), readOnly = !editing,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { keyboard?.hide(); editing = false; save.requestFocus() }),
                     modifier = Modifier.padding(16.dp).fillMaxWidth().focusRequester(field).onPreviewKeyEvent {
@@ -125,8 +163,8 @@ internal fun PromptDialog(prompt: TextPrompt, close: () -> Unit) {
                     })
             }
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                UiButton(close) { Text(LocalUiLanguage.current["Cancel"] ?: "Cancel", Modifier.padding(12.dp)) }
-                UiButton(::submit, Modifier.focusRequester(save), enabled = text.isNotBlank()) { Text(labels["Save"] ?: "Save", Modifier.padding(12.dp)) }
+                NativeSettingsSurface(close) { Text(LocalUiLanguage.current["Cancel"] ?: "Cancel", Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 14.dp), style = NativeSettingsStyle.primaryStyle.copy(color = NativeSettingsStyle.accent)) }
+                NativeSettingsSurface(::submit, Modifier.focusRequester(save), enabled = text.isNotBlank()) { Text(labels["Save"] ?: "Save", Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 14.dp), style = NativeSettingsStyle.primaryStyle.copy(color = NativeSettingsStyle.accent)) }
             }
             LaunchedEffect(prompt) { withFrameNanos { }; field.requestFocus(); keyboard?.show() }
         }
@@ -137,13 +175,13 @@ internal fun PromptDialog(prompt: TextPrompt, close: () -> Unit) {
 internal fun ConfirmationDialog(value: Confirmation, close: () -> Unit) {
     val confirm = remember { FocusRequester() }
     Dialog(close) {
-        Column(Modifier.width(500.dp).background(Color(0xff202024), RoundedCornerShape(12.dp)).padding(24.dp),
+        Column(Modifier.width(NativeSettingsStyle.panelWidth).background(NativeSettingsStyle.body, RoundedCornerShape(2.dp)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(value.title, fontSize = 24.sp)
-            Text(value.body, fontSize = 17.sp)
+            Text(value.title, style = NativeSettingsStyle.titleStyle)
+            Text(value.body, style = NativeSettingsStyle.primaryStyle)
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                UiButton(close, Modifier.focusRequester(confirm)) { Text(LocalUiLanguage.current["Cancel"] ?: "Cancel", Modifier.padding(12.dp)) }
-                UiButton({ value.confirm(); close() }) { Text(value.confirmLabel, Modifier.padding(12.dp)) }
+                NativeSettingsSurface(close, Modifier.focusRequester(confirm)) { Text(LocalUiLanguage.current["Cancel"] ?: "Cancel", Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 14.dp), style = NativeSettingsStyle.primaryStyle.copy(color = NativeSettingsStyle.accent)) }
+                NativeSettingsSurface({ value.confirm(); close() }) { Text(value.confirmLabel, Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 14.dp), style = NativeSettingsStyle.primaryStyle.copy(color = NativeSettingsStyle.accent)) }
             }
             LaunchedEffect(value) { withFrameNanos { }; confirm.requestFocus() }
         }
@@ -157,7 +195,7 @@ internal fun ReadableText(text: String, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var focused by remember { mutableStateOf(false) }
     LazyColumn(state = list, modifier = modifier.heightIn(max = 240.dp).fillMaxWidth()
-        .background(if (focused) Color(0xff45454c) else Color(0xff29292f), RoundedCornerShape(8.dp))
+        .background(if (focused) NativeSettingsStyle.focus else Color.Transparent)
         .onFocusChanged { focused = it.isFocused }.onPreviewKeyEvent {
             if (it.type == KeyEventType.KeyDown && ((it.key == Key.DirectionDown && list.canScrollForward) ||
                     (it.key == Key.DirectionUp && list.canScrollBackward))) {
@@ -166,7 +204,7 @@ internal fun ReadableText(text: String, modifier: Modifier = Modifier) {
         }.focusable(), contentPadding = PaddingValues(14.dp)) {
         val lines = readableNoteLines(text)
         itemsIndexed(lines, key = { index, _ -> index }, contentType = { _, _ -> "note-line" }) { _, line ->
-            Text(line, fontSize = 15.sp)
+            Text(line, style = NativeSettingsStyle.primaryStyle)
         }
     }
 }
