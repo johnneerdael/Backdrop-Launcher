@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "Bundled demonstration; installed apps and public Watch Next",
+  "backdrop": "backdrops/fight-club-55e2393686745.jpg",
+  "accent": "A78BFA",
+  "tileOpacity": 0.2,
+  "bigPicture": false,
+  "scrim": false,
+  "discoverApps": true,
+  "rows": [],
+  "watchNext": []
+}

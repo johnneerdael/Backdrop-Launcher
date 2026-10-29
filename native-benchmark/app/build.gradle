@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'nl.neerdael.backdrop_launcher.nativebenchmark'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'nl.neerdael.backdrop_launcher.nativebenchmark'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '0.1-benchmark'
+        testInstrumentationRunner 'android.test.InstrumentationTestRunner'
+    }
+    buildTypes {
+        release {
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            // Side-by-side measurement artifact, never a production/update APK.
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/sharedAssets')
+}
+
+def sharedAssets = tasks.register('sharedAssets', Sync) {
+    into layout.buildDirectory.dir('generated/sharedAssets')
+    from('../../backdrops') { into 'backdrops'; include '*.jpg' }
+    from('../../appicons') { into 'appicons'; include '*.png' }
+    from('../../assets/branding/fonts') { into 'fonts'; include '*.ttf' }
+}
+tasks.named('preBuild').configure { dependsOn sharedAssets }
+
+dependencies {
+    implementation 'androidx.recyclerview:recyclerview:1.3.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}

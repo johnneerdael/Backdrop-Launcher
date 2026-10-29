@@ -13,6 +13,8 @@ python3 -W error -m unittest discover -s tool/release -p 'test_*.py' -v
 
 The analyzer currently has pre-existing informational diagnostics. Warnings and errors fail CI. Use an optimized release build for TV performance checks.
 
+The separate [native Home benchmark](../../native-benchmark/README.md) evaluates a possible Android Views migration. It has its own package and build, and is not a replacement production launcher.
+
 ## API configuration
 
 The ten packaged backdrops work without API credentials. For authenticated Trakt backdrops, create these ignored files in the project root:
