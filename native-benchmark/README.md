@@ -1,5 +1,7 @@
 # Native Home benchmark
 
+The [Compose evaluation results](../docs/development/compose-tv-evaluation-results.md) distinguish measured intermediate builds from the final audited candidate and list the remaining device and production migration gates.
+
 This is the first measurement gate for a possible native Android migration. It builds a separate Kotlin/Android Views APK with app rows, app launching, Continue Watching and a cinematic backdrop. It has **no Flutter dependency** and does not replace Backdrop, register as a default Home candidate, or modify the production app's data.
 
 This is a prototype. Settings editing, row management, Trakt login/catalogues, updating, full accessibility/localization and production data migration are not implemented here. Different content and settings must be disclosed with every comparison. A smaller prototype footprint alone does not establish production feature parity or attribute every byte of the existing gap to Flutter.
