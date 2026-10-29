@@ -1,6 +1,6 @@
 # Compose for TV evaluation — 29 October 2026
 
-**Status:** a separate Kotlin/Compose candidate is built and source-reviewed. Initial device comparisons are promising on memory but show that stock TV Material card interactions cost more CPU in this implementation. A lighter hot-card path and a full seven-category performance audit are implemented. The final audited APK still needs on-device acceptance; the TV became asleep with no focused window, and subsequent captures were rejected. No final Compose adoption or complete production migration is claimed.
+**Status:** the final audited Kotlin/Compose candidate has now passed core device checks and an identical-scene navigation comparison. For CPU and memory alone, the Views control remains the preferred Home implementation: about one quarter of the sampled navigation CPU time and 15 MiB less PSS in the latest pass. Compose remains an experimental alternative, not an adopted production migration. The earlier asleep/disconnected attempts were rejected and are excluded.
 
 Production release [1.3.5](https://github.com/johnneerdael/Backdrop-Launcher/releases/tag/v1.3.5) remains the current Flutter launcher with the first resource-work improvements. It was merged through PR #1, built from source `d0d3750d262dd8fb5f10fb09c01fadf9dc1980a8`, published with Android code 4132, and independently downloaded/verified against all distribution checksums and the production signing certificate. The Compose work is separate.
 
@@ -25,6 +25,8 @@ Values below are individual guarded snapshots, not statistical means. CPU is pro
 | Same navigation pass, different content | Projectivy | 27.91 | 111.20 | 0.97 / 3.50 s |
 | Warm repeat | Stock TV Material Compose | 3.68 | 62.09 | 1.74 / 3.31 s |
 | First lighter-card navigation | Foundation hot-card Compose | 5.91 | 52.13 | 0.86 / 4.58 s |
+| Final audited navigation | Compose | 5.92 | 48.38 | 0.91 / 4.81 s |
+| Same final pass | Views | 5.38 | 33.42 | 0.23 / 4.64 s |
 
 The graphics counters moved with transient cache retention: the stock Compose run lost its 2 MiB scratch texture between observations; Projectivy retained about 18 MiB of scratch render targets in the navigation pass. This is why one low counter cannot establish the overall resource requirement. Full RSS/Swap denominators remain in raw results and were not dropped.
 
@@ -34,18 +36,23 @@ The original stock TV Material surface used several graphics-layer/clip/alpha pa
 
 The requested `jetpack-compose-performance` skill and mandatory references were used for an exhaustive seven-category audit; see `native-benchmark/COMPOSE_PERFORMANCE_AUDIT.md`. The final implementation removes image/layout snapshot feedback, replaces repeated global-position callbacks with reusable visibility/drawing nodes, supplies lazy keys/content types, hoists density, defers animated reads, caches drawing/formatting allocations and preserves asynchronous bounded decoding. No blanket stability annotations, new-version-only APIs or fixture-specific eager app lists were introduced.
 
-The Android CLI and profiler skills were loaded only for the relevant UI/CPU work. CLI 1.1.16717390 is available, and the pinned Perfetto trace processor setup was verified. No useful system trace was obtained: foreground guards rejected recording attempts while the TV was asleep. No profiler session was left active. Source-based findings are not presented as trace-proven CPU causes.
+The Android CLI and profiler skills were loaded only for the relevant UI/CPU work. CLI 1.1.16717390 is available, and the pinned Perfetto trace processor setup was verified. The CLI instrumentation server successfully provided focused-element layouts for device checks. The CLI profiler daemon timed out during initialization, with no session left active. The official Perfetto recording helper subsequently produced a five-second trace, but the target package/PID was absent from the scheduling query and navigation overlap was not established. That trace is not used to attribute navigation CPU or claim a root cause. CPU values in this report still come from the guarded kernel process counters. The pinned trace-processor session was stopped after inspection.
 
 The XML-to-Compose migration skill does not describe the Flutter Home rewrite. The broader Leanback-to-Compose-TV skill offers useful D-pad/focus/restoration reference patterns, although this app does not use Leanback UI components. Its entire migration recipe and heavier card defaults are not automatically applied to a resource-constrained benchmark. The existing native clock/screensaver XML has no demonstrated migration benefit.
 
-The final audited Compose release suite passes 18 tests; lint reports zero errors, release assembly/signature verification pass, and independent source review has no outstanding must-fix findings. Views release tests/lint/build passed in the same build. These checks do not replace the pending on-device cases:
+The final audited Compose release suite passes 18 tests; lint reports zero errors, release assembly/signature verification pass, and independent source review has no outstanding must-fix findings. Views release tests/lint/build passed in the same build. Device checks on the final audited APK now verify:
 
-- Populated Crop/Fit/scrim screenshots and lazy image-node exit/reentry/reuse.
-- Nonfirst-row, horizontally scrolled app launch/return focus and images.
-- Continue Watching cycling/playback return and details/settings return, including rapid pause/resume.
-- Repeated warm navigation and idle resource checks in both target orders, plus a short CPU trace and app-specific baseline-profile follow-up if warranted.
+- Fully populated normal-mode Fit/Crop artwork, including images after lazy-row movement and rapid return.
+- Horizontal first-row movement, then second-row selection, launching Play Store and returning to the same actually focused second-row item (CLI focus state and Activity diagnostics agree).
+- Continue Watching A→B cycling with the correct Matrix image after return.
+- Details dialog initial Close focus, opening TV settings, return to the dialog, Back to Home and rapid pause/resume.
+- Throughout this sequence, source version, data-load and scene-render counters remained at one. The Home scene was not reloaded/rebuilt on return.
 
-**Decision:** keep Kotlin/Compose for TV as an active migration candidate, retain Views as the measured control, and do not promote the candidate to the production launcher until the remaining behavior/resource and full feature/data gates pass. The owner's lower-than-Projectivy requirement remains an acceptance condition.
+The final matched pass recorded Compose RSS 131.22 MiB and Swap PSS 0.60 MiB, versus Views RSS 93.68 MiB and Swap PSS 5.11 MiB. Process ages and swapping still differ; the short checks are observations, not a distribution or a complete-feature comparison. No fresh Projectivy observation was substituted into this final matched Views/Compose pass.
+
+Still unverified: a horizontally scrolled second-row launch target, actual Continue Watching playback (the local fixture has no playback intents), fullscreen scrim/hero screenshot equivalence and app-specific generated baseline-profile results. These remain production behavior gates; no full feature/data migration is claimed.
+
+**Resource-only decision:** use Kotlin with native Android Views for the launcher Home hot path. Compose's tooling/maintenance benefits may justify selected future screens, but its measured extra RAM and approximately fourfold navigation CPU cost do not earn a blanket Home replacement under the owner's utilization priority. Retain the Compose branch as a comparative candidate. Any later adoption needs its own benefit/resource and full-capability acceptance.
 
 ## Artifacts
 
