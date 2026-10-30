@@ -2,6 +2,7 @@ package nl.neerdael.backdrop_launcher.ui
 
 import android.os.SystemClock
 import android.view.InputDevice
+import android.view.View
 import android.view.KeyEvent
 import android.view.inspector.WindowInspector
 import androidx.test.filters.SdkSuppress
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -67,6 +69,7 @@ class AppMenuRemoteTest {
         override fun download(update: UpdateInfo): File = error("unused")
     }
     private var launches = 0
+    private lateinit var homeRoot: View
     private val actions = object : UiActions {
         override val library get() = this@AppMenuRemoteTest.library
         override fun refresh() = Unit
@@ -87,6 +90,8 @@ class AppMenuRemoteTest {
     private fun content() {
         compose.setContent {
             val context = LocalContext.current
+            val view = LocalView.current
+            SideEffect { homeRoot = view.rootView }
             val prefs = remember { LegacyPreferences(context) }
             val artwork = remember { ComposeArtwork(context) }
             val selection = remember { HomeSelection() }
@@ -98,16 +103,16 @@ class AppMenuRemoteTest {
         }
         compose.onNodeWithContentDescription(app.label).assertIsFocused()
     }
-    private fun key(downTime: Long, action: Int, repeats: Int = 0, code: Int = KeyEvent.KEYCODE_DPAD_CENTER) {
+    private fun key(downTime: Long, action: Int, repeats: Int = 0, code: Int = KeyEvent.KEYCODE_DPAD_CENTER, originalWindow: Boolean = false) {
         val event = KeyEvent(downTime, SystemClock.uptimeMillis(), action, code,
             repeats, 0, -1, 97, if (repeats > 0) KeyEvent.FLAG_LONG_PRESS else 0, InputDevice.SOURCE_DPAD)
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            val root = WindowInspector.getGlobalWindowViews().last { it.isShown && it.hasFocus() }
+            val root = if (originalWindow) homeRoot else WindowInspector.getGlobalWindowViews().last { it.isShown && it.hasFocus() }
             root.dispatchKeyEvent(event)
         }
         compose.waitForIdle()
     }
-    private fun heldMenuGesture(code: Int) {
+    private fun heldMenuGesture(code: Int, originalWindow: Boolean = false) {
         content()
         val down = SystemClock.uptimeMillis()
         key(down, KeyEvent.ACTION_DOWN, code = code)
@@ -115,9 +120,9 @@ class AppMenuRemoteTest {
         compose.waitForIdle()
         compose.onNodeWithText("Open").assertExists()
         // Real remotes continue sending DOWN repeats after focus moves into the dialog.
-        key(down, KeyEvent.ACTION_DOWN, 1, code)
-        key(down, KeyEvent.ACTION_DOWN, 2, code)
-        key(down, KeyEvent.ACTION_UP, code = code)
+        key(down, KeyEvent.ACTION_DOWN, 1, code, originalWindow)
+        key(down, KeyEvent.ACTION_DOWN, 2, code, originalWindow)
+        key(down, KeyEvent.ACTION_UP, code = code, originalWindow = originalWindow)
         compose.runOnIdle { assertEquals("Releasing the menu-opening hold must not launch the app", 0, launches) }
         compose.onNodeWithText("Choose packaged icon / banner").assertExists()
         compose.onNodeWithText("Reorder in My apps").assertExists()
@@ -161,5 +166,8 @@ class AppMenuRemoteTest {
         key(down, KeyEvent.ACTION_UP, code = KeyEvent.KEYCODE_SPACE)
         compose.runOnIdle { assertEquals("   ", text); assertEquals(0, activations) }
     }
+
+    @Test fun heldSelectEventsStillRoutedToHomeCannotOpenTheToolbarMenu() =
+        heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, originalWindow = true)
 
 }

@@ -133,7 +133,10 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
         CompositionLocalProvider(LocalUiLanguage provides language, LocalTextStyle provides TextStyle(color = Color.White, fontFamily = font,
             shadow = Shadow(Color.Black, blurRadius = 3f))) {
             Box(Modifier.fillMaxSize().background(Color.Black).onPreviewKeyEvent {
-                if (it.type == KeyEventType.KeyDown && it.key == Key.Menu) { settings = SettingsRoute("settings"); true } else false
+                // The opening hold can still be routed to this window while the
+                // dialog takes focus. Never activate or navigate background Home.
+                if (settings != null) true
+                else if (it.type == KeyEventType.KeyDown && it.key == Key.Menu) { settings = SettingsRoute("settings"); true } else false
             }) {
                 Artwork(scene.backdropFor(resumeIndex), artwork, active, artworkRevision,
                     Modifier.fillMaxSize().cinematicScrim(scene.scrim || (scene.bigPicture && scene.watchNext.isNotEmpty())),
@@ -142,7 +145,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                     .graphicsLayer { alpha = if (!style.autoHideBar || toolbarFocused || settings != null) 1f else 0f },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UiButton({ settings = SettingsRoute("settings") }, Modifier.size(40.dp).focusRequester(toolbar)
-                        .onFocusChanged { if (it.isFocused) { toolbarFocused = true; selection.area = HomeSelection.Area.SETTINGS } }
+                        .onFocusChanged { if (it.isFocused && settings == null) { toolbarFocused = true; selection.area = HomeSelection.Area.SETTINGS } }
                         .onPreviewKeyEvent {
                             if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionDown) {
                                 toolbarFocused = false
@@ -164,7 +167,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                         }
                         UiButton({ actions.play(item) }, Modifier.width(if (scene.bigPicture) 220.dp else 300.dp)
                             .focusRequester(resumeFocus).onFocusChanged {
-                                if (it.isFocused) { toolbarFocused = false; selection.area = HomeSelection.Area.WATCH_NEXT }
+                                if (it.isFocused && settings == null) { toolbarFocused = false; selection.area = HomeSelection.Area.WATCH_NEXT }
                             }.onPreviewKeyEvent {
                                 if (it.type != KeyEventType.KeyDown) false else when (it.key) {
                                     Key.DirectionLeft, Key.DirectionRight -> {
@@ -241,7 +244,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                             animateBorder = style.animateBorder, active = active,
                                             modifier = Modifier.size(width, height).focusRequester(focus)
                                                 .focusProperties { canFocus = rowIndex == activeRow && settings == null }
-                                                .onFocusChanged { if (it.isFocused) { toolbarFocused = false; selection.remember(scene, rowIndex, tileIndex) } }
+                                                .onFocusChanged { if (it.isFocused && settings == null) { toolbarFocused = false; selection.remember(scene, rowIndex, tileIndex) } }
                                                 .onPreviewKeyEvent {
                                                     if (it.type != KeyEventType.KeyDown) false else when {
                                                         moving?.packageName == app.packageName && (it.key == Key.DirectionLeft || it.key == Key.DirectionRight) -> { moveApp(if (it.key == Key.DirectionLeft) -1 else 1); true }
