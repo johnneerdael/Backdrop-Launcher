@@ -162,7 +162,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                     StatusClock(style, active)
                     if (style.showNetwork) NetworkStatus(active) { if (settings == null) actions.openNetworkSettings() }
                 }
-                if (scene.watchNext.isNotEmpty()) {
+                if (scene.watchNext.isNotEmpty() && scene.bigPicture) {
                     val item = scene.watchNext[resumeIndex.coerceIn(0, scene.watchNext.lastIndex)]
                     Column(Modifier.offset(x = 32.dp, y = if (scene.bigPicture) 88.dp else 90.dp)
                         .width(if (scene.bigPicture) 560.dp else 300.dp)) {
@@ -188,10 +188,6 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                 }
                             }.semantics { contentDescription = "Continue watching ${item.title}" }) {
                             Column(Modifier.padding(2.dp)) {
-                                if (!scene.bigPicture) {
-                                    Artwork(item.image, artwork, active, artworkRevision, Modifier.size(296.dp, 164.dp), ContentScale.Crop)
-                                    Text(item.title, Modifier.padding(4.dp), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
                                 Text("▶  " + (language["Continue Watching"] ?: "Continue Watching"), Modifier.padding(4.dp), fontSize = 13.sp)
                                 if (item.progress > 0) Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0xff333333))) {
                                     Box(Modifier.fillMaxWidth(item.progress.coerceIn(0, 100) / 100f).fillMaxHeight().background(Color(style.accent)))
@@ -200,14 +196,18 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                         }
                         if (scene.bigPicture && scene.watchNext.size > 1) Text("${resumeIndex + 1} / ${scene.watchNext.size}", Modifier.padding(top = 8.dp), fontSize = 13.sp)
                     }
-                    if (!scene.bigPicture) scene.watchNext.getOrNull(resumeIndex + 1)?.let { next ->
-                        Column(Modifier.offset(x = 432.dp, y = 234.dp).width(100.dp).graphicsLayer { alpha = .1f }) {
-                            Artwork(next.image, artwork, active, artworkRevision, Modifier.size(100.dp, 55.dp), ContentScale.Crop)
-                            Text(next.title, fontSize = 5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(language["Continue Watching"] ?: "Continue Watching", fontSize = 4.sp)
-                            if (next.progress > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color(style.accent)))
-                        }
-                    }
+                }
+                if (scene.watchNext.isNotEmpty() && !scene.bigPicture) {
+                    WatchNextCarousel(scene.watchNext, selection.resumeIndex, artwork, active,
+                        active && settings == null, artworkRevision, resumeFocus, Color(style.accent),
+                        style.borders, style.borderDp, language["Continue Watching"] ?: "Continue Watching",
+                        onFocus = { if (it && settings == null) { toolbarFocused = false; selection.area = HomeSelection.Area.WATCH_NEXT } },
+                        onStep = { index ->
+                            selection.selectResume(scene, index); resumeIndex = selection.resumeIndex
+                            actions.selectResume(scene.watchNext[resumeIndex])
+                        }, onPlay = { if (settings == null) actions.play(it) },
+                        onUp = { toolbar.requestFocus() }, onDown = ::appsFocus,
+                        modifier = Modifier.offset(y = 90.dp))
                 }
                 LazyColumn(state = rowList, userScrollEnabled = false,
                     modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().fillMaxHeight(.42f).layoutBounds(viewport)) {
