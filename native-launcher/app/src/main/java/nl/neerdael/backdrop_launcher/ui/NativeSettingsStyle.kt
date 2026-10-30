@@ -1,14 +1,15 @@
 package nl.neerdael.backdrop_launcher.ui
 
 import android.graphics.Typeface
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.TextStyle
@@ -56,8 +58,21 @@ internal fun NativeSettingsSurface(onClick: () -> Unit, modifier: Modifier = Mod
     enabled: Boolean = true, blocked: Boolean = false, onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit) {
     val interactions = remember { MutableInteractionSource() }
-    val focused by interactions.collectIsFocusedAsState()
+    var focused by remember { mutableStateOf(false) }
     Box(modifier.background(if (focused) NativeSettingsStyle.focus else Color.Transparent)
+        .onFocusChanged { focused = it.isFocused }
+        .onPreviewKeyEvent { event ->
+            val key = event.nativeKeyEvent
+            // A held Select can move focus here when it opens an app/row menu. Its
+            // repeats belong to the old press, not a new activation of this row.
+            focused && key.action == AndroidKeyEvent.ACTION_DOWN && (key.repeatCount > 0 || key.isLongPress) &&
+                when (key.keyCode) {
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER, AndroidKeyEvent.KEYCODE_ENTER,
+                    AndroidKeyEvent.KEYCODE_NUMPAD_ENTER, AndroidKeyEvent.KEYCODE_SPACE,
+                    AndroidKeyEvent.KEYCODE_BUTTON_A -> true
+                    else -> false
+                }
+        }
         .combinedClickable(interactionSource = interactions, indication = null, enabled = enabled,
             onClick = { if (!blocked) onClick() }, onLongClick = onLongClick?.let { { if (!blocked) it() } })
         .semantics { if (blocked) disabled() }, content = content)
