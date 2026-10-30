@@ -58,3 +58,26 @@ checks pass; these use a fake playback action and do not start third-party media
 The follow-up changed tests and documentation only; no new production fix was
 required. Installation version and exact public APK hash were checked separately
 when the owner subsequently authorized the TV update.
+
+## Focus ownership and real Back
+
+The playback checks did not cover the complete Back round trip. In 1.4.3,
+`canFocus` was set false on the app card as soon as its menu opened. That removed
+the origin from Home's focus tree and allowed Continue Watching to become the
+background focus target. New compact/hero tests failed before Back because that
+button was already focused.
+
+The origin card now remains focusable within its active row; the separate dialog
+window owns modal focus. Confirm-key UP (normal or Android-cancelled) is allowed
+to clear the original control's pressed state. Every Home action is guarded while
+a modal exists, while other background input remains blocked. This avoids the
+stuck first Select observed when focusability was restored but releases were still
+consumed.
+
+The full 19-case emulator suite passes, including actual global Back, compact/hero
+and both routing paths, the first short Select after dismissal, and exact
+non-first-icon package identity. All 65 unit tests and release lint pass. The
+optimized APK was also exercised with a real emulator TV-provider resume fixture:
+1500ms hold→app actions→Back returned to the same app icon while Continue Watching
+remained visible; the next short Select launched that app normally. No physical
+TV gesture replay or third-party playback was used for this validation.
