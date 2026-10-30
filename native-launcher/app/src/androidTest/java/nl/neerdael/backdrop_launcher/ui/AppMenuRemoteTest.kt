@@ -69,12 +69,13 @@ class AppMenuRemoteTest {
         override fun download(update: UpdateInfo): File = error("unused")
     }
     private var launches = 0
+    private var playbacks = 0
     private lateinit var homeRoot: View
     private val actions = object : UiActions {
         override val library get() = this@AppMenuRemoteTest.library
         override fun refresh() = Unit
         override fun launch(packageName: String) { launches++ }
-        override fun play(item: ResumeItem) = Unit
+        override fun play(item: ResumeItem) { playbacks++ }
         override fun selectResume(item: ResumeItem) = Unit
         override fun appInfo(packageName: String) = Unit
         override fun uninstall(packageName: String) = Unit
@@ -87,7 +88,7 @@ class AppMenuRemoteTest {
         override fun installApk(file: File) = Unit
         override fun message(text: String) = Unit
     }
-    private fun content() {
+    private fun content(withWatchNext: Boolean = false, hero: Boolean = false) {
         compose.setContent {
             val context = LocalContext.current
             val view = LocalView.current
@@ -98,7 +99,9 @@ class AppMenuRemoteTest {
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
             val scene = Scene("Test", media.restoredBackdrop().image,
                 listOf(AppRow(row.name, listOf(AppTile(app.packageName, app.label, app.artwork)), row.id, row.height)),
-                emptyList(), false, true, -1, .1f, false, false)
+                if (withWatchNext) listOf(ResumeItem("Episode fixture", "Resume fixture", "appicons/settings.png", 35,
+                    "intent://fixture#Intent;scheme=test;package=test.player;end", "test.player", 17)) else emptyList(),
+                hero, true, -1, .1f, false, false)
             LauncherScreen(HomeData(scene, ""), library.snapshot(), prefs, media, updates, actions, selection, artwork, true, 0)
         }
         compose.onNodeWithContentDescription(app.label).assertIsFocused()
@@ -112,8 +115,8 @@ class AppMenuRemoteTest {
         }
         compose.waitForIdle()
     }
-    private fun heldMenuGesture(code: Int, originalWindow: Boolean = false) {
-        content()
+    private fun heldMenuGesture(code: Int, originalWindow: Boolean = false, withWatchNext: Boolean = false, hero: Boolean = false) {
+        content(withWatchNext, hero)
         val down = SystemClock.uptimeMillis()
         key(down, KeyEvent.ACTION_DOWN, code = code)
         compose.mainClock.advanceTimeBy(1000)
@@ -123,7 +126,10 @@ class AppMenuRemoteTest {
         key(down, KeyEvent.ACTION_DOWN, 1, code, originalWindow)
         key(down, KeyEvent.ACTION_DOWN, 2, code, originalWindow)
         key(down, KeyEvent.ACTION_UP, code = code, originalWindow = originalWindow)
-        compose.runOnIdle { assertEquals("Releasing the menu-opening hold must not launch the app", 0, launches) }
+        compose.runOnIdle {
+            assertEquals("Releasing the menu-opening hold must never start Continue Watching", 0, playbacks)
+            assertEquals("Releasing the menu-opening hold must not launch the app", 0, launches)
+        }
         compose.onNodeWithText("Choose packaged icon / banner").assertExists()
         compose.onNodeWithText("Reorder in My apps").assertExists()
         compose.onNodeWithText("Hide from home screen").assertExists()
@@ -131,7 +137,7 @@ class AppMenuRemoteTest {
         val fresh = SystemClock.uptimeMillis()
         key(fresh, KeyEvent.ACTION_DOWN, code = code)
         key(fresh, KeyEvent.ACTION_UP, code = code)
-        compose.runOnIdle { assertEquals(1, launches) }
+        compose.runOnIdle { assertEquals(1, launches); assertEquals(0, playbacks) }
         compose.onNodeWithText("Open").assertDoesNotExist()
     }
     @Test fun heldSelectKeepsTheAppActionsMenuOpenThroughRepeatsAndRelease() =
@@ -145,7 +151,7 @@ class AppMenuRemoteTest {
         val down = SystemClock.uptimeMillis()
         key(down, KeyEvent.ACTION_DOWN)
         key(down, KeyEvent.ACTION_UP)
-        compose.runOnIdle { assertEquals(1, launches) }
+        compose.runOnIdle { assertEquals(1, launches); assertEquals(0, playbacks) }
         compose.onNodeWithText("Open").assertDoesNotExist()
     }
 
@@ -169,5 +175,17 @@ class AppMenuRemoteTest {
 
     @Test fun heldSelectEventsStillRoutedToHomeCannotOpenTheToolbarMenu() =
         heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, originalWindow = true)
+
+    @Test fun compactContinueWatchingNeverStartsFromTheOriginalWindowOpeningHold() =
+        heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, originalWindow = true, withWatchNext = true)
+
+    @Test fun heroContinueWatchingNeverStartsFromTheOriginalWindowOpeningHold() =
+        heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, originalWindow = true, withWatchNext = true, hero = true)
+
+    @Test fun compactContinueWatchingNeverStartsFromTheDialogWindowOpeningHold() =
+        heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, withWatchNext = true)
+
+    @Test fun heroContinueWatchingNeverStartsFromTheDialogWindowOpeningHold() =
+        heldMenuGesture(KeyEvent.KEYCODE_DPAD_CENTER, withWatchNext = true, hero = true)
 
 }
