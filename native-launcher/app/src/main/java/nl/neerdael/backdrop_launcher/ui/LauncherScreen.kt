@@ -1,6 +1,7 @@
 package nl.neerdael.backdrop_launcher.ui
 
 import android.view.SoundEffectConstants
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.collection.LongSparseArray
 import androidx.compose.foundation.background
@@ -133,9 +134,14 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
         CompositionLocalProvider(LocalUiLanguage provides language, LocalTextStyle provides TextStyle(color = Color.White, fontFamily = font,
             shadow = Shadow(Color.Black, blurRadius = 3f))) {
             Box(Modifier.fillMaxSize().background(Color.Black).onPreviewKeyEvent {
-                // The opening hold can still be routed to this window while the
-                // dialog takes focus. Never activate or navigate background Home.
-                if (settings != null) true
+                // Keep background input inert, but let the original confirm UP
+                // (including Android's cancelled UP) clear its pressed state.
+                if (settings != null) !(it.type == KeyEventType.KeyUp && when (it.nativeKeyEvent.keyCode) {
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER, AndroidKeyEvent.KEYCODE_ENTER,
+                    AndroidKeyEvent.KEYCODE_NUMPAD_ENTER, AndroidKeyEvent.KEYCODE_SPACE,
+                    AndroidKeyEvent.KEYCODE_BUTTON_A -> true
+                    else -> false
+                })
                 else if (it.type == KeyEventType.KeyDown && it.key == Key.Menu) { settings = SettingsRoute("settings"); true } else false
             }) {
                 Artwork(scene.backdropFor(resumeIndex), artwork, active, artworkRevision,
@@ -144,7 +150,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                 Row(Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 32.dp).height(44.dp)
                     .graphicsLayer { alpha = if (!style.autoHideBar || toolbarFocused || settings != null) 1f else 0f },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    UiButton({ settings = SettingsRoute("settings") }, Modifier.size(40.dp).focusRequester(toolbar)
+                    UiButton({ if (settings == null) settings = SettingsRoute("settings") }, Modifier.size(40.dp).focusRequester(toolbar)
                         .onFocusChanged { if (it.isFocused && settings == null) { toolbarFocused = true; selection.area = HomeSelection.Area.SETTINGS } }
                         .onPreviewKeyEvent {
                             if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionDown) {
@@ -154,7 +160,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                             } else false
                         }.semantics { contentDescription = "Settings" }) { Text("⚙", Modifier.align(Alignment.Center), fontSize = 26.sp) }
                     StatusClock(style, active)
-                    if (style.showNetwork) NetworkStatus(active, actions::openNetworkSettings)
+                    if (style.showNetwork) NetworkStatus(active) { if (settings == null) actions.openNetworkSettings() }
                 }
                 if (scene.watchNext.isNotEmpty()) {
                     val item = scene.watchNext[resumeIndex.coerceIn(0, scene.watchNext.lastIndex)]
@@ -165,7 +171,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                             Text(item.title, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text(item.description, fontSize = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
                         }
-                        UiButton({ actions.play(item) }, Modifier.width(if (scene.bigPicture) 220.dp else 300.dp)
+                        UiButton({ if (settings == null) actions.play(item) }, Modifier.width(if (scene.bigPicture) 220.dp else 300.dp)
                             .focusRequester(resumeFocus).onFocusChanged {
                                 if (it.isFocused && settings == null) { toolbarFocused = false; selection.area = HomeSelection.Area.WATCH_NEXT }
                             }.onPreviewKeyEvent {
@@ -222,8 +228,8 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                         val key = packInts(rowIndex, -1); requesters.put(key, focus)
                                         onDispose { if (requesters.get(key) === focus) requesters.remove(key) }
                                     }
-                                    UiButton({ settings = SettingsRoute("row", rowId = row.id) },
-                                        Modifier.focusRequester(focus).focusProperties { canFocus = rowIndex == activeRow && settings == null }
+                                    UiButton({ if (settings == null) settings = SettingsRoute("row", rowId = row.id) },
+                                        Modifier.focusRequester(focus).focusProperties { canFocus = rowIndex == activeRow }
                                             .onPreviewKeyEvent {
                                                 if (it.type == KeyEventType.KeyDown && (it.key == Key.DirectionUp || it.key == Key.DirectionDown)) {
                                                     if (it.key == Key.DirectionUp && rowIndex == 0) toolbar.requestFocus()
@@ -237,13 +243,17 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                     DisposableEffect(slot, focus) { requesters.put(slot, focus); onDispose { if (requesters.get(slot) === focus) requesters.remove(slot) } }
                                     Column(Modifier.width(width)) {
                                         AppCardSurface(onClick = {
-                                            if (moving != null) moving = null else { if (style.clickSound) view.playSoundEffect(SoundEffectConstants.CLICK); actions.launch(app.packageName) }
-                                        }, onLongClick = { if (moving != null) moving = null else openApp(app, row) },
+                                            if (settings == null) {
+                                                if (moving != null) moving = null else { if (style.clickSound) view.playSoundEffect(SoundEffectConstants.CLICK); actions.launch(app.packageName) }
+                                            }
+                                        }, onLongClick = { if (settings == null) { if (moving != null) moving = null else openApp(app, row) } },
                                             color = Color(style.accent).copy(alpha = style.opacity), borderColor = Color(style.accent),
                                             borderWidth = style.borderDp.dp, showBorder = style.borders || moving?.packageName == app.packageName,
                                             animateBorder = style.animateBorder, active = active,
                                             modifier = Modifier.size(width, height).focusRequester(focus)
-                                                .focusProperties { canFocus = rowIndex == activeRow && settings == null }
+                                                // A separate dialog window owns modal focus. Keep
+                                                // its origin eligible so dismiss restores this app.
+                                                .focusProperties { canFocus = rowIndex == activeRow }
                                                 .onFocusChanged { if (it.isFocused && settings == null) { toolbarFocused = false; selection.remember(scene, rowIndex, tileIndex) } }
                                                 .onPreviewKeyEvent {
                                                     if (it.type != KeyEventType.KeyDown) false else when {
@@ -270,7 +280,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                         }
                     }
                 }
-                if (scene.rows.isEmpty()) UiButton({ settings = SettingsRoute("rows") }, Modifier.align(Alignment.BottomStart).padding(32.dp)) {
+                if (scene.rows.isEmpty()) UiButton({ if (settings == null) settings = SettingsRoute("rows") }, Modifier.align(Alignment.BottomStart).padding(32.dp)) {
                     Text("Add an application row", Modifier.padding(16.dp))
                 }
                 moving?.let { Text("Reorder · Left/Right to move · Select or Back to finish", Modifier.align(Alignment.BottomCenter).padding(12.dp), fontSize = 15.sp) }
