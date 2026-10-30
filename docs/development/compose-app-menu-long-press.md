@@ -43,3 +43,18 @@ failed before this guard and passes afterward, including app-focus restoration.
 All ten emulator UI tests, 65 unit tests, release lint and optimized builds pass.
 The actual optimized APK also retained all app actions after a shell-injected
 1500ms D-pad Center hold and release. The physical TV remained untouched.
+
+## Continue Watching enabled
+
+Explicit resume fixtures now cover compact and hero layouts with continuation
+keys sent to either the Home window or the app dialog. Playback calls are counted
+separately from app launches, and every hold must leave both at zero. Intentional
+Open and ordinary short Select must still launch only the selected app.
+
+The compact original-window case reproduces the reported autoplay with the Home
+implementation from v1.4.1: expected zero playback calls, observed one. The current
+1.4.3 implementation passes all four resume-enabled cases. All 14 emulator UI
+checks pass; these use a fake playback action and do not start third-party media.
+The follow-up changed tests and documentation only; no new production fix was
+required. Installation version and exact public APK hash were checked separately
+when the owner subsequently authorized the TV update.
