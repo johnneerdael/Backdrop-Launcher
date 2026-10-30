@@ -21,6 +21,8 @@ If the TV cannot provide a permission screen, see [Continue Watching is missing]
 
 From the first app row press **Up**, then use **Left/Right** to browse programmes. Press **Select** on the selected card to open it in its provider app. **Down** returns to your app rows; **Up** reaches the status bar.
 
+In the compact layout, the smaller next-programme preview moves left and grows into the active card as you browse. The outgoing card slides offscreen at full size.
+
 The progress strip reflects data supplied by the provider. A provider may open a detail page or loading screen before playback. It controls the exact resume behaviour.
 
 ## Choose how it looks
