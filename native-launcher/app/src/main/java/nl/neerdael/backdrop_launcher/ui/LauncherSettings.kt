@@ -354,9 +354,11 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "auth" -> {
             title = "Connect Trakt"
-            note = auth?.let { "Open ${it.verificationUrl} on your phone or computer.\n\nEnter code: ${it.userCode}\n\n$authStatus" } ?: authStatus
             if (auth != null) entries += SettingsEntry("cancel", "Cancel device login") { execute("Cancelling login…", refresh = false, task = { media.cancelAuthorization() }) { auth = null; back() } }
-            else entries += SettingsEntry("done", "Back to backdrops") { back() }
+            else {
+                if (!media.connected) entries += SettingsEntry("retry", "Try again") { execute("Requesting Trakt code…", refresh = false, task = { media.beginAuthorization() }) { auth = it; authStatus = "Waiting for approval…" } }
+                entries += SettingsEntry("done", "Back to backdrops") { back() }
+            }
         }
         "catalogs" -> {
             title = "Trakt catalogs & lists"
@@ -395,8 +397,9 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         Box(Modifier.fillMaxSize().background(NativeSettingsStyle.scrim)) {
             Box(Modifier.align(Alignment.CenterEnd)) {
                 SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships"),
-                    artworkGrid = page.section == "artwork") {
-                    if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp), style = if (page.section == "auth") NativeSettingsStyle.titleStyle else NativeSettingsStyle.summaryStyle)
+                    artworkGrid = page.section == "artwork",
+                    lead = if (page.section == "auth") { { TraktActivation(auth, authStatus) } } else null) {
+                    if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp), style = NativeSettingsStyle.summaryStyle)
                     if (page.section == "update" && !update?.notes.isNullOrBlank()) ReadableText(update!!.notes, Modifier.padding(top = 10.dp))
                 }
             }
