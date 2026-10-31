@@ -40,7 +40,7 @@ private class CarouselMotion {
     var state by mutableStateOf(WatchNextMotionState.initial(emptyList(), 0))
     val progress = Animatable(1f)
 }
-private val carouselEasing = CubicBezierEasing(.215f, .61f, .355f, 1f)
+internal val carouselEasing = CubicBezierEasing(.215f, .61f, .355f, 1f)
 
 /** A stationary input anchor owns focus while at most three poster layers move around it. */
 @Composable

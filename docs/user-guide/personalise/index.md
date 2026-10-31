@@ -12,7 +12,7 @@ Choose the artwork, colour and detail that make your TV feel like home. The webs
 
 -   **Your colour and cards**
 
-    Choose from fifteen accents, tune card backgrounds and make focus easier to see.
+    Choose from seventeen accents, arrange your app rows, tune card backgrounds and make focus easier to see.
 
     [Adjust appearance](appearance.md)
 
