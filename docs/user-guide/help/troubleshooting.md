@@ -17,7 +17,7 @@ For a card, set its row’s **App order** to **Manual**, then hold Select on the
 
 For a row, open **Applications**, focus the row and press Select briefly. Use **Up/Down** and Select to finish. Right or a long Select edits the row instead.
 
-If changing **Row size** looks the same, the available height may already be limiting all three choices. Row titles, app-name labels and the viewport affect the maximum visible card height.
+If changing **App size** stops making a difference, the row has run out of height. Row titles, app-name labels, Continue Watching and the screen height all limit how tall app cards can get.
 
 ## Continue Watching is missing
 

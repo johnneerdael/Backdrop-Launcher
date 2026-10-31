@@ -14,7 +14,7 @@ If **Continue Watching** is visible, press Up from the first app row. Left/Right
 
 Rows appear on Home when they are enabled, contain at least one app and have a visible member. You can put an app in more than one row. For example, the same music app can appear in both “Daily” and “Music”.
 
-- [Create, sort, resize or hide a row](rows.md).
+- [Create, sort or hide a row](rows.md).
 - [Move a card, hide an app or change its artwork](apps.md).
 - [Show row titles or app names below cards](../personalise/appearance.md#labels-sound-and-focus-feedback).
 

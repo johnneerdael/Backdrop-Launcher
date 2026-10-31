@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity(), UiActions {
     private fun render() {
         val image = backdrop?.image ?: NativeMedia.BUNDLED_BACKDROPS.first()
         val visibleRows = snapshot.rows.filter { !it.hidden }.map { row ->
-            AppRow(row.name, row.apps.filter { !it.hidden }.map { AppTile(it.packageName, it.label, it.artwork ?: "package:${it.packageName}") }, row.id, row.height)
+            AppRow(row.name, row.apps.filter { !it.hidden }.map { AppTile(it.packageName, it.label, it.artwork ?: "package:${it.packageName}") }, row.id)
         }.filter { it.apps.isNotEmpty() }
         val accent = prefs.string("accent_color", "FFFFFF").removePrefix("#").toLongOrNull(16)?.toInt() ?: 0xffffff
         val scene = Scene("Backdrop", image, visibleRows,

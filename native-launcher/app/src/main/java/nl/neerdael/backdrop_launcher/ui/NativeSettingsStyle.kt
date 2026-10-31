@@ -120,6 +120,21 @@ internal fun NativeSettingsControl(checked: Boolean, kind: SettingsControl, enab
     }
 }
 
+/** Painted across the row; Left and Right on the row move it, so it is not a second focus target. */
+@Composable
+internal fun NativeSettingsSlider(fraction: Float, enabled: Boolean, modifier: Modifier = Modifier) {
+    val blue = if (enabled) NativeSettingsStyle.accent else NativeSettingsStyle.disabled
+    Canvas(modifier.fillMaxWidth().height(14.dp)) {
+        val radius = 7.dp.toPx()
+        val y = size.height / 2
+        val end = size.width - radius
+        val thumb = radius + (end - radius) * fraction
+        drawLine(Color.White.copy(alpha = .3f), Offset(radius, y), Offset(end, y), 3.dp.toPx(), StrokeCap.Round)
+        drawLine(blue, Offset(radius, y), Offset(thumb, y), 3.dp.toPx(), StrokeCap.Round)
+        drawCircle(blue, radius, Offset(thumb, y))
+    }
+}
+
 /** Small monochrome preference icons, drawn as vectors rather than cached bitmaps. */
 @Composable
 internal fun NativeSettingsIcon(icon: SettingsIcon) {

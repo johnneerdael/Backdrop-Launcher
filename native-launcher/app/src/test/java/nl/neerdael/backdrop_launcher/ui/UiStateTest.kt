@@ -87,7 +87,7 @@ class UiStateTest {
     @Test fun rowControlsMatchTheEarlierLayoutUntilChanged() {
         val layout = HomeAppearance.read(MemoryPreferences()).rows
         assertEquals(HomeRowLayout(42, 32, 100, 24, 52, 20), layout)
-        assertEquals(110, layout.tileHeight(110))
+        assertEquals(110, layout.tileHeight())
         assertEquals(313.2f, homeRowTop(540f, layout.position, 140, false, false), .01f)
     }
 
@@ -107,11 +107,11 @@ class UiStateTest {
         }
     }
 
-    @Test fun appSizeScalesEachRowWithoutLosingItsOwnSize() {
+    @Test fun appSizeSetsTheHeightOfEveryRow() {
         val layout = HomeRowLayout(42, 32, 150, 24, 52, 20)
-        assertEquals(123, layout.tileHeight(82))
-        assertEquals(210, layout.tileHeight(140))
-        assertEquals(40, layout.copy(size = 50).tileHeight(50))
+        assertEquals(165, layout.tileHeight())
+        assertEquals(55, layout.copy(size = 50).tileHeight())
+        assertEquals(120, layout.tileHeight(120))
     }
 
     @Test fun activeRowStaysOnScreenAtLargeSizes() {
@@ -134,10 +134,10 @@ class UiStateTest {
         val layout = HomeRowLayout(42, 32, 200, 24, 52, 20)
         assertEquals(212, homeTileLimit(540f, WATCH_NEXT_BOTTOM, false, false))
         assertEquals(158, homeTileLimit(540f, WATCH_NEXT_BOTTOM, true, true))
-        val tile = layout.tileHeight(140, homeTileLimit(540f, WATCH_NEXT_BOTTOM, true, true))
+        val tile = layout.tileHeight(homeTileLimit(540f, WATCH_NEXT_BOTTOM, true, true))
         assertEquals(158, tile)
         assertEquals(WATCH_NEXT_BOTTOM, homeRowTop(540f, 42, tile, true, true, WATCH_NEXT_BOTTOM), .01f)
-        assertEquals(280, layout.tileHeight(140, homeTileLimit(540f, 0f, true, true)))
+        assertEquals(220, layout.tileHeight(homeTileLimit(540f, 0f, true, true)))
     }
 
     @Test fun focusedRowHeightStepsStopAtTheLimit() {
@@ -166,12 +166,58 @@ class UiStateTest {
         assertEquals(0f, homeRowAlpha(-3f, .2f), .001f)
     }
 
-    @Test fun rowSizeMovesInFineStepsWithinItsRange() {
-        assertEquals(115, homeRowSize(110, 1))
-        assertEquals(105, homeRowSize(110, -1))
-        assertEquals(50, homeRowSize(52, -1))
-        assertEquals(300, homeRowSize(298, 1))
-        assertEquals(300, homeRowSize(500, -1))
+    @Test fun slidersSpanTheirCurrentLimits() {
+        val control = RowControl.POSITION
+        assertEquals(0f, control.fraction(control.min), .001f)
+        assertEquals(1f, control.fraction(control.max), .001f)
+        assertEquals(.5f, control.fraction(47), .001f)
+        assertEquals(1f, control.fraction(42, top = 42), .001f)
+        assertEquals(0f, control.fraction(30, low = 30), .001f)
+        assertEquals(1f, control.fraction(42, low = 42, top = 42), .001f)
+    }
+
+    @Test fun stepsAndSelectRespectARaisedLowerLimit() {
+        val control = WatchControl.HEIGHT
+        assertEquals(30, control.stepped(30, -1, low = 30))
+        assertEquals(30, control.cycled(50, top = 50, low = 30))
+    }
+
+    @Test fun continueWatchingControlsAreNativeAndStartAtTheEarlierLook() {
+        val prefs = MemoryPreferences()
+        val watch = HomeAppearance.read(prefs).watch
+        assertEquals(WatchLayout(43, 100, 33, 20, 100), watch)
+        assertEquals(307.8f, homeWatchBottom(540f, watch), .01f)
+        for (control in WatchControl.entries) {
+            assertTrue(control.key.startsWith("native."))
+            assertEquals(0, (control.default - control.min) % control.step)
+            prefs.putInt(control.key, control.max + 1000)
+            assertEquals(control.max, control.read(prefs))
+        }
+    }
+
+    @Test fun cardSizeKeepsTheBottomEdgeSoTheGapToTheRowHolds() {
+        val watch = WatchLayout(30, 100, 33, 20, 100)
+        assertEquals(homeWatchBottom(540f, watch), homeWatchBottom(540f, watch.copy(size = 50)), .01f)
+        assertEquals(110f, watch.copy(size = 50).cardHeight, .01f)
+        assertEquals(150f, watch.copy(size = 50).cardWidth, .01f)
+    }
+
+    @Test fun continueWatchingNeverLeavesTheTopOfTheScreen() {
+        val watch = WatchLayout(85, 150, 33, 20, 100)
+        assertEquals(338f, homeWatchBottom(540f, watch), .01f)
+    }
+
+    @Test fun continueWatchingStopsAboveTheAppRowAndBelowTheTopOfTheScreen() {
+        val limits = homeWatchLimits(540f, WatchLayout(43, 100, 33, 20, 100), 432f)
+        assertEquals(20, limits.minHeight)
+        assertEquals(57, limits.maxHeight)
+        assertEquals(135, limits.maxSize)
+    }
+
+    @Test fun continueWatchingLimitsNeverCrossAtExtremes() {
+        val limits = homeWatchLimits(540f, WatchLayout(85, 150, 33, 20, 100), 30f)
+        assertTrue(limits.minHeight <= limits.maxHeight)
+        assertEquals(WatchControl.SIZE.min, homeWatchLimits(100f, WatchLayout(14, 100, 33, 20, 100), 90f).maxSize)
     }
 
     @Test fun smallSizeStepsReuseTheDecodedArtwork() {

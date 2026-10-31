@@ -101,7 +101,7 @@ class AppMenuRemoteTest {
             val selection = remember { HomeSelection() }
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
             val scene = Scene("Test", media.restoredBackdrop().image,
-                listOf(AppRow(row.name, row.apps.map { AppTile(it.packageName, it.label, it.artwork) }, row.id, row.height)),
+                listOf(AppRow(row.name, row.apps.map { AppTile(it.packageName, it.label, it.artwork) }, row.id)),
                 if (withWatchNext) listOf(ResumeItem("Episode fixture", "Resume fixture", "appicons/settings.png", 35,
                     "intent://fixture#Intent;scheme=test;package=test.player;end", "test.player", 17)) else emptyList(),
                 hero, true, -1, .1f, false, false)

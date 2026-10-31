@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
@@ -46,7 +47,7 @@ internal val carouselEasing = CubicBezierEasing(.215f, .61f, .355f, 1f)
 @Composable
 internal fun WatchNextCarousel(items: List<ResumeItem>, selectedIndex: Int, artwork: ComposeArtwork,
     active: Boolean, motionActive: Boolean, revision: Int, focus: FocusRequester,
-    accent: Color, showBorder: Boolean, borderWidth: Float, label: String,
+    accent: Color, showBorder: Boolean, borderWidth: Float, label: String, layout: WatchLayout,
     onFocus: (Boolean) -> Unit, onStep: (Int) -> Unit, onPlay: (ResumeItem) -> Unit,
     onUp: () -> Unit, onDown: () -> Unit, modifier: Modifier = Modifier) {
     if (items.isEmpty()) return
@@ -95,17 +96,18 @@ internal fun WatchNextCarousel(items: List<ResumeItem>, selectedIndex: Int, artw
     }
 
     val activeIndex = current.activeIndex.coerceIn(items.indices)
-    Box(modifier.fillMaxWidth().height(WATCH_CARD_HEIGHT.dp).clipToBounds()) {
+    Box(modifier.fillMaxWidth().height(layout.cardHeight.dp).clipToBounds()) {
         val residents = current.residentIndices()
         for (slot in residents.indices) {
             val index = residents[slot]
             val item = items[index]
             key(ids[index]) {
                 val pose = remember { WatchNextPose() }
-                Column(Modifier.size(WATCH_CARD_WIDTH.dp, WATCH_CARD_HEIGHT.dp)
+                // Measured at full size whatever the box allows; the layer scales it to fit.
+                Column(Modifier.wrapContentHeight(Alignment.Top, unbounded = true).size(WATCH_CARD_WIDTH.dp, WATCH_CARD_HEIGHT.dp)
                     .graphicsLayer {
                         // Only Draw observes progress: no per-frame composition or poster remeasure.
-                        current.writePose(index, motion.progress.value, viewportWidth, pose)
+                        current.writePose(index, motion.progress.value, viewportWidth, layout, pose)
                         translationX = pose.x.dp.toPx(); translationY = pose.y.dp.toPx()
                         transformOrigin = TransformOrigin(0f, 0f)
                         scaleX = pose.scale; scaleY = pose.scale; alpha = pose.alpha
@@ -135,7 +137,7 @@ internal fun WatchNextCarousel(items: List<ResumeItem>, selectedIndex: Int, artw
             }
         }
         // One focus target, independent of cards entering/leaving the viewport.
-        Box(Modifier.offset(x = 32.dp).size(WATCH_CARD_WIDTH.dp, WATCH_CARD_HEIGHT.dp)
+        Box(Modifier.offset(x = 32.dp).size(layout.cardWidth.dp, layout.cardHeight.dp)
             .focusRequester(focus).onFocusChanged { focused = it.isFocused; onFocus(it.isFocused) }
             .onPreviewKeyEvent {
                 if (it.type != KeyEventType.KeyDown) false else when (it.key) {

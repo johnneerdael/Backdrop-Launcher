@@ -53,7 +53,7 @@ internal data class SettingsEntry(
     val checked: Boolean? = null, val enabled: Boolean = true, val artwork: String? = null,
     val localize: Boolean = true,
     val control: SettingsControl = SettingsControl.CHECKBOX, val icon: SettingsIcon? = null, val section: Boolean = false,
-    val onHold: (() -> Unit)? = null, val onKey: ((KeyEvent) -> Boolean)? = null,
+    val onHold: (() -> Unit)? = null, val onKey: ((KeyEvent) -> Boolean)? = null, val slider: Float? = null,
     val onClick: () -> Unit,
 )
 
@@ -118,32 +118,36 @@ internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
                                 busy != null || entry.onKey?.invoke(it) == true
                             }.semantics(mergeDescendants = true) {
                                 contentDescription = listOf(entry.title, entry.value, entry.subtitle).filter { it.isNotBlank() }.joinToString(", ")
+                                entry.slider?.let { progressBarRangeInfo = ProgressBarRangeInfo(it, 0f..1f) }
                                 entry.checked?.let { checked ->
                                     role = when (entry.control) { SettingsControl.SWITCH -> Role.Switch; SettingsControl.RADIO -> Role.RadioButton; else -> Role.Checkbox }
                                     if (entry.control == SettingsControl.RADIO) selected = checked
                                     else toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
                                 }
                             }) {
-                            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 24.dp, end = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-                                if (entry.icon != null) { NativeSettingsIcon(entry.icon); Spacer(Modifier.width(16.dp)) }
-                                else if (entry.checked != null && entry.control != SettingsControl.SWITCH && entry.artwork == null) {
-                                    NativeSettingsControl(entry.checked, entry.control, entry.enabled); Spacer(Modifier.width(16.dp))
-                                } else if (entry.artwork != null) {
-                                    Artwork(entry.artwork, artwork, active, revision, Modifier.size(40.dp, 24.dp), ContentScale.Fit, viewport = viewport)
-                                    Spacer(Modifier.width(16.dp))
-                                }
-                                Column(Modifier.weight(1f).padding(top = 14.dp, bottom = 13.dp)) {
-                                    Text(if (entry.localize) labels[entry.title] ?: entry.title else entry.title,
-                                        style = NativeSettingsStyle.primaryStyle.copy(color = color))
-                                    if (entry.subtitle.isNotBlank()) {
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(entry.subtitle, style = NativeSettingsStyle.summaryStyle.copy(color = if (entry.enabled) NativeSettingsStyle.secondary else NativeSettingsStyle.disabled),
-                                            maxLines = 4, overflow = TextOverflow.Ellipsis)
+                            Column {
+                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 24.dp, end = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (entry.icon != null) { NativeSettingsIcon(entry.icon); Spacer(Modifier.width(16.dp)) }
+                                    else if (entry.checked != null && entry.control != SettingsControl.SWITCH && entry.artwork == null) {
+                                        NativeSettingsControl(entry.checked, entry.control, entry.enabled); Spacer(Modifier.width(16.dp))
+                                    } else if (entry.artwork != null) {
+                                        Artwork(entry.artwork, artwork, active, revision, Modifier.size(40.dp, 24.dp), ContentScale.Fit, viewport = viewport)
+                                        Spacer(Modifier.width(16.dp))
                                     }
+                                    Column(Modifier.weight(1f).padding(top = 14.dp, bottom = if (entry.slider != null) 6.dp else 13.dp)) {
+                                        Text(if (entry.localize) labels[entry.title] ?: entry.title else entry.title,
+                                            style = NativeSettingsStyle.primaryStyle.copy(color = color))
+                                        if (entry.subtitle.isNotBlank()) {
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(entry.subtitle, style = NativeSettingsStyle.summaryStyle.copy(color = if (entry.enabled) NativeSettingsStyle.secondary else NativeSettingsStyle.disabled),
+                                                maxLines = 4, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                    if (entry.checked != null && (entry.control == SettingsControl.SWITCH || entry.artwork != null)) {
+                                        Spacer(Modifier.width(16.dp)); NativeSettingsControl(entry.checked, entry.control, entry.enabled)
+                                    } else if (entry.value.isNotBlank()) Text(entry.value, Modifier.padding(start = 16.dp).widthIn(max = 112.dp), style = NativeSettingsStyle.primaryStyle.copy(color = color), maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
-                                if (entry.checked != null && (entry.control == SettingsControl.SWITCH || entry.artwork != null)) {
-                                    Spacer(Modifier.width(16.dp)); NativeSettingsControl(entry.checked, entry.control, entry.enabled)
-                                } else if (entry.value.isNotBlank()) Text(entry.value, Modifier.padding(start = 16.dp).widthIn(max = 112.dp), style = NativeSettingsStyle.primaryStyle.copy(color = color), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                entry.slider?.let { NativeSettingsSlider(it, entry.enabled, Modifier.padding(start = 24.dp, end = 56.dp, bottom = 12.dp)) }
                             }
                         }
                     }

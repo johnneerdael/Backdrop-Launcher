@@ -28,9 +28,9 @@ The current picker offers the artwork bundled in your build. It does not browse 
 
 No. Choose your accent under **Settings → Interface → Accent Color**. Your saved preference is independent of the guide’s dark/light theme and brand palette.
 
-## Why are row size choices sometimes visually identical?
+## Why does App size stop changing the cards?
 
-They set a requested maximum card height. The available viewport, row titles and app-name labels can limit the final height below that maximum. Smaller or larger numbers do not guarantee a visible difference in every layout.
+The cards have reached the height available to them. Continue Watching, row titles, app-name labels and the screen height can all limit them, so a larger number does not always make a visible difference.
 
 ## What is the difference between Show clock and Show screensaver?
 

@@ -5,15 +5,33 @@ import org.junit.Test
 
 class WatchNextMotionTest {
     private val keys = listOf("a", "b", "c", "d")
-    private fun pose(state: WatchNextMotionState, index: Int, fraction: Float) = WatchNextPose().also {
-        state.writePose(index, fraction, 960f, it)
+    private val layout = WatchLayout(43, 100, 33, 20, 100)
+    private fun pose(state: WatchNextMotionState, index: Int, fraction: Float, watch: WatchLayout = layout) = WatchNextPose().also {
+        state.writePose(index, fraction, 960f, watch, it)
     }
     @Test fun settledPreviewIsOneThirdSizeAtTwentyPercentOpacity() {
         val state = WatchNextMotionState.initial(keys, 0)
         val active = pose(state, 0, 1f); val next = pose(state, 1, 1f)
         assertEquals(32f, active.x, .001f); assertEquals(1f, active.scale, .001f)
-        assertEquals(432f, next.x, .001f); assertEquals(1f / 3, next.scale, .001f)
+        assertEquals(432f, next.x, .001f); assertEquals(.33f, next.scale, .001f)
         assertEquals(.2f, next.alpha, .001f)
+    }
+    @Test fun controlsSizeSpaceAndFadeBothCards() {
+        val watch = WatchLayout(30, 50, 60, 70, 40)
+        val state = WatchNextMotionState.initial(keys, 0)
+        val active = pose(state, 0, 1f, watch); val next = pose(state, 1, 1f, watch)
+        assertEquals(.5f, active.scale, .001f); assertEquals(1f, active.alpha, .001f)
+        assertEquals(32f + 150f + 40f, next.x, .001f)
+        assertEquals(.3f, next.scale, .001f); assertEquals(.7f, next.alpha, .001f)
+        assertEquals(110f * .4f, next.y, .001f)
+    }
+    @Test fun aResizedCardStillGrowsToTheFirstSlotAndFullyLeaves() {
+        val watch = WatchLayout(30, 150, 60, 70, 40)
+        val state = WatchNextMotionState.initial(keys, 0).request(1).begin()
+        val incoming = pose(state, 1, 1f, watch)
+        assertEquals(1.5f, incoming.scale, .001f); assertEquals(0f, incoming.y, .001f); assertEquals(1f, incoming.alpha, .001f)
+        val outgoing = pose(state, 0, 1f, watch)
+        assertTrue(outgoing.x + WATCH_CARD_WIDTH * outgoing.scale <= 0)
     }
     @Test fun outgoingRightCardKeepsFullSizeAndOpacityUntilOffscreen() {
         val state = WatchNextMotionState.initial(keys, 0).request(1).begin()
@@ -41,7 +59,7 @@ class WatchNextMotionTest {
             val previous = pose(state, 0, t)
             assertEquals(1f, previous.scale, .001f)
             val outgoing = pose(state, 1, t)
-            assertTrue(outgoing.scale == 1f || kotlin.math.abs(outgoing.scale - 1f / 3) < .001f)
+            assertTrue(outgoing.scale == 1f || kotlin.math.abs(outgoing.scale - .33f) < .001f)
         }
         assertEquals(.2f, pose(state, 1, 1f).alpha, .001f)
     }

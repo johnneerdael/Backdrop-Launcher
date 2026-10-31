@@ -34,6 +34,8 @@ The progress strip reflects data supplied by the provider. A provider may open a
 | **Maximum programs** | Choose **Unlimited**, **5**, **10**, **15**, **20**, **25**, **30** or **50**. Unlimited adds no lower user limit; the provider feed is still capped at 50 items. |
 | **Refresh content** | Reload the feed and retry artwork. A completion message confirms the refresh, without promising new programmes. |
 
+To change the height, card sizes, second card opacity or spacing, see [Arrange Continue Watching](../personalise/appearance.md#arrange-continue-watching).
+
 Turn **Show Watch Next Section** off to hide the area. Its content is not polled or its posters loaded while disabled.
 
 ## Include only the apps you want
