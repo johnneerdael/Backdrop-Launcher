@@ -54,6 +54,9 @@ internal data class HomeRowLayout(val position: Int, val start: Int, val size: I
 /** Continue Watching's lowest edge in either layout; app rows never rise past it. */
 internal const val WATCH_NEXT_BOTTOM = 90f + WATCH_CARD_HEIGHT
 
+/** Row size's fine step; presets stay on Select, and a size outside this range only moves back into it. */
+internal fun homeRowSize(height: Int, direction: Int) = (height + direction * 5).coerceIn(50, 300)
+
 // Space LazyRow keeps around tiles so the focus scale is not clipped.
 private const val ROW_INSET_TOP = 10f
 private const val ROW_INSET_BOTTOM = 8f

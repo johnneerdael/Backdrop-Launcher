@@ -166,6 +166,14 @@ class UiStateTest {
         assertEquals(0f, homeRowAlpha(-3f, .2f), .001f)
     }
 
+    @Test fun rowSizeMovesInFineStepsWithinItsRange() {
+        assertEquals(115, homeRowSize(110, 1))
+        assertEquals(105, homeRowSize(110, -1))
+        assertEquals(50, homeRowSize(52, -1))
+        assertEquals(300, homeRowSize(298, 1))
+        assertEquals(300, homeRowSize(500, -1))
+    }
+
     @Test fun smallSizeStepsReuseTheDecodedArtwork() {
         assertEquals(120, homeDecodeHeight(110))
         assertEquals(120, homeDecodeHeight(120))

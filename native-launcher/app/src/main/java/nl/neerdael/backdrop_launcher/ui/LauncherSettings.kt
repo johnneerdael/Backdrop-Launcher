@@ -210,8 +210,11 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
                 entries += choice("sort", "App order", listOf("Manual", "Alphabetical", "Last used").getOrElse(row.sort) { "Manual" }) {
                     mutate { actions.library.updateRow(row.id, row.hidden, (row.sort + 1) % 3, row.height) }
                 }
-                entries += choice("size", "Row size", row.height.toString()) {
-                    val sizes = listOf(82, 110, 140); val next = sizes[(sizes.indexOf(row.height) + 1) % sizes.size]
+                entries += SettingsEntry("size", "Row size", subtitle = "Left/Right for fine steps · Select for 82, 110 or 140", value = row.height.toString(), onKey = { event ->
+                    if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
+                    else { mutate { actions.library.updateRow(row.id, row.hidden, row.sort, homeRowSize(row.height, if (event.key == Key.DirectionRight) 1 else -1)) }; true }
+                }) {
+                    val sizes = listOf(82, 110, 140); val next = sizes.firstOrNull { it > row.height } ?: sizes.first()
                     mutate { actions.library.updateRow(row.id, row.hidden, row.sort, next) }
                 }
                 entries += SettingsEntry("visible", "Show on home screen", checked = !row.hidden, control = SettingsControl.SWITCH) { mutate { actions.library.updateRow(row.id, !row.hidden, row.sort, row.height) } }
