@@ -88,6 +88,7 @@ dependencies {
     implementation 'androidx.compose.runtime:runtime:1.11.4'
     implementation 'androidx.tv:tv-material:1.1.0'
     implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'com.google.zxing:core:3.5.4'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
     testImplementation 'org.robolectric:robolectric:4.16'

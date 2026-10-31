@@ -43,7 +43,11 @@ interface LibraryAccess {
 }
 
 data class DeviceAuthorization(val deviceCode: String, val userCode: String, val verificationUrl: String,
-    val expiresAtMillis: Long, var intervalSeconds: Int)
+    val expiresAtMillis: Long, var intervalSeconds: Int) {
+    /** Unlike verificationUrl, this keeps the code through Trakt sign-in so it need not be typed. */
+    val activationUrl: String get() =
+        "https://auth.trakt.tv/activate/${java.net.URLEncoder.encode(userCode, "UTF-8").replace("+", "%20")}"
+}
 enum class AuthorizationResult { PENDING, APPROVED, SLOW_DOWN, DENIED, EXPIRED, INVALID, ALREADY_USED, CANCELLED }
 data class CatalogOption(val key: String, val title: String, val itemCount: Int = 0)
 data class Backdrop(val image: String, val title: String? = null)

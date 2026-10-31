@@ -73,7 +73,7 @@ internal fun UiButton(onClick: () -> Unit, modifier: Modifier = Modifier, enable
 internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
                            artwork: ComposeArtwork, active: Boolean, revision: Int,
                            busy: String?, error: String?, translateTitle: Boolean = true, artworkGrid: Boolean = false,
-                           footer: @Composable () -> Unit = {}) {
+                           lead: (@Composable () -> Unit)? = null, footer: @Composable () -> Unit = {}) {
     val labels = LocalUiLanguage.current
     val first = remember { FocusRequester() }
     val firstId = entries.firstOrNull { !it.section && it.enabled }?.id
@@ -104,6 +104,7 @@ internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
                         if (entry.id == firstId) Modifier.focusRequester(first) else Modifier)
                 }
             } else LazyColumn(state = list, modifier = Modifier.weight(1f).layoutBounds(viewport), contentPadding = PaddingValues(bottom = 34.dp)) {
+                lead?.let { item(key = "lead", contentType = "lead") { it() } }
                 itemsIndexed(entries, key = { _, entry -> entry.id }, contentType = { _, entry -> if (entry.section) "section" else "setting" }) { _, entry ->
                     if (entry.section) {
                         Box(Modifier.fillMaxWidth().height(38.dp).padding(start = 24.dp, end = 56.dp), contentAlignment = Alignment.CenterStart) {

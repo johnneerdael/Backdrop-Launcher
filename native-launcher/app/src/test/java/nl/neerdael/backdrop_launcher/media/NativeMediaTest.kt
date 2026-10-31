@@ -80,6 +80,11 @@ class NativeMediaTest {
         } finally { release.countDown(); executor.shutdownNow() }
     }
 
+    @Test fun activationUrlCarriesTheCodeThroughTraktSignIn() {
+        val client = client(MediaPrefs(), MediaTransport { deviceResponse() })
+        assertEquals("https://auth.trakt.tv/activate/ABCD", client.begin().activationUrl)
+    }
+
     @Test fun rejectsUntrustedVerificationUrl() {
         val client = client(MediaPrefs(), MediaTransport { response(200, """{"device_code":"d","user_code":"u","verification_url":"https://trakt.tv.evil.example/activate","expires_in":100,"interval":5}""") })
         assertThrows(IllegalArgumentException::class.java) { client.begin() }
