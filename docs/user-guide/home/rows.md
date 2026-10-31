@@ -12,7 +12,7 @@ Rows let you group apps around the way you use your TV. Open **Settings → Appl
 4. In the row editor, scroll to **TV apps** and **Android apps**. Check the apps you want to include.
 5. Press Back to return to the row manager, then Back again to Home.
 
-A new row starts with **Manual** app order, a row size of **110** and **Show on home screen** enabled. An empty row stays in Applications until you add an app. An app can be checked in several rows.
+A new row starts with **Manual** app order and **Show on home screen** enabled. An empty row stays in Applications until you add an app. An app can be checked in several rows.
 
 ![Row editor showing the row name, app order, row size and visibility controls](../assets/screenshots/row-editor.webp){ width="1280" height="720" loading="lazy" }
 
@@ -22,7 +22,7 @@ Focus the row in **Applications**, then press **Select** briefly. Use **Up/Down*
 
 To edit instead of move, press **Right** on the row or **hold Select** for about half a second.
 
-## Rename, sort and resize
+## Rename and sort
 
 Open the row editor with Right or hold Select.
 
@@ -30,8 +30,9 @@ Open the row editor with Right or hold Select.
 | --- | --- |
 | **Row name** | Select, edit the text, then Save. Cancel leaves the name unchanged. |
 | **App order** | Select to cycle **Manual → Alphabetical → Last used**. Alphabetical sorts names; Last used puts the most recently launched app first. |
-| **Row size** | Use **Left/Right** to change it in **5** steps, from **50** to **300**, or Select to jump to **82**, **110** or **140**. **App size** in [App row layout](../personalise/appearance.md#arrange-your-app-rows) scales this size for every row. |
 | **Show on home screen** | Turn off to hide the whole row while keeping its apps and saved order. |
+
+Every row uses the same card size. Change it with **App size** in [App row layout](../personalise/appearance.md#arrange-your-app-rows).
 
 To position individual cards by hand, choose **Manual**, return to Home and use [Reorder](apps.md#move-an-app-within-a-row).
 

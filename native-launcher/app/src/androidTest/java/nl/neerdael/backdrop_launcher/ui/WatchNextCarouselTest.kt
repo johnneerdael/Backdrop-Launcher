@@ -39,7 +39,7 @@ class WatchNextCarouselTest {
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
             MaterialTheme {
                 Box(Modifier.fillMaxSize().background(Color.Black)) {
-                    WatchNextCarousel(items, selected, artwork, true, running, 0, focus, Color.White, true, 1.5f, "Continue Watching",
+                    WatchNextCarousel(items, selected, artwork, true, running, 0, focus, Color.White, true, 1.5f, "Continue Watching", WatchLayout(43, 100, 33, 20, 100),
                         {}, { selected = it; selectedSteps.add(it) }, { played.add(it.id) }, {}, {})
                 }
             }
@@ -64,7 +64,7 @@ class WatchNextCarouselTest {
         assertTrue("Incoming card must move left", during.left < before.left - 10)
         compose.mainClock.advanceTimeBy(400)
         val after = card(2).fetchSemanticsNode().boundsInRoot
-        assertEquals(before.width * 3, after.width, 2f)
+        assertEquals(before.width / .33f, after.width, 2f)
         assertTrue(after.left < during.left)
         card(1).assertDoesNotExist()
         assertEquals(1, selected)

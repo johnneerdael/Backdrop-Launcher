@@ -20,7 +20,6 @@ In the row editor:
 | --- | --- |
 | **Row name** | Rename, Save or Cancel. |
 | **App order** | **Manual**, **Alphabetical**, **Last used**. New row: Manual. |
-| **Row size** | **82**, **110**, **140**. New row: 110. Actual card height is constrained by the layout. |
 | **Show on home screen** | Show/hide the row. New row: on. Empty rows stay absent from Home. |
 | **Delete row** | Delete immediately, without confirmation. Apps stay installed. |
 | **TV apps / Android apps** | Check membership in this row. |
@@ -78,18 +77,32 @@ Selecting the network indicator opens Android’s network settings. See [Status 
 
 ## Interface → App row layout
 
-Use **Left/Right** on a control. Home updates behind the panel as you go.
+Each control is a slider. Use **Left/Right** on it, and Home updates behind the panel as you go.
 
 | Control | Range | Default |
 | --- | --- | --- |
 | **Focused row height** | **14–80%** of the screen, measured up from the bottom, in 2% steps. Stops just below Continue Watching while it is showing. | 42% |
 | **Row position** | **0–320 dp** from the left edge, in 8 dp steps | 32 dp |
-| **App size** | **50–200%** of each row's size, in 5% steps | 100% |
+| **App size** | **50–200%**, in 5% steps, for every row | 100% |
 | **Space between apps** | **0–96 dp**, in 4 dp steps | 24 dp |
 | **Space between rows** | **8–160 dp**, in 4 dp steps | 52 dp |
 | **Row below opacity** | **0–100%**, in 5% steps | 20% |
 
 **Reset app row layout** restores these defaults. See [Colours, cards and labels](../personalise/appearance.md#arrange-your-app-rows).
+
+## Interface → Continue Watching layout
+
+Each control is a slider, as on the App row layout page. Big picture mode keeps its own layout.
+
+| Control | Range | Default |
+| --- | --- | --- |
+| **Height** | **14–85%** of the screen, measured up from the bottom to the bottom of the cards, in 1% steps. Stops just above the app row and before the top of the screen. | 43% |
+| **Card size** | **40–150%**, in 5% steps. Stops before the top of the screen. | 100% |
+| **Second card size** | **18–99%** of the selected card, in 3% steps | 33% |
+| **Second card opacity** | **0–100%**, in 5% steps | 20% |
+| **Space between cards** | **0–240 dp**, in 4 dp steps | 100 dp |
+
+**Reset Continue Watching layout** restores these defaults. See [Arrange Continue Watching](../personalise/appearance.md#arrange-continue-watching).
 
 ## Interface → Miscellaneous
 

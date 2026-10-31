@@ -12,7 +12,7 @@ Choose **Add to row**, then select the destination. The list includes rows that 
 
 ## Move an app within a row
 
-1. Make sure the row’s **App order** is **Manual** in [the row editor](rows.md#rename-sort-and-resize).
+1. Make sure the row’s **App order** is **Manual** in [the row editor](rows.md#rename-and-sort).
 2. On Home, hold Select on the app and choose **Reorder**.
 3. Use **Left/Right** to move the card.
 4. Press **Select** or **Back** to finish and save.

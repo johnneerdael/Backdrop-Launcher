@@ -26,13 +26,13 @@ Select **Focus border thickness** to choose **Subtle (1.0 dp)**, **Default (1.5 
 
 ## Arrange your app rows
 
-Open **Settings → Interface → App row layout**. Focus a control and use **Left/Right** to change it, or hold the button to keep going. Home stays undimmed behind the panel, so you can watch each change.
+Open **Settings → Interface → App row layout**. Each control is a slider: focus it and use **Left/Right** to move it, or hold the button to keep going. Home stays undimmed behind the panel, so you can watch each change.
 
 | Control | What changes |
 | --- | --- |
 | **Focused row height** | How far up the screen the active row sits. Every row stops on this line. While Continue Watching is showing, the highest setting is just below it. |
 | **Row position** | How far from the left edge the row starts. |
-| **App size** | The size of all app cards. It scales the **Row size** chosen for each row, so a smaller row stays smaller. |
+| **App size** | The size of the app cards in every row. |
 | **Space between apps** | The gap between cards in a row. |
 | **Space between rows** | The distance from one row of cards to the next. |
 | **Row below opacity** | How visible the rows under the active row are. At 0% they are hidden until you move down. |
@@ -40,6 +40,24 @@ Open **Settings → Interface → App row layout**. Focus a control and use **Le
 A very large **App size** can push the row higher than the height you chose, so that it stays on screen. While Continue Watching is showing, rows stay below it and app cards stop growing once they fill the space that is left.
 
 Select **Reset app row layout** to return to the defaults.
+
+## Arrange Continue Watching
+
+Open **Settings → Interface → Continue Watching layout**. It works the same way as the app row sliders, with Home visible behind the panel.
+
+| Control | What changes |
+| --- | --- |
+| **Height** | How far up the screen the cards end. It uses the same scale as **Focused row height**, and it stops just above your app row. |
+| **Card size** | The size of the selected card. The bottom edge stays where it is, so a smaller card keeps its distance from the app row. |
+| **Second card size** | The size of the next card, compared with the selected card. |
+| **Second card opacity** | How visible the next card is. |
+| **Space between cards** | The distance between the two cards. |
+
+Because **Height** and **Focused row height** stop at each other, lower your app row first, then bring Continue Watching down to meet it. **Height** and **Card size** also stop before the cards reach the top of the screen.
+
+These controls apply to the compact layout. **Big picture mode** keeps its own layout.
+
+Select **Reset Continue Watching layout** to return to the defaults.
 
 ## Labels, sound and focus feedback
 

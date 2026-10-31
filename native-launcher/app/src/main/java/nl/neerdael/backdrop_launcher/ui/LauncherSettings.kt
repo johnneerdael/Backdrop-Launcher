@@ -34,7 +34,7 @@ internal data class SettingsRoute(val section: String, val rowId: Long? = null, 
 internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, prefs: PreferenceAccess,
     media: MediaAccess, updates: UpdateAccess, actions: UiActions, artwork: ComposeArtwork,
     active: Boolean, artworkRevision: Int, close: () -> Unit, reorder: (Long, String) -> Unit,
-    maxRowPosition: Int = RowControl.POSITION.max) {
+    maxRowPosition: Int = RowControl.POSITION.max, watchLimits: WatchLimits = WatchLimits()) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     @Suppress("DEPRECATION")
@@ -95,12 +95,22 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     }
     fun change(task: () -> Unit) = execute("Saving…", task = task)
     // Held Left/Right saves in order without the busy state, which would swallow the next repeat.
-    fun adjust(control: RowControl, value: Int) {
+    fun adjust(control: LayoutControl, value: Int) {
         scope.launch(Dispatchers.Main.immediate) {
             try { withContext(rowLayoutWrites) { prefs.putInt(control.key, value) }; version++ }
             catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
             catch (failure: Exception) { error = failure.message ?: "Unable to complete this action. Try again." }
         }
+    }
+    fun slider(control: LayoutControl, top: Int = control.max, low: Int = control.min, topNote: String = "", lowNote: String = ""): SettingsEntry {
+        fun current() = control.read(prefs).coerceIn(low, top)
+        val value = current()
+        return SettingsEntry(control.key, control.title, value = "$value${control.unit}", slider = control.fraction(value, top, low),
+            subtitle = if (value >= top && top < control.max && topNote.isNotBlank()) topNote
+                else if (value <= low && low > control.min && lowNote.isNotBlank()) lowNote else control.subtitle, onKey = { event ->
+            if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
+            else { adjust(control, control.stepped(current(), if (event.key == Key.DirectionRight) 1 else -1, top, low)); true }
+        }) { adjust(control, control.cycled(current(), top, low)) }
     }
     fun mutate(task: () -> Unit) = execute("Saving applications…", reload = true, task = task)
     fun toggle(key: String, title: String, default: Boolean = false, enabled: Boolean = true): SettingsEntry =
@@ -184,7 +194,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "interface" -> {
             title = "Interface"
-            for ((id, label) in listOf("watch" to "Continue Watching", "backdrops" to "Backdrops", "status" to "Status bar", "accent" to "Accent color", "appearance" to "Appearance", "rowlayout" to "App row layout", "misc" to "Miscellaneous"))
+            for ((id, label) in listOf("watch" to "Continue Watching", "backdrops" to "Backdrops", "status" to "Status bar", "accent" to "Accent color", "appearance" to "Appearance", "rowlayout" to "App row layout", "watchlayout" to "Continue Watching layout", "misc" to "Miscellaneous"))
                 entries += SettingsEntry(id, label) { go(id) }
         }
         "rows" -> {
@@ -209,13 +219,6 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
                 entries += choice("rename", "Row name", row.name) { prompt = TextPrompt("Row name", row.name) { name -> mutate { actions.library.renameRow(row.id, name) } } }
                 entries += choice("sort", "App order", listOf("Manual", "Alphabetical", "Last used").getOrElse(row.sort) { "Manual" }) {
                     mutate { actions.library.updateRow(row.id, row.hidden, (row.sort + 1) % 3, row.height) }
-                }
-                entries += SettingsEntry("size", "Row size", subtitle = "Left/Right for fine steps · Select for 82, 110 or 140", value = row.height.toString(), onKey = { event ->
-                    if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
-                    else { mutate { actions.library.updateRow(row.id, row.hidden, row.sort, homeRowSize(row.height, if (event.key == Key.DirectionRight) 1 else -1)) }; true }
-                }) {
-                    val sizes = listOf(82, 110, 140); val next = sizes.firstOrNull { it > row.height } ?: sizes.first()
-                    mutate { actions.library.updateRow(row.id, row.hidden, row.sort, next) }
                 }
                 entries += SettingsEntry("visible", "Show on home screen", checked = !row.hidden, control = SettingsControl.SWITCH) { mutate { actions.library.updateRow(row.id, !row.hidden, row.sort, row.height) } }
                 entries += SettingsEntry("up", "Move row up") { mutate { actions.library.moveRow(row.id, -1) } }
@@ -276,15 +279,20 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             title = "App row layout"
             note = "Left and Right change the selected setting. Home updates as you go."
             RowControl.entries.forEach { control ->
-                val top = if (control == RowControl.POSITION) maxRowPosition else control.max
-                fun current() = control.read(prefs).coerceAtMost(top)
-                entries += SettingsEntry(control.key, control.title, value = "${current()}${control.unit}",
-                    subtitle = if (top < control.max) "Stops just below Continue Watching" else control.subtitle, onKey = { event ->
-                    if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
-                    else { adjust(control, control.stepped(current(), if (event.key == Key.DirectionRight) 1 else -1, top)); true }
-                }) { adjust(control, control.cycled(current(), top)) }
+                entries += if (control === RowControl.POSITION) slider(control, top = maxRowPosition, topNote = "Stops just below Continue Watching") else slider(control)
             }
             entries += SettingsEntry("reset", "Reset app row layout") { change { RowControl.entries.forEach { prefs.remove(it.key) } } }
+        }
+        "watchlayout" -> {
+            title = "Continue Watching layout"
+            note = "Left and Right change the selected setting. Home updates as you go. Big picture mode keeps its own layout."
+            // A saved value outside today's limits stays reachable instead of jumping on open.
+            val height = WatchControl.HEIGHT.read(prefs)
+            entries += slider(WatchControl.HEIGHT, top = maxOf(watchLimits.maxHeight, height), low = minOf(watchLimits.minHeight, height),
+                topNote = "Stops at the top of the screen", lowNote = "Stops just above the app row")
+            entries += slider(WatchControl.SIZE, top = maxOf(watchLimits.maxSize, WatchControl.SIZE.read(prefs)), topNote = "Stops at the top of the screen")
+            listOf(WatchControl.NEXT_SIZE, WatchControl.NEXT_OPACITY, WatchControl.GAP).forEach { entries += slider(it) }
+            entries += SettingsEntry("reset", "Reset Continue Watching layout") { change { WatchControl.entries.forEach { prefs.remove(it.key) } } }
         }
         "border" -> {
             title = "Focus border thickness"
@@ -421,8 +429,8 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         // Paint one measured scrim; the platform Dialog must not apply another dim layer.
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
         SideEffect { window?.setDimAmount(0f) }
-        // App row layout previews on Home, so that page leaves it undimmed.
-        Box(Modifier.fillMaxSize().background(if (page.section == "rowlayout") Color.Transparent else NativeSettingsStyle.scrim)) {
+        // The layout pages preview on Home, so they leave it undimmed.
+        Box(Modifier.fillMaxSize().background(if (page.section in setOf("rowlayout", "watchlayout")) Color.Transparent else NativeSettingsStyle.scrim)) {
             Box(Modifier.align(Alignment.CenterEnd)) {
                 SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships"),
                     artworkGrid = page.section == "artwork",

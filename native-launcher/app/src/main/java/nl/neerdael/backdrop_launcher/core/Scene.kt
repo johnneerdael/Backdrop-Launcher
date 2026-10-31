@@ -6,7 +6,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 data class AppTile(val packageName: String, val label: String, val artwork: String?)
-data class AppRow(val name: String, val apps: List<AppTile>, val id: Long = 0, val height: Int = 110)
+data class AppRow(val name: String, val apps: List<AppTile>, val id: Long = 0)
 data class AppFocus(val row: Int, val tile: Int, val packageName: String)
 data class ResumeItem(
     val title: String, val description: String, val image: String?, val progress: Int,

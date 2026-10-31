@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
@@ -31,7 +32,7 @@ import kotlin.math.abs
 class HomeRowLayoutTest {
     @get:Rule val compose = createComposeRule()
     private val prefs = LegacyPreferences(InstrumentationRegistry.getInstrumentation().targetContext)
-    private val savedKeys = RowControl.entries.map { it.key } + listOf("accent_color", "app_icon_background_opacity")
+    private val savedKeys = (RowControl.entries + WatchControl.entries).map { it.key } + listOf("accent_color", "app_icon_background_opacity")
     private val appsPerRow = 8
     private val heights = listOf(110, 140, 82)
     private val rows = heights.mapIndexed { index, height ->
@@ -104,7 +105,7 @@ class HomeRowLayoutTest {
         ResumeItem(longText, longText, "appicons/settings.png", 35, "intent://one#Intent;scheme=test;package=test.player;end", "test.player", 17),
         ResumeItem("Second", "Second", "appicons/settings.png", 10, "intent://two#Intent;scheme=test;package=test.player;end", "test.player", 18))
     private fun scene(rowCount: Int, watch: Boolean, hero: Boolean) = Scene("Test", media.restoredBackdrop().image,
-        rows.take(rowCount).map { row -> AppRow(row.name, row.apps.map { AppTile(it.packageName, it.label, it.artwork) }, row.id, row.height) },
+        rows.take(rowCount).map { row -> AppRow(row.name, row.apps.map { AppTile(it.packageName, it.label, it.artwork) }, row.id) },
         if (watch) watchNext else emptyList(), hero, true, -1, .1f, false, false)
 
     private fun home(rowCount: Int = 3, watch: Boolean = false, hero: Boolean = false) {
@@ -118,12 +119,12 @@ class HomeRowLayoutTest {
         }
         compose.onNodeWithContentDescription("App 0-0").assertIsFocused()
     }
-    private fun settings(route: String, maxRowPosition: Int = RowControl.POSITION.max, rowId: Long? = null) {
+    private fun settings(route: String, maxRowPosition: Int = RowControl.POSITION.max, rowId: Long? = null, watchLimits: WatchLimits = WatchLimits()) {
         compose.setContent {
             val context = LocalContext.current
             val artwork = remember { ComposeArtwork(context) }
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
-            LauncherSettings(SettingsRoute(route, rowId), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> }, maxRowPosition)
+            LauncherSettings(SettingsRoute(route, rowId), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> }, maxRowPosition, watchLimits)
         }
         compose.waitForIdle()
     }
@@ -145,16 +146,25 @@ class HomeRowLayoutTest {
 
     /** Focus scales a tile about its centre, so compare centres against the unscaled height. */
     private fun top(label: String, tileHeight: Int) = bounds(label).center.y.dp() - tileHeight / 2f
+    private fun card(id: Long) = compose.onNodeWithTag("watch-next-card:$id").fetchSemanticsNode().boundsInRoot
+
+    private fun slider(control: LayoutControl) = hasContentDescription("${control.title}, ", substring = true)
+
+    /** The furthest column painted in the slider's fill colour. */
+    private fun thumb(control: LayoutControl): Int {
+        val image = compose.onNode(slider(control)).captureToImage().toPixelMap()
+        return (0 until image.width).last { x -> (0 until image.height).any { y -> image[x, y] == NativeSettingsStyle.accent } }
+    }
 
     @Test fun everyRowStopsOnTheSameLineIncludingTheLastRow() {
         home()
         val line = top("App 0-0", 110)
         press(KeyEvent.KEYCODE_DPAD_DOWN)
         compose.onNodeWithContentDescription("App 1-0").assertIsFocused()
-        assertEquals(line, top("App 1-0", 140), 1f)
+        assertEquals(line, top("App 1-0", 110), 1f)
         press(KeyEvent.KEYCODE_DPAD_DOWN)
         compose.onNodeWithContentDescription("App 2-0").assertIsFocused()
-        assertEquals(line, top("App 2-0", 82), 1f)
+        assertEquals(line, top("App 2-0", 110), 1f)
         press(KeyEvent.KEYCODE_DPAD_UP)
         press(KeyEvent.KEYCODE_DPAD_UP)
         compose.onNodeWithContentDescription("App 0-0").assertIsFocused()
@@ -166,7 +176,7 @@ class HomeRowLayoutTest {
         val line = top("App 0-0", 110)
         press(KeyEvent.KEYCODE_DPAD_DOWN)
         compose.onNodeWithContentDescription("App 1-0").assertIsFocused()
-        assertEquals(line, top("App 1-0", 140), 1f)
+        assertEquals(line, top("App 1-0", 110), 1f)
     }
 
     @Test fun focusStaysOnTheRowsThroughoutTheSlide() {
@@ -265,7 +275,7 @@ class HomeRowLayoutTest {
         prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
         home(watch = true)
         val feed = compose.onNodeWithContentDescription("Continue watching $longText").fetchSemanticsNode().boundsInRoot
-        assertEquals(WATCH_NEXT_BOTTOM, feed.bottom.dp(), 1f)
+        assertEquals(307.8f, feed.bottom.dp(), 1f)
         assertTrue("Row must sit below the feed", top("App 0-0", 110) >= feed.bottom.dp())
     }
 
@@ -288,7 +298,7 @@ class HomeRowLayoutTest {
         prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
         home(watch = true)
         val tile = bounds("App 0-1")
-        assertEquals(212f, tile.height.dp(), 1f)
+        assertEquals(214f, tile.height.dp(), 1f)
         assertTrue(tile.top.dp() >= WATCH_NEXT_BOTTOM)
         assertTrue(tile.bottom.dp() <= 540f)
     }
@@ -317,7 +327,7 @@ class HomeRowLayoutTest {
         prefs.putInt(RowControl.ROW_GAP.key, RowControl.ROW_GAP.min)
         prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
         home()
-        assertEquals(140f, bounds("App 1-1").height.dp(), 1f)
+        assertEquals(110f, bounds("App 1-1").height.dp(), 1f)
         assertEquals(110f + 8f, bounds("App 1-1").top.dp() - bounds("App 0-1").top.dp(), 1f)
     }
 
@@ -339,20 +349,123 @@ class HomeRowLayoutTest {
         settings("rowlayout")
         press(KeyEvent.KEYCODE_DPAD_CENTER)
         compose.waitUntil(3000) { prefs.int(RowControl.POSITION.key, 0) == RowControl.POSITION.min }
-        compose.onNodeWithText("Reset app row layout").performScrollTo().performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Reset app row layout"))
+        compose.onNodeWithText("Reset app row layout").performClick()
         compose.waitUntil(3000) { RowControl.entries.all { prefs.int(it.key, -1) == -1 } }
     }
 
-    @Test fun rowSizeUsesFineStepsOnLeftAndRightAndPresetsOnSelect() {
-        settings("row", rowId = 1)
-        press(KeyEvent.KEYCODE_DPAD_DOWN)
-        press(KeyEvent.KEYCODE_DPAD_DOWN)
-        press(KeyEvent.KEYCODE_DPAD_RIGHT)
-        compose.waitUntil(3000) { savedHeight == 115 }
-        press(KeyEvent.KEYCODE_DPAD_LEFT)
-        compose.waitUntil(3000) { savedHeight == 105 }
-        press(KeyEvent.KEYCODE_DPAD_CENTER)
+    @Test fun appSizeIsTheOneSizeForEveryRow() {
+        prefs.putInt(RowControl.SIZE.key, 120)
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
+        prefs.putInt(RowControl.ROW_GAP.key, RowControl.ROW_GAP.min)
+        home()
+        for (label in listOf("App 0-1", "App 1-1", "App 2-1")) assertEquals(132f, bounds(label).height.dp(), 1f)
+    }
+
+    @Test fun rowEditorHasNoSizeControlAndKeepsTheSavedValue() {
+        settings("row", rowId = 2)
+        compose.onNodeWithText("Row size").assertDoesNotExist()
+        compose.onNodeWithText("App order").performClick()
         compose.waitUntil(3000) { savedHeight == 140 }
+    }
+
+    @Test fun everyLayoutControlShowsItsValueOnASlider() {
+        prefs.putInt(RowControl.SIZE.key, 125)
+        settings("rowlayout")
+        for ((control, position) in listOf(RowControl.POSITION to 28 / 66f, RowControl.START to .1f, RowControl.SIZE to .5f,
+            RowControl.APP_GAP to .25f, RowControl.ROW_GAP to 44 / 152f, RowControl.BELOW to .2f)) {
+            compose.onNode(hasScrollAction()).performScrollToNode(slider(control))
+            compose.onNode(slider(control)).assert(hasProgressBarRangeInfo(ProgressBarRangeInfo(position, 0f..1f)))
+        }
+    }
+
+    @Test fun cappedSliderIsFullAtTheFeedLimit() {
+        settings("rowlayout", maxRowPosition = 42)
+        compose.onNode(slider(RowControl.POSITION)).assert(hasProgressBarRangeInfo(ProgressBarRangeInfo(1f, 0f..1f)))
+    }
+
+    @Test fun sliderThumbFollowsLeftAndRight() {
+        settings("rowlayout")
+        val start = thumb(RowControl.POSITION)
+        press(KeyEvent.KEYCODE_DPAD_RIGHT, repeats = 3)
+        compose.waitUntil(3000) { compose.onAllNodesWithText("50%").fetchSemanticsNodes().isNotEmpty() }
+        val moved = thumb(RowControl.POSITION)
+        assertTrue(moved > start)
+        press(KeyEvent.KEYCODE_DPAD_LEFT, repeats = 3)
+        compose.waitUntil(3000) { compose.onAllNodesWithText("42%").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(start, thumb(RowControl.POSITION))
+    }
+
+    @Test fun continueWatchingFollowsItsControls() {
+        prefs.putInt(WatchControl.HEIGHT.key, 35)
+        prefs.putInt(WatchControl.SIZE.key, 50)
+        prefs.putInt(WatchControl.NEXT_SIZE.key, 60)
+        prefs.putInt(WatchControl.GAP.key, 40)
+        prefs.putInt(RowControl.POSITION.key, 20)
+        home(watch = true)
+        val first = card(17); val second = card(18)
+        assertEquals(351f, first.bottom.dp(), 1f)
+        assertEquals(150f, first.width.dp(), 1f)
+        assertEquals(110f, first.height.dp(), 1f)
+        assertEquals(32f + 150f + 40f, second.left.dp(), 1f)
+        assertEquals(90f, second.width.dp(), 1f)
+        assertEquals(first.bottom, second.bottom, 1f)
+    }
+
+    @Test fun shrunkenFocusTargetCoversTheCard() {
+        prefs.putInt(WatchControl.SIZE.key, 50)
+        home(watch = true)
+        val anchor = compose.onNodeWithContentDescription("Continue watching", substring = true).fetchSemanticsNode().boundsInRoot
+        assertEquals(card(17).height, anchor.height, 1f)
+        assertEquals(card(17).width, anchor.width, 1f)
+    }
+
+    @Test fun loweredContinueWatchingLeavesTheLowAppRowAlone() {
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.min)
+        prefs.putInt(WatchControl.HEIGHT.key, 24)
+        home(watch = true)
+        assertEquals(110f, bounds("App 0-1").height.dp(), 1f)
+        assertTrue(bounds("App 0-1").top.dp() >= card(17).bottom.dp())
+        assertEquals(410.4f, card(17).bottom.dp(), 1f)
+    }
+
+    @Test fun continueWatchingHeightStopsAtTheAppRowAndSaysWhy() {
+        prefs.putInt(WatchControl.HEIGHT.key, 31)
+        settings("watchlayout", watchLimits = WatchLimits(minHeight = 30))
+        press(KeyEvent.KEYCODE_DPAD_LEFT, repeats = 4)
+        compose.waitUntil(3000) { compose.onAllNodesWithText("Stops just above the app row").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(30, prefs.int(WatchControl.HEIGHT.key, 0))
+    }
+
+    @Test fun continueWatchingSizeStopsAtTheTopOfTheScreenAndSaysWhy() {
+        settings("watchlayout", watchLimits = WatchLimits(maxSize = 100))
+        press(KeyEvent.KEYCODE_DPAD_DOWN)
+        press(KeyEvent.KEYCODE_DPAD_RIGHT, repeats = 2)
+        compose.waitUntil(3000) { compose.onAllNodesWithText("Stops at the top of the screen").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test fun everyContinueWatchingControlIsASliderAndResetRestoresDefaults() {
+        prefs.putInt(WatchControl.GAP.key, 200)
+        settings("watchlayout")
+        for (control in WatchControl.entries) {
+            compose.onNode(hasScrollAction()).performScrollToNode(slider(control))
+            compose.onNode(slider(control)).assertExists()
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Reset Continue Watching layout"))
+        compose.onNodeWithText("Reset Continue Watching layout").performClick()
+        compose.waitUntil(3000) { WatchControl.entries.all { prefs.int(it.key, -1) == -1 } }
+    }
+
+    @Test fun homeOffersContinueWatchingLayoutWithLiveLimits() {
+        prefs.putInt(RowControl.POSITION.key, 20)
+        prefs.putInt(WatchControl.HEIGHT.key, 24)
+        home(watch = true)
+        press(KeyEvent.KEYCODE_MENU)
+        compose.onNodeWithText("Interface").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Continue Watching layout").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Stops just above the app row").assertExists()
     }
 
     @Test fun greyAndBlackAccentsCanBeChosen() {
