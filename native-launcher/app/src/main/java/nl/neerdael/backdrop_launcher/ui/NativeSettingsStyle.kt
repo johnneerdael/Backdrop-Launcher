@@ -14,6 +14,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -56,10 +58,10 @@ internal enum class SettingsIcon { APPS, INTERFACE, SYSTEM, SETTINGS, UPDATE, IN
 @Composable
 internal fun NativeSettingsSurface(onClick: () -> Unit, modifier: Modifier = Modifier,
     enabled: Boolean = true, blocked: Boolean = false, onLongClick: (() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit) {
+    shape: Shape = RectangleShape, content: @Composable BoxScope.() -> Unit) {
     val interactions = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    Box(modifier.background(if (focused) NativeSettingsStyle.focus else Color.Transparent)
+    Box(modifier.background(if (focused) NativeSettingsStyle.focus else Color.Transparent, shape)
         .onFocusChanged { focused = it.isFocused }
         .onPreviewKeyEvent { event ->
             val key = event.nativeKeyEvent

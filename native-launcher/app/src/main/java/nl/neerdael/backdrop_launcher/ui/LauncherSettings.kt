@@ -394,7 +394,8 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         SideEffect { window?.setDimAmount(0f) }
         Box(Modifier.fillMaxSize().background(NativeSettingsStyle.scrim)) {
             Box(Modifier.align(Alignment.CenterEnd)) {
-                SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships")) {
+                SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships"),
+                    artworkGrid = page.section == "artwork") {
                     if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp), style = if (page.section == "auth") NativeSettingsStyle.titleStyle else NativeSettingsStyle.summaryStyle)
                     if (page.section == "update" && !update?.notes.isNullOrBlank()) ReadableText(update!!.notes, Modifier.padding(top = 10.dp))
                 }
