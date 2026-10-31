@@ -2,9 +2,14 @@ package nl.neerdael.backdrop_launcher.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,14 +72,20 @@ internal fun UiButton(onClick: () -> Unit, modifier: Modifier = Modifier, enable
 @Composable
 internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
                            artwork: ComposeArtwork, active: Boolean, revision: Int,
-                           busy: String?, error: String?, translateTitle: Boolean = true, footer: @Composable () -> Unit = {}) {
+                           busy: String?, error: String?, translateTitle: Boolean = true, artworkGrid: Boolean = false,
+                           footer: @Composable () -> Unit = {}) {
     val labels = LocalUiLanguage.current
     val first = remember { FocusRequester() }
     val firstId = entries.firstOrNull { !it.section && it.enabled }?.id
     val viewport = remember { LayoutBoundsHolder() }
     val list = rememberLazyListState()
+    val grid = rememberLazyGridState()
     LaunchedEffect(title, firstId, active) {
-        if (active && firstId != null) { list.scrollToItem(0); withFrameNanos { }; first.requestFocus() }
+        if (active && firstId != null) {
+            // Scrolling waits for first layout, so only the attached state can be used here.
+            if (artworkGrid) grid.scrollToItem(0) else list.scrollToItem(0)
+            withFrameNanos { }; first.requestFocus()
+        }
     }
     CompositionLocalProvider(LocalTextStyle provides NativeSettingsStyle.primaryStyle) {
         Column(Modifier.fillMaxHeight().width(NativeSettingsStyle.panelWidth).shadow(6.dp, RectangleShape, clip = false).background(NativeSettingsStyle.body)) {
@@ -85,7 +96,14 @@ internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
             }
             busy?.let { Text(it, modifier = Modifier.padding(start = 24.dp, end = 56.dp, top = 8.dp), style = NativeSettingsStyle.summaryStyle) }
             error?.let { Text(it, modifier = Modifier.padding(start = 24.dp, end = 56.dp, top = 8.dp), style = NativeSettingsStyle.summaryStyle.copy(color = Color(0xffff8a80))) }
-            LazyColumn(state = list, modifier = Modifier.weight(1f).layoutBounds(viewport), contentPadding = PaddingValues(bottom = 34.dp)) {
+            if (artworkGrid) LazyVerticalGrid(GridCells.Fixed(3), Modifier.weight(1f).layoutBounds(viewport), grid,
+                PaddingValues(start = 24.dp, end = 56.dp, top = 8.dp, bottom = 34.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(entries, key = { it.id }, contentType = { "artwork" }) { entry ->
+                    ArtworkTile(entry, artwork, active, revision, viewport, busy != null,
+                        if (entry.id == firstId) Modifier.focusRequester(first) else Modifier)
+                }
+            } else LazyColumn(state = list, modifier = Modifier.weight(1f).layoutBounds(viewport), contentPadding = PaddingValues(bottom = 34.dp)) {
                 itemsIndexed(entries, key = { _, entry -> entry.id }, contentType = { _, entry -> if (entry.section) "section" else "setting" }) { _, entry ->
                     if (entry.section) {
                         Box(Modifier.fillMaxWidth().height(38.dp).padding(start = 24.dp, end = 56.dp), contentAlignment = Alignment.CenterStart) {
@@ -132,6 +150,20 @@ internal fun SettingsPanel(title: String, entries: List<SettingsEntry>,
             }
             Box(Modifier.fillMaxWidth().padding(start = 24.dp, end = 56.dp, bottom = 16.dp)) { footer() }
         }
+    }
+}
+
+/** Image-only target; its name stays available to accessibility services. */
+@Composable
+private fun ArtworkTile(entry: SettingsEntry, artwork: ComposeArtwork, active: Boolean, revision: Int,
+                        viewport: LayoutBoundsHolder, busy: Boolean, modifier: Modifier) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(8.dp)
+    NativeSettingsSurface(entry.onClick, blocked = busy, shape = shape,
+        modifier = modifier.fillMaxWidth().aspectRatio(16f / 9f).onFocusChanged { focused = it.isFocused }
+            .border(2.dp, if (focused) Color.White else Color.Transparent, shape).onPreviewKeyEvent { busy }
+            .semantics(mergeDescendants = true) { contentDescription = entry.title }) {
+        Artwork(entry.artwork, artwork, active, revision, Modifier.fillMaxSize(), ContentScale.Fit, viewport = viewport)
     }
 }
 
