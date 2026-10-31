@@ -30,7 +30,7 @@ Open the row editor with Right or hold Select.
 | --- | --- |
 | **Row name** | Select, edit the text, then Save. Cancel leaves the name unchanged. |
 | **App order** | Select to cycle **Manual → Alphabetical → Last used**. Alphabetical sorts names; Last used puts the most recently launched app first. |
-| **Row size** | Select to cycle **82 → 110 → 140**. **App size** in [App row layout](../personalise/appearance.md#arrange-your-app-rows) scales this size for every row. |
+| **Row size** | Use **Left/Right** to change it in **5** steps, from **50** to **300**, or Select to jump to **82**, **110** or **140**. **App size** in [App row layout](../personalise/appearance.md#arrange-your-app-rows) scales this size for every row. |
 | **Show on home screen** | Turn off to hide the whole row while keeping its apps and saved order. |
 
 To position individual cards by hand, choose **Manual**, return to Home and use [Reorder](apps.md#move-an-app-within-a-row).

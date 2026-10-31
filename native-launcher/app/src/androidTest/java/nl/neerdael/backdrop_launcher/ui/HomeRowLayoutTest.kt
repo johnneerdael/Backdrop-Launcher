@@ -42,7 +42,7 @@ class HomeRowLayoutTest {
         override fun snapshot(refreshInstalled: Boolean) = LibrarySnapshot(rows.flatMap { it.apps }, rows)
         override fun createRow(name: String) = error("unused")
         override fun renameRow(id: Long, name: String) = Unit
-        override fun updateRow(id: Long, hidden: Boolean, sort: Int, height: Int) = Unit
+        override fun updateRow(id: Long, hidden: Boolean, sort: Int, height: Int) { savedHeight = height }
         override fun moveRow(id: Long, delta: Int) = Unit
         override fun deleteRow(id: Long) = Unit
         override fun setRowApps(id: Long, packages: List<String>) = Unit
@@ -93,6 +93,7 @@ class HomeRowLayoutTest {
         override fun message(text: String) = Unit
     }
     private lateinit var density: Density
+    @Volatile private var savedHeight = 0
 
     private fun clearPrefs() = savedKeys.forEach { prefs.remove(it) }
     @Before fun before() = clearPrefs()
@@ -117,12 +118,12 @@ class HomeRowLayoutTest {
         }
         compose.onNodeWithContentDescription("App 0-0").assertIsFocused()
     }
-    private fun settings(route: String, maxRowPosition: Int = RowControl.POSITION.max) {
+    private fun settings(route: String, maxRowPosition: Int = RowControl.POSITION.max, rowId: Long? = null) {
         compose.setContent {
             val context = LocalContext.current
             val artwork = remember { ComposeArtwork(context) }
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
-            LauncherSettings(SettingsRoute(route), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> }, maxRowPosition)
+            LauncherSettings(SettingsRoute(route, rowId), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> }, maxRowPosition)
         }
         compose.waitForIdle()
     }
@@ -340,6 +341,18 @@ class HomeRowLayoutTest {
         compose.waitUntil(3000) { prefs.int(RowControl.POSITION.key, 0) == RowControl.POSITION.min }
         compose.onNodeWithText("Reset app row layout").performScrollTo().performClick()
         compose.waitUntil(3000) { RowControl.entries.all { prefs.int(it.key, -1) == -1 } }
+    }
+
+    @Test fun rowSizeUsesFineStepsOnLeftAndRightAndPresetsOnSelect() {
+        settings("row", rowId = 1)
+        press(KeyEvent.KEYCODE_DPAD_DOWN)
+        press(KeyEvent.KEYCODE_DPAD_DOWN)
+        press(KeyEvent.KEYCODE_DPAD_RIGHT)
+        compose.waitUntil(3000) { savedHeight == 115 }
+        press(KeyEvent.KEYCODE_DPAD_LEFT)
+        compose.waitUntil(3000) { savedHeight == 105 }
+        press(KeyEvent.KEYCODE_DPAD_CENTER)
+        compose.waitUntil(3000) { savedHeight == 140 }
     }
 
     @Test fun greyAndBlackAccentsCanBeChosen() {
