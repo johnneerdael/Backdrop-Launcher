@@ -60,6 +60,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     var appVersion by remember { mutableStateOf("") }
     var appCode by remember { mutableLongStateOf(0) }
     val currentAuth by rememberUpdatedState(auth)
+    val rowLayoutWrites = remember { Dispatchers.IO.limitedParallelism(1) }
 
     fun go(section: String, rowId: Long? = null, packageName: String? = null) {
         error = null; stack = stack + SettingsRoute(section, rowId, packageName)
@@ -92,6 +93,14 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
     }
     fun change(task: () -> Unit) = execute("Saving…", task = task)
+    // Held Left/Right saves in order without the busy state, which would swallow the next repeat.
+    fun adjust(control: RowControl, value: Int) {
+        scope.launch(Dispatchers.Main.immediate) {
+            try { withContext(rowLayoutWrites) { prefs.putInt(control.key, value) }; version++ }
+            catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
+            catch (failure: Exception) { error = failure.message ?: "Unable to complete this action. Try again." }
+        }
+    }
     fun mutate(task: () -> Unit) = execute("Saving applications…", reload = true, task = task)
     fun toggle(key: String, title: String, default: Boolean = false, enabled: Boolean = true): SettingsEntry =
         SettingsEntry(key, title, checked = prefs.bool(key, default), enabled = enabled, control = SettingsControl.SWITCH) {
@@ -174,7 +183,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "interface" -> {
             title = "Interface"
-            for ((id, label) in listOf("watch" to "Continue Watching", "backdrops" to "Backdrops", "status" to "Status bar", "accent" to "Accent color", "appearance" to "Appearance", "misc" to "Miscellaneous"))
+            for ((id, label) in listOf("watch" to "Continue Watching", "backdrops" to "Backdrops", "status" to "Status bar", "accent" to "Accent color", "appearance" to "Appearance", "rowlayout" to "App row layout", "misc" to "Miscellaneous"))
                 entries += SettingsEntry(id, label) { go(id) }
         }
         "rows" -> {
@@ -259,6 +268,18 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             entries += choice("border", "Focus border thickness", "${prefs.double("focus_border_thickness", 1.5)} dp") { go("border") }
             entries += choice("opacity", "App icon background opacity", "${(prefs.double("app_icon_background_opacity", .1) * 100).toInt()}%") { go("opacity") }
         }
+        "rowlayout" -> {
+            title = "App row layout"
+            note = "Left and Right change the selected setting. Home updates as you go."
+            RowControl.entries.forEach { control ->
+                val value = control.read(prefs)
+                entries += SettingsEntry(control.key, control.title, subtitle = control.subtitle, value = "$value${control.unit}", onKey = { event ->
+                    if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
+                    else { adjust(control, control.stepped(control.read(prefs), if (event.key == Key.DirectionRight) 1 else -1)); true }
+                }) { adjust(control, control.cycled(control.read(prefs))) }
+            }
+            entries += SettingsEntry("reset", "Reset app row layout") { change { RowControl.entries.forEach { prefs.remove(it.key) } } }
+        }
         "border" -> {
             title = "Focus border thickness"
             listOf(1.0, 1.5, 2.0, 3.0).forEach { size -> entries += SettingsEntry("border:$size", "$size dp", control = SettingsControl.RADIO, checked = prefs.double("focus_border_thickness", 1.5) == size) { change { prefs.putDouble("focus_border_thickness", size) } } }
@@ -277,7 +298,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "accent" -> {
             title = "Accent color"
-            val colors = listOf("FFFFFF" to "White", "7C4DFF" to "Purple", "00BFA5" to "Teal", "2979FF" to "Blue", "FF6D00" to "Orange", "F50057" to "Pink", "00C853" to "Green", "FFD600" to "Yellow", "D50000" to "Red", "00E5FF" to "Cyan", "536DFE" to "Indigo", "AEEA00" to "Lime", "FFAB00" to "Amber", "FF4081" to "Rose", "80D8FF" to "Ice blue")
+            val colors = listOf("FFFFFF" to "White", "9E9E9E" to "Grey", "000000" to "Black", "7C4DFF" to "Purple", "00BFA5" to "Teal", "2979FF" to "Blue", "FF6D00" to "Orange", "F50057" to "Pink", "00C853" to "Green", "FFD600" to "Yellow", "D50000" to "Red", "00E5FF" to "Cyan", "536DFE" to "Indigo", "AEEA00" to "Lime", "FFAB00" to "Amber", "FF4081" to "Rose", "80D8FF" to "Ice blue")
             colors.forEach { (color, label) -> entries += SettingsEntry(color, label, control = SettingsControl.RADIO, checked = prefs.string("accent_color", "FFFFFF") == color) { change { prefs.putString("accent_color", color) } } }
             entries += SettingsEntry("custom", "Custom hex color", subtitle = "Six hexadecimal digits, for example A78BFA") { prompt = TextPrompt("Accent color", prefs.string("accent_color", "FFFFFF")) { hex -> change {
                 val value = hex.removePrefix("#"); require(value.matches(Regex("[0-9a-fA-F]{6}"))) { "Enter exactly six hexadecimal digits" }; prefs.putString("accent_color", value.uppercase())
@@ -394,7 +415,8 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         // Paint one measured scrim; the platform Dialog must not apply another dim layer.
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
         SideEffect { window?.setDimAmount(0f) }
-        Box(Modifier.fillMaxSize().background(NativeSettingsStyle.scrim)) {
+        // App row layout previews on Home, so that page leaves it undimmed.
+        Box(Modifier.fillMaxSize().background(if (page.section == "rowlayout") Color.Transparent else NativeSettingsStyle.scrim)) {
             Box(Modifier.align(Alignment.CenterEnd)) {
                 SettingsPanel(title, entries, artwork, active, artworkRevision, busy, error, translateTitle = page.section !in setOf("row", "app", "memberships"),
                     artworkGrid = page.section == "artwork",

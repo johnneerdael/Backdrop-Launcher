@@ -78,11 +78,84 @@ class UiStateTest {
         assertEquals(2f, changed.borderDp)
     }
 
-    @Test fun rowGeometryFitsEverySupportedHeightWithLabelsAndTitlesOnSmallWindows() {
-        for (height in listOf(82, 110, 140)) {
-            assertTrue(homeRowExtent(151f, height, true, true) >= height + 80f)
+    @Test fun rowSlotsCarryTheirLabelsAndTheChosenSpacing() {
+        assertEquals(162f, homeRowExtent(110, false, false, 52), .01f)
+        assertEquals(216f, homeRowExtent(110, true, true, 52), .01f)
+        assertEquals(118f, homeRowExtent(110, false, false, 8), .01f)
+    }
+
+    @Test fun rowControlsMatchTheEarlierLayoutUntilChanged() {
+        val layout = HomeAppearance.read(MemoryPreferences()).rows
+        assertEquals(HomeRowLayout(42, 32, 100, 24, 52, 20), layout)
+        assertEquals(110, layout.tileHeight(110))
+        assertEquals(313.2f, homeRowTop(540f, layout.position, 140, false, false), .01f)
+    }
+
+    @Test fun rowControlsStayInRangeAndUseNativePreferences() {
+        val prefs = MemoryPreferences()
+        for (control in RowControl.entries) {
+            assertTrue(control.key.startsWith("native."))
+            assertEquals(0, (control.default - control.min) % control.step)
+            prefs.putInt(control.key, control.max + 1000)
+            assertEquals(control.max, control.read(prefs))
+            prefs.putInt(control.key, control.min - 1000)
+            assertEquals(control.min, control.read(prefs))
+            assertEquals(control.max, control.stepped(control.max, 1))
+            assertEquals(control.min, control.stepped(control.min, -1))
+            assertEquals(control.min, control.cycled(control.max))
+            assertEquals(control.min + control.step, control.cycled(control.min))
         }
-        assertEquals(302.4f, homeRowExtent(420f, 110, false, false), .01f)
+    }
+
+    @Test fun appSizeScalesEachRowWithoutLosingItsOwnSize() {
+        val layout = HomeRowLayout(42, 32, 150, 24, 52, 20)
+        assertEquals(123, layout.tileHeight(82))
+        assertEquals(210, layout.tileHeight(140))
+        assertEquals(40, layout.copy(size = 50).tileHeight(50))
+    }
+
+    @Test fun activeRowStaysOnScreenAtLargeSizes() {
+        assertEquals(108f, homeRowTop(540f, 80, 280, true, true), .01f)
+        // 280 tile + 26 title + 28 name + 18 focus room leaves 188 of a 540 screen.
+        assertEquals(188f, homeRowTop(540f, 14, 280, true, true), .01f)
+        assertEquals(0f, homeRowTop(200f, 14, 280, true, true), .01f)
+    }
+
+    @Test fun rowTravelCoversUnevenRowsInBothDirections() {
+        val extents = listOf(162f, 192f, 134f)
+        assertEquals(354f, homeRowTravel(extents, 0, 2), .01f)
+        assertEquals(-192f, homeRowTravel(extents, 2, 1), .01f)
+        assertEquals(0f, homeRowTravel(extents, 1, 1), .01f)
+        assertEquals(1.5f, homeRowPage(extents, 1, 96f), .01f)
+        assertEquals(5f, homeRowPage(extents, 5, 96f), .01f)
+    }
+
+    @Test fun rowsAboveDisappearAndRowsBelowSettleAtTheirOpacity() {
+        assertEquals(1f, homeRowAlpha(0f, .2f), .001f)
+        assertEquals(.6f, homeRowAlpha(.5f, .2f), .001f)
+        assertEquals(.2f, homeRowAlpha(1f, .2f), .001f)
+        assertEquals(.2f, homeRowAlpha(4f, .2f), .001f)
+        assertEquals(.5f, homeRowAlpha(-.5f, .2f), .001f)
+        assertEquals(0f, homeRowAlpha(-1f, .2f), .001f)
+        assertEquals(0f, homeRowAlpha(-3f, .2f), .001f)
+    }
+
+    @Test fun smallSizeStepsReuseTheDecodedArtwork() {
+        assertEquals(120, homeDecodeHeight(110))
+        assertEquals(120, homeDecodeHeight(120))
+        assertEquals(160, homeDecodeHeight(121))
+    }
+
+    @Test fun blackCardsKeepAVisibleFocusIndicator() {
+        val prefs = MemoryPreferences()
+        prefs.putString("accent_color", "000000")
+        val black = HomeAppearance.read(prefs)
+        assertEquals(0xff000000L, black.accent)
+        assertEquals(0xffffffffL, black.indicator)
+        prefs.putString("accent_color", "9E9E9E")
+        val grey = HomeAppearance.read(prefs)
+        assertEquals(0xff9e9e9eL, grey.accent)
+        assertEquals(0xff9e9e9eL, grey.indicator)
     }
 
     @Test fun releaseNotesAreReadableWithoutImageOrLinkMarkup() {

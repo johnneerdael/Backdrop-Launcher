@@ -10,7 +10,7 @@ Open **Settings → Interface → Accent Color**. Move through the grid and pres
 
 ![Accent Color settings showing the swatch grid and live preview](../assets/screenshots/accent-colours.webp){ width="1280" height="720" loading="lazy" }
 
-The palette contains **Purple, Teal, Blue, Orange, Pink, Green, White, Yellow, Red, Cyan, Indigo, Lime, Amber, Rose** and **Ice Blue**. Your choice is used in focus outlines and app-card backgrounds.
+The palette contains **White, Grey, Black, Purple, Teal, Blue, Orange, Pink, Green, Yellow, Red, Cyan, Indigo, Lime, Amber, Rose** and **Ice Blue**. Your choice is used in focus outlines and app-card backgrounds. With **Black**, app cards turn black while the focus outline and Continue Watching progress stay white, so you can see them on dark backdrops.
 
 ## Make cards readable over artwork
 
@@ -23,6 +23,23 @@ Open **Settings → Interface → Appearance**.
 The default is 10%. More opaque card backgrounds can make cards easier to distinguish against a busy scene. Check your choice on Home against several backdrops.
 
 Select **Focus border thickness** to choose **Subtle (1.0 dp)**, **Default (1.5 dp)**, **Medium (2.0 dp)** or **Bold (3.0 dp)**. A TV-icon preview helps you compare them. Default is 1.5 dp.
+
+## Arrange your app rows
+
+Open **Settings → Interface → App row layout**. Focus a control and use **Left/Right** to change it, or hold the button to keep going. Home stays undimmed behind the panel, so you can watch each change.
+
+| Control | What changes |
+| --- | --- |
+| **Focused row height** | How far up the screen the active row sits. Every row stops on this line. |
+| **Row position** | How far from the left edge the row starts. |
+| **App size** | The size of all app cards. It scales the **Row size** chosen for each row, so a smaller row stays smaller. |
+| **Space between apps** | The gap between cards in a row. |
+| **Space between rows** | The distance from one row of cards to the next. |
+| **Row below opacity** | How visible the rows under the active row are. At 0% they are hidden until you move down. |
+
+A very large **App size** can push the row higher than the height you chose, so that it stays on screen. A high **Focused row height** can overlap Continue Watching.
+
+Select **Reset app row layout** to return to the defaults.
 
 ## Labels, sound and focus feedback
 

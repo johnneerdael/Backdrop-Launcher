@@ -67,7 +67,7 @@ Selecting the network indicator opens Android’s network settings. See [Status 
 
 ## Interface → Accent Color
 
-**Purple, Teal, Blue, Orange, Pink, Green, White, Yellow, Red, Cyan, Indigo, Lime, Amber, Rose, Ice Blue.** Press Select to save a swatch. A check mark identifies it. The new-install default is White; an existing selection is preserved.
+**White, Grey, Black, Purple, Teal, Blue, Orange, Pink, Green, Yellow, Red, Cyan, Indigo, Lime, Amber, Rose, Ice Blue.** Press Select to save a swatch. A check mark identifies it. The new-install default is White; an existing selection is preserved. Black tints app cards; the focus outline and progress bar stay white so you can still see them.
 
 ## Interface → Appearance
 
@@ -75,6 +75,21 @@ Selecting the network indicator opens Android’s network settings. See [Status 
 | --- | --- |
 | **Focus border thickness** | **Subtle 1.0 dp**, **Default 1.5 dp**, **Medium 2.0 dp**, **Bold 3.0 dp**. Default: 1.5 dp. |
 | **App icon background** | **0–100%**, Left/Right in **10%** steps. Default: 10%. |
+
+## Interface → App row layout
+
+Use **Left/Right** on a control. Home updates behind the panel as you go.
+
+| Control | Range | Default |
+| --- | --- | --- |
+| **Focused row height** | **14–80%** of the screen, measured up from the bottom, in 2% steps | 42% |
+| **Row position** | **0–320 dp** from the left edge, in 8 dp steps | 32 dp |
+| **App size** | **50–200%** of each row's size, in 5% steps | 100% |
+| **Space between apps** | **0–96 dp**, in 4 dp steps | 24 dp |
+| **Space between rows** | **8–160 dp**, in 4 dp steps | 52 dp |
+| **Row below opacity** | **0–100%**, in 5% steps | 20% |
+
+**Reset app row layout** restores these defaults. See [Colours, cards and labels](../personalise/appearance.md#arrange-your-app-rows).
 
 ## Interface → Miscellaneous
 

@@ -4,7 +4,12 @@ import android.view.SoundEffectConstants
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.collection.LongSparseArray
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -56,6 +61,22 @@ import nl.neerdael.backdrop_launcher.core.*
 
 internal data class MovingApp(val rowId: Long, val packageName: String)
 
+private const val ROW_MOTION_MILLIS = 280
+
+/** Focus never scrolls the row list: Android TV's pivot would pull rows off their shared line. */
+@OptIn(ExperimentalFoundationApi::class)
+private object FixedHomeRows : BringIntoViewSpec {
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float) = 0f
+}
+
+/** Android TV's 30% pivot, moved in when the row starts further right so focus cannot undo Row position. */
+@OptIn(ExperimentalFoundationApi::class)
+private class HomeRowPivot(private val start: Float) : BringIntoViewSpec {
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float) =
+        offset - maxOf(containerSize * .3f, start)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAccess, media: MediaAccess,
                    updates: UpdateAccess, actions: UiActions, selection: HomeSelection,
@@ -78,7 +99,14 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
     val style = remember(prefs, preferenceVersion) { HomeAppearance.read(prefs) }
     val font = remember(context) { FontFamily(Font("fonts/Inter.ttf", context.assets)) }
     val density = LocalDensity.current
-    val paneHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() } * .42f
+    val screenHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val rowLayout = style.rows
+    val rowExtents = remember(scene.rows, style) {
+        scene.rows.map { homeRowExtent(rowLayout.tileHeight(it.height), style.rowTitles, style.appNames, rowLayout.rowGap) }
+    }
+    val rowTop = homeRowTop(screenHeight.value, rowLayout.position, rowLayout.tileHeight(scene.rows.maxOfOrNull { it.height } ?: 0),
+        style.rowTitles, style.appNames).dp
+    val rowPivot = remember(rowLayout.start, density) { HomeRowPivot(with(density) { rowLayout.start.dp.toPx() }) }
     val requesters = remember { LongSparseArray<FocusRequester>() }
     val rowStates = remember { LongSparseArray<LazyListState>() }
     val rowList = rememberLazyListState(initialFirstVisibleItemIndex = selection.app?.row ?: 0)
@@ -88,6 +116,8 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
     var settings by remember { mutableStateOf<SettingsRoute?>(null) }
     var moving by remember { mutableStateOf<MovingApp?>(null) }
     var activeRow by remember { mutableIntStateOf(selection.app?.row ?: 0) }
+    // The row keeping focus during a slide; dropping it early would send focus to the toolbar.
+    var leavingRow by remember { mutableIntStateOf(-1) }
     var toolbarFocused by remember { mutableStateOf(selection.area == HomeSelection.Area.SETTINGS) }
     var resumeIndex by remember(selection) { mutableIntStateOf(selection.resumeIndex) }
     var focusGeneration by remember { mutableIntStateOf(0) }
@@ -97,15 +127,30 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
         if (scene.rows.isEmpty()) { toolbar.requestFocus(); return }
         val row = index.coerceIn(0, scene.rows.lastIndex)
         val generation = ++focusGeneration
+        if (row != activeRow && leavingRow < 0) leavingRow = activeRow
         activeRow = row
-        if (animate) rowList.animateScrollToItem(row) else rowList.scrollToItem(row)
+        if (animate) rowList.animateScrollBy(
+            with(density) { homeRowTravel(rowExtents, rowList.firstVisibleItemIndex, row).dp.toPx() } - rowList.firstVisibleItemScrollOffset,
+            tween(ROW_MOTION_MILLIS, easing = carouselEasing))
+        rowList.scrollToItem(row)
         withFrameNanos { }
         val target = selection.focusForRow(scene, row)
         if (target != null) rowStates.get(scene.rows[row].id)?.scrollToItem(target.tile)
         withFrameNanos { }
-        if (generation == focusGeneration && settings == null && active) {
-            requesters.get(packInts(row, target?.tile ?: -1))?.requestFocus()
+        if (generation == focusGeneration) {
+            if (settings == null && active) requesters.get(packInts(row, target?.tile ?: -1))?.requestFocus()
+            leavingRow = -1
         }
+    }
+    /** Up from the first row leaves the rows, abandoning a slide that would reclaim focus. */
+    fun leaveRows() {
+        focusGeneration++
+        leavingRow = -1
+        if (scene.watchNext.isNotEmpty()) resumeFocus.requestFocus() else toolbar.requestFocus()
+    }
+    fun stepRow(direction: Int) {
+        val next = (activeRow + direction).coerceIn(0, scene.rows.lastIndex)
+        if (next != activeRow) scope.launch { focusRow(next, true) }
     }
     fun appsFocus() { scope.launch { focusRow(selection.app?.row ?: activeRow) } }
     fun openApp(app: AppTile, row: AppRow) { settings = SettingsRoute("app", rowId = row.id, packageName = app.packageName) }
@@ -190,7 +235,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                             Column(Modifier.padding(2.dp)) {
                                 Text("▶  " + (language["Continue Watching"] ?: "Continue Watching"), Modifier.padding(4.dp), fontSize = 13.sp)
                                 if (item.progress > 0) Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0xff333333))) {
-                                    Box(Modifier.fillMaxWidth(item.progress.coerceIn(0, 100) / 100f).fillMaxHeight().background(Color(style.accent)))
+                                    Box(Modifier.fillMaxWidth(item.progress.coerceIn(0, 100) / 100f).fillMaxHeight().background(Color(style.indicator)))
                                 }
                             }
                         }
@@ -199,7 +244,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                 }
                 if (scene.watchNext.isNotEmpty() && !scene.bigPicture) {
                     WatchNextCarousel(scene.watchNext, selection.resumeIndex, artwork, active,
-                        active && settings == null, artworkRevision, resumeFocus, Color(style.accent),
+                        active && settings == null, artworkRevision, resumeFocus, Color(style.indicator),
                         style.borders, style.borderDp, language["Continue Watching"] ?: "Continue Watching",
                         onFocus = { if (it && settings == null) { toolbarFocused = false; selection.area = HomeSelection.Area.WATCH_NEXT } },
                         onStep = { index ->
@@ -209,19 +254,30 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                         onUp = { toolbar.requestFocus() }, onDown = ::appsFocus,
                         modifier = Modifier.offset(y = 90.dp))
                 }
-                LazyColumn(state = rowList, userScrollEnabled = false,
-                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().fillMaxHeight(.42f).layoutBounds(viewport)) {
+                // Spans the screen so a leaving row fades above rowTop, and the bottom padding
+                // gives the last row the same travel as every other row.
+                CompositionLocalProvider(LocalBringIntoViewSpec provides FixedHomeRows) { LazyColumn(state = rowList, userScrollEnabled = false,
+                    modifier = Modifier.fillMaxSize().layoutBounds(viewport),
+                    contentPadding = PaddingValues(top = rowTop, bottom = screenHeight - rowTop)) {
                     itemsIndexed(scene.rows, key = { _, row -> row.id }, contentType = { _, _ -> "home-row" }) { rowIndex, row ->
                         val horizontal = rememberLazyListState(initialFirstVisibleItemIndex = selection.focusForRow(scene, rowIndex)?.tile ?: 0)
                         DisposableEffect(row.id, horizontal) { rowStates.put(row.id, horizontal); onDispose { rowStates.remove(row.id) } }
-                        val height = row.height.coerceIn(50, 500).dp
+                        val tileHeight = rowLayout.tileHeight(row.height)
+                        val height = tileHeight.dp
                         val width = height * (16f / 9f)
-                        val imageSize = with(density) { IntSize(width.roundToPx(), height.roundToPx()) }
-                        Column(Modifier.height(homeRowExtent(paneHeight.value, row.height, style.rowTitles, style.appNames).dp).graphicsLayer { alpha = if (rowIndex == activeRow) 1f else .18f }) {
-                            if (style.rowTitles) Text(row.name, Modifier.padding(start = 32.dp, bottom = 8.dp), fontSize = 15.sp)
-                            LazyRow(state = horizontal, modifier = Modifier.fillMaxWidth().focusRestorer(),
-                                contentPadding = PaddingValues(start = 32.dp, end = 32.dp, top = 10.dp, bottom = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        val decodeHeight = homeDecodeHeight(tileHeight).dp
+                        val imageSize = with(density) { IntSize((decodeHeight * (16f / 9f)).roundToPx(), decodeHeight.roundToPx()) }
+                        Column(Modifier.height(rowExtents[rowIndex].dp).graphicsLayer {
+                            // Scroll position, read here, drives opacity without recomposing each frame.
+                            val page = homeRowPage(rowExtents, rowList.firstVisibleItemIndex, rowList.firstVisibleItemScrollOffset / density.density)
+                            alpha = homeRowAlpha(rowIndex - page, rowLayout.belowOpacity / 100f)
+                        }) {
+                            if (style.rowTitles) Text(row.name, Modifier.padding(start = rowLayout.start.dp, bottom = 8.dp), fontSize = 15.sp)
+                            CompositionLocalProvider(LocalBringIntoViewSpec provides rowPivot) { LazyRow(state = horizontal,
+                                // A small Space between rows may overlap the next slot; tiles keep their size.
+                                modifier = Modifier.fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).focusRestorer(),
+                                contentPadding = PaddingValues(start = rowLayout.start.dp, end = 32.dp, top = 10.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(rowLayout.appGap.dp)) {
                                 if (row.apps.isEmpty()) item(key = "empty", contentType = "empty-row") {
                                     val focus = remember { FocusRequester() }
                                     DisposableEffect(rowIndex, focus) {
@@ -229,11 +285,11 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                         onDispose { if (requesters.get(key) === focus) requesters.remove(key) }
                                     }
                                     UiButton({ if (settings == null) settings = SettingsRoute("row", rowId = row.id) },
-                                        Modifier.focusRequester(focus).focusProperties { canFocus = rowIndex == activeRow }
+                                        Modifier.focusRequester(focus).focusProperties { canFocus = rowIndex == activeRow || rowIndex == leavingRow }
                                             .onPreviewKeyEvent {
                                                 if (it.type == KeyEventType.KeyDown && (it.key == Key.DirectionUp || it.key == Key.DirectionDown)) {
-                                                    if (it.key == Key.DirectionUp && rowIndex == 0) toolbar.requestFocus()
-                                                    else scope.launch { focusRow(rowIndex + if (it.key == Key.DirectionDown) 1 else -1, true) }; true
+                                                    if (it.key == Key.DirectionUp && activeRow == 0) leaveRows()
+                                                    else stepRow(if (it.key == Key.DirectionDown) 1 else -1); true
                                                 } else false
                                             }) { Text("${row.name} · Add apps", Modifier.padding(20.dp)) }
                                 }
@@ -247,23 +303,20 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                                 if (moving != null) moving = null else { if (style.clickSound) view.playSoundEffect(SoundEffectConstants.CLICK); actions.launch(app.packageName) }
                                             }
                                         }, onLongClick = { if (settings == null) { if (moving != null) moving = null else openApp(app, row) } },
-                                            color = Color(style.accent).copy(alpha = style.opacity), borderColor = Color(style.accent),
+                                            color = Color(style.accent).copy(alpha = style.opacity), borderColor = Color(style.indicator),
                                             borderWidth = style.borderDp.dp, showBorder = style.borders || moving?.packageName == app.packageName,
                                             animateBorder = style.animateBorder, active = active,
                                             modifier = Modifier.size(width, height).focusRequester(focus)
                                                 // A separate dialog window owns modal focus. Keep
                                                 // its origin eligible so dismiss restores this app.
-                                                .focusProperties { canFocus = rowIndex == activeRow }
+                                                .focusProperties { canFocus = rowIndex == activeRow || rowIndex == leavingRow }
                                                 .onFocusChanged { if (it.isFocused && settings == null) { toolbarFocused = false; selection.remember(scene, rowIndex, tileIndex) } }
                                                 .onPreviewKeyEvent {
                                                     if (it.type != KeyEventType.KeyDown) false else when {
                                                         moving?.packageName == app.packageName && (it.key == Key.DirectionLeft || it.key == Key.DirectionRight) -> { moveApp(if (it.key == Key.DirectionLeft) -1 else 1); true }
-                                                        it.key == Key.DirectionUp && rowIndex == 0 -> {
-                                                            if (scene.watchNext.isNotEmpty()) resumeFocus.requestFocus() else toolbar.requestFocus(); true
-                                                        }
+                                                        it.key == Key.DirectionUp && activeRow == 0 -> { leaveRows(); true }
                                                         it.key == Key.DirectionUp || it.key == Key.DirectionDown -> {
-                                                            val next = (rowIndex + if (it.key == Key.DirectionDown) 1 else -1).coerceIn(0, scene.rows.lastIndex)
-                                                            if (next != rowIndex) scope.launch { focusRow(next, true) }; true
+                                                            stepRow(if (it.key == Key.DirectionDown) 1 else -1); true
                                                         }
                                                         else -> false
                                                     }
@@ -276,10 +329,10 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                             fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
-                            }
+                            } }
                         }
                     }
-                }
+                } }
                 if (scene.rows.isEmpty()) UiButton({ if (settings == null) settings = SettingsRoute("rows") }, Modifier.align(Alignment.BottomStart).padding(32.dp)) {
                     Text("Add an application row", Modifier.padding(16.dp))
                 }
