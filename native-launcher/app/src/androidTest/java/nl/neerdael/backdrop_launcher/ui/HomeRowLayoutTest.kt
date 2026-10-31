@@ -98,27 +98,31 @@ class HomeRowLayoutTest {
     @Before fun before() = clearPrefs()
     @After fun after() = clearPrefs()
 
-    private fun scene(rowCount: Int) = Scene("Test", media.restoredBackdrop().image,
+    private val longText = "A very long line of text that wraps as far as the hero layout allows ".repeat(8)
+    private val watchNext = listOf(
+        ResumeItem(longText, longText, "appicons/settings.png", 35, "intent://one#Intent;scheme=test;package=test.player;end", "test.player", 17),
+        ResumeItem("Second", "Second", "appicons/settings.png", 10, "intent://two#Intent;scheme=test;package=test.player;end", "test.player", 18))
+    private fun scene(rowCount: Int, watch: Boolean, hero: Boolean) = Scene("Test", media.restoredBackdrop().image,
         rows.take(rowCount).map { row -> AppRow(row.name, row.apps.map { AppTile(it.packageName, it.label, it.artwork) }, row.id, row.height) },
-        emptyList(), false, true, -1, .1f, false, false)
+        if (watch) watchNext else emptyList(), hero, true, -1, .1f, false, false)
 
-    private fun home(rowCount: Int = 3) {
+    private fun home(rowCount: Int = 3, watch: Boolean = false, hero: Boolean = false) {
         compose.setContent {
             val context = LocalContext.current
             density = LocalDensity.current
             val artwork = remember { ComposeArtwork(context) }
             val selection = remember { HomeSelection() }
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
-            LauncherScreen(HomeData(scene(rowCount), ""), library.snapshot(false), prefs, media, updates, actions, selection, artwork, true, 0)
+            LauncherScreen(HomeData(scene(rowCount, watch, hero), ""), library.snapshot(false), prefs, media, updates, actions, selection, artwork, true, 0)
         }
         compose.onNodeWithContentDescription("App 0-0").assertIsFocused()
     }
-    private fun settings(route: String) {
+    private fun settings(route: String, maxRowPosition: Int = RowControl.POSITION.max) {
         compose.setContent {
             val context = LocalContext.current
             val artwork = remember { ComposeArtwork(context) }
             DisposableEffect(artwork) { artwork.setActive(true); onDispose { artwork.close() } }
-            LauncherSettings(SettingsRoute(route), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> })
+            LauncherSettings(SettingsRoute(route), library.snapshot(false), prefs, media, updates, actions, artwork, true, 0, {}, { _, _ -> }, maxRowPosition)
         }
         compose.waitForIdle()
     }
@@ -254,6 +258,58 @@ class HomeRowLayoutTest {
         assertEquals(293.3f + 60f, bounds("App 0-2").left.dp() - tile.left.dp(), 1f)
         assertEquals(165f + 100f, bounds("App 1-1").top.dp() - tile.top.dp(), 1f)
         assertTrue("A higher setting lifts the row", top("App 0-1", 165) < line - 90f)
+    }
+
+    @Test fun theCompactFeedStopsTheRowAtItsMaximumHeight() {
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
+        home(watch = true)
+        val feed = compose.onNodeWithContentDescription("Continue watching $longText").fetchSemanticsNode().boundsInRoot
+        assertEquals(WATCH_NEXT_BOTTOM, feed.bottom.dp(), 1f)
+        assertTrue("Row must sit below the feed", top("App 0-0", 110) >= feed.bottom.dp())
+    }
+
+    @Test fun theHeroFeedKeepsTheRowBelowEvenWithLongText() {
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
+        home(watch = true, hero = true)
+        val hero = compose.onNodeWithText("1 / 2").fetchSemanticsNode().boundsInRoot
+        assertTrue("Hero ends at ${hero.bottom.dp()} dp", hero.bottom.dp() <= WATCH_NEXT_BOTTOM)
+        assertTrue("Row must sit below the hero", top("App 0-0", 110) >= hero.bottom.dp())
+    }
+
+    @Test fun withoutTheFeedTheRowCanUseTheFullRange() {
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
+        home()
+        assertEquals(118f, top("App 0-0", 110), 2f)
+    }
+
+    @Test fun largestAppSizeStaysBetweenTheFeedAndTheScreenEdge() {
+        prefs.putInt(RowControl.SIZE.key, RowControl.SIZE.max)
+        prefs.putInt(RowControl.POSITION.key, RowControl.POSITION.max)
+        home(watch = true)
+        val tile = bounds("App 0-1")
+        assertEquals(212f, tile.height.dp(), 1f)
+        assertTrue(tile.top.dp() >= WATCH_NEXT_BOTTOM)
+        assertTrue(tile.bottom.dp() <= 540f)
+    }
+
+    @Test fun focusedRowHeightControlStopsAtTheFeedAndSaysWhy() {
+        settings("rowlayout", maxRowPosition = 42)
+        compose.onNodeWithText("Stops just below Continue Watching").assertExists()
+        press(KeyEvent.KEYCODE_DPAD_RIGHT, repeats = 2)
+        compose.waitForIdle()
+        compose.onNodeWithText("42%").assertExists()
+        press(KeyEvent.KEYCODE_DPAD_LEFT)
+        compose.waitUntil(3000) { prefs.int(RowControl.POSITION.key, 0) == 40 }
+    }
+
+    @Test fun homePassesTheFeedLimitToTheSettingsPage() {
+        home(watch = true)
+        press(KeyEvent.KEYCODE_MENU)
+        compose.onNodeWithText("Interface").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("App row layout").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Stops just below Continue Watching").assertExists()
     }
 
     @Test fun smallRowGapKeepsFullSizeTiles() {

@@ -33,7 +33,8 @@ internal data class SettingsRoute(val section: String, val rowId: Long? = null, 
 @Composable
 internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, prefs: PreferenceAccess,
     media: MediaAccess, updates: UpdateAccess, actions: UiActions, artwork: ComposeArtwork,
-    active: Boolean, artworkRevision: Int, close: () -> Unit, reorder: (Long, String) -> Unit) {
+    active: Boolean, artworkRevision: Int, close: () -> Unit, reorder: (Long, String) -> Unit,
+    maxRowPosition: Int = RowControl.POSITION.max) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     @Suppress("DEPRECATION")
@@ -272,11 +273,13 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             title = "App row layout"
             note = "Left and Right change the selected setting. Home updates as you go."
             RowControl.entries.forEach { control ->
-                val value = control.read(prefs)
-                entries += SettingsEntry(control.key, control.title, subtitle = control.subtitle, value = "$value${control.unit}", onKey = { event ->
+                val top = if (control == RowControl.POSITION) maxRowPosition else control.max
+                fun current() = control.read(prefs).coerceAtMost(top)
+                entries += SettingsEntry(control.key, control.title, value = "${current()}${control.unit}",
+                    subtitle = if (top < control.max) "Stops just below Continue Watching" else control.subtitle, onKey = { event ->
                     if (event.type != KeyEventType.KeyDown || (event.key != Key.DirectionLeft && event.key != Key.DirectionRight)) false
-                    else { adjust(control, control.stepped(control.read(prefs), if (event.key == Key.DirectionRight) 1 else -1)); true }
-                }) { adjust(control, control.cycled(control.read(prefs))) }
+                    else { adjust(control, control.stepped(current(), if (event.key == Key.DirectionRight) 1 else -1, top)); true }
+                }) { adjust(control, control.cycled(current(), top)) }
             }
             entries += SettingsEntry("reset", "Reset app row layout") { change { RowControl.entries.forEach { prefs.remove(it.key) } } }
         }

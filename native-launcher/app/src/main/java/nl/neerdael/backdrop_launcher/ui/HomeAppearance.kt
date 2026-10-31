@@ -42,14 +42,17 @@ internal enum class RowControl(val key: String, val title: String, val subtitle:
     BELOW("native.home_row_below_opacity", "Row below opacity", "Visibility of the rows under the active row", "%", 20, 0, 100, 5);
 
     fun read(prefs: PreferenceAccess) = prefs.int(key, default).coerceIn(min, max)
-    fun stepped(value: Int, direction: Int) = (value + direction * step).coerceIn(min, max)
-    fun cycled(value: Int) = if (value >= max) min else stepped(value, 1)
+    fun stepped(value: Int, direction: Int, top: Int = max) = (value + direction * step).coerceIn(min, top)
+    fun cycled(value: Int, top: Int = max) = if (value >= top) min else stepped(value, 1, top)
 }
 
 internal data class HomeRowLayout(val position: Int, val start: Int, val size: Int, val appGap: Int,
                                   val rowGap: Int, val belowOpacity: Int) {
-    fun tileHeight(rowHeight: Int) = (rowHeight.coerceIn(50, 500) * size / 100).coerceIn(40, 500)
+    fun tileHeight(rowHeight: Int, limit: Int = 500) = (rowHeight.coerceIn(50, 500) * size / 100).coerceAtMost(limit).coerceAtLeast(40)
 }
+
+/** Continue Watching's lowest edge in either layout; app rows never rise past it. */
+internal const val WATCH_NEXT_BOTTOM = 90f + WATCH_CARD_HEIGHT
 
 // Space LazyRow keeps around tiles so the focus scale is not clipped.
 private const val ROW_INSET_TOP = 10f
@@ -59,10 +62,22 @@ private const val ROW_INSET_BOTTOM = 8f
 internal fun homeRowExtent(tileHeight: Int, showTitles: Boolean, showNames: Boolean, rowGap: Int): Float =
     tileHeight + rowGap + (if (showTitles) 26f else 0f) + (if (showNames) 28f else 0f)
 
+private fun homeRowFrame(showTitles: Boolean, showNames: Boolean) =
+    homeRowExtent(0, showTitles, showNames, 0) + ROW_INSET_TOP + ROW_INSET_BOTTOM
+
 /** Where every active row starts, raised only when the tallest row would leave the screen. */
-internal fun homeRowTop(screenHeightDp: Float, position: Int, tallestTile: Int, showTitles: Boolean, showNames: Boolean): Float {
-    val content = homeRowExtent(tallestTile, showTitles, showNames, 0) + ROW_INSET_TOP + ROW_INSET_BOTTOM
-    return minOf(screenHeightDp * (1f - position / 100f), screenHeightDp - content).coerceAtLeast(0f)
+internal fun homeRowTop(screenHeightDp: Float, position: Int, tallestTile: Int, showTitles: Boolean, showNames: Boolean, ceiling: Float = 0f): Float =
+    minOf(screenHeightDp * (1f - position / 100f), screenHeightDp - tallestTile - homeRowFrame(showTitles, showNames)).coerceAtLeast(ceiling)
+
+/** The tallest tile that fits between [ceiling] and the bottom of the screen. */
+internal fun homeTileLimit(screenHeightDp: Float, ceiling: Float, showTitles: Boolean, showNames: Boolean) =
+    (screenHeightDp - ceiling - homeRowFrame(showTitles, showNames)).toInt()
+
+/** The highest Focused row height, on the control's own steps, that keeps the row below [ceiling]. */
+internal fun homeRowPositionLimit(screenHeightDp: Float, ceiling: Float): Int {
+    val control = RowControl.POSITION
+    val highest = ((1f - ceiling / screenHeightDp) * 100).toInt()
+    return (control.min + (highest - control.min) / control.step * control.step).coerceIn(control.min, control.max)
 }
 
 /** Distance between row slots, negative when moving back up. */

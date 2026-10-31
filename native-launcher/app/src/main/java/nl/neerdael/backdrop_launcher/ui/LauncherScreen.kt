@@ -101,11 +101,13 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
     val density = LocalDensity.current
     val screenHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
     val rowLayout = style.rows
-    val rowExtents = remember(scene.rows, style) {
-        scene.rows.map { homeRowExtent(rowLayout.tileHeight(it.height), style.rowTitles, style.appNames, rowLayout.rowGap) }
+    val rowCeiling = if (scene.watchNext.isNotEmpty()) WATCH_NEXT_BOTTOM else 0f
+    val tileLimit = homeTileLimit(screenHeight.value, rowCeiling, style.rowTitles, style.appNames)
+    val rowExtents = remember(scene.rows, style, tileLimit) {
+        scene.rows.map { homeRowExtent(rowLayout.tileHeight(it.height, tileLimit), style.rowTitles, style.appNames, rowLayout.rowGap) }
     }
-    val rowTop = homeRowTop(screenHeight.value, rowLayout.position, rowLayout.tileHeight(scene.rows.maxOfOrNull { it.height } ?: 0),
-        style.rowTitles, style.appNames).dp
+    val rowTop = homeRowTop(screenHeight.value, rowLayout.position, rowLayout.tileHeight(scene.rows.maxOfOrNull { it.height } ?: 0, tileLimit),
+        style.rowTitles, style.appNames, rowCeiling).dp
     val rowPivot = remember(rowLayout.start, density) { HomeRowPivot(with(density) { rowLayout.start.dp.toPx() }) }
     val requesters = remember { LongSparseArray<FocusRequester>() }
     val rowStates = remember { LongSparseArray<LazyListState>() }
@@ -262,7 +264,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                     itemsIndexed(scene.rows, key = { _, row -> row.id }, contentType = { _, _ -> "home-row" }) { rowIndex, row ->
                         val horizontal = rememberLazyListState(initialFirstVisibleItemIndex = selection.focusForRow(scene, rowIndex)?.tile ?: 0)
                         DisposableEffect(row.id, horizontal) { rowStates.put(row.id, horizontal); onDispose { rowStates.remove(row.id) } }
-                        val tileHeight = rowLayout.tileHeight(row.height)
+                        val tileHeight = rowLayout.tileHeight(row.height, tileLimit)
                         val height = tileHeight.dp
                         val width = height * (16f / 9f)
                         val decodeHeight = homeDecodeHeight(tileHeight).dp
@@ -339,7 +341,8 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                 moving?.let { Text("Reorder · Left/Right to move · Select or Back to finish", Modifier.align(Alignment.BottomCenter).padding(12.dp), fontSize = 15.sp) }
             }
             settings?.let { route -> LauncherSettings(route, library, prefs, media, updates, actions, artwork, active, artworkRevision,
-                close = { settings = null }, reorder = { rowId, packageName -> moving = MovingApp(rowId, packageName); settings = null }) }
+                close = { settings = null }, reorder = { rowId, packageName -> moving = MovingApp(rowId, packageName); settings = null },
+                maxRowPosition = homeRowPositionLimit(screenHeight.value, rowCeiling)) }
             BackHandler(settings == null) {
                 if (moving != null) moving = null else actions.homeBack(style.backAction)
             }

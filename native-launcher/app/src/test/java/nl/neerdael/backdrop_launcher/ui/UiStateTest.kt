@@ -121,6 +121,32 @@ class UiStateTest {
         assertEquals(0f, homeRowTop(200f, 14, 280, true, true), .01f)
     }
 
+    @Test fun continueWatchingIsTheUpperLimitForTheRow() {
+        assertEquals(310f, WATCH_NEXT_BOTTOM, .01f)
+        assertEquals(42, homeRowPositionLimit(540f, WATCH_NEXT_BOTTOM))
+        assertEquals(313.2f, homeRowTop(540f, 42, 110, false, false, WATCH_NEXT_BOTTOM), .01f)
+        assertEquals(WATCH_NEXT_BOTTOM, homeRowTop(540f, 80, 110, false, false, WATCH_NEXT_BOTTOM), .01f)
+        assertEquals(RowControl.POSITION.max, homeRowPositionLimit(540f, 0f))
+        assertEquals(RowControl.POSITION.min, homeRowPositionLimit(100f, WATCH_NEXT_BOTTOM))
+    }
+
+    @Test fun tilesShrinkRatherThanRiseIntoContinueWatching() {
+        val layout = HomeRowLayout(42, 32, 200, 24, 52, 20)
+        assertEquals(212, homeTileLimit(540f, WATCH_NEXT_BOTTOM, false, false))
+        assertEquals(158, homeTileLimit(540f, WATCH_NEXT_BOTTOM, true, true))
+        val tile = layout.tileHeight(140, homeTileLimit(540f, WATCH_NEXT_BOTTOM, true, true))
+        assertEquals(158, tile)
+        assertEquals(WATCH_NEXT_BOTTOM, homeRowTop(540f, 42, tile, true, true, WATCH_NEXT_BOTTOM), .01f)
+        assertEquals(280, layout.tileHeight(140, homeTileLimit(540f, 0f, true, true)))
+    }
+
+    @Test fun focusedRowHeightStepsStopAtTheLimit() {
+        val control = RowControl.POSITION
+        assertEquals(42, control.stepped(42, 1, 42))
+        assertEquals(40, control.stepped(42, -1, 42))
+        assertEquals(control.min, control.cycled(42, 42))
+    }
+
     @Test fun rowTravelCoversUnevenRowsInBothDirections() {
         val extents = listOf(162f, 192f, 134f)
         assertEquals(354f, homeRowTravel(extents, 0, 2), .01f)

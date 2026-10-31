@@ -82,7 +82,7 @@ Use **Left/Right** on a control. Home updates behind the panel as you go.
 
 | Control | Range | Default |
 | --- | --- | --- |
-| **Focused row height** | **14–80%** of the screen, measured up from the bottom, in 2% steps | 42% |
+| **Focused row height** | **14–80%** of the screen, measured up from the bottom, in 2% steps. Stops just below Continue Watching while it is showing. | 42% |
 | **Row position** | **0–320 dp** from the left edge, in 8 dp steps | 32 dp |
 | **App size** | **50–200%** of each row's size, in 5% steps | 100% |
 | **Space between apps** | **0–96 dp**, in 4 dp steps | 24 dp |

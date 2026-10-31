@@ -30,14 +30,14 @@ Open **Settings → Interface → App row layout**. Focus a control and use **Le
 
 | Control | What changes |
 | --- | --- |
-| **Focused row height** | How far up the screen the active row sits. Every row stops on this line. |
+| **Focused row height** | How far up the screen the active row sits. Every row stops on this line. While Continue Watching is showing, the highest setting is just below it. |
 | **Row position** | How far from the left edge the row starts. |
 | **App size** | The size of all app cards. It scales the **Row size** chosen for each row, so a smaller row stays smaller. |
 | **Space between apps** | The gap between cards in a row. |
 | **Space between rows** | The distance from one row of cards to the next. |
 | **Row below opacity** | How visible the rows under the active row are. At 0% they are hidden until you move down. |
 
-A very large **App size** can push the row higher than the height you chose, so that it stays on screen. A high **Focused row height** can overlap Continue Watching.
+A very large **App size** can push the row higher than the height you chose, so that it stays on screen. While Continue Watching is showing, rows stay below it and app cards stop growing once they fill the space that is left.
 
 Select **Reset app row layout** to return to the defaults.
 
