@@ -419,7 +419,7 @@ class NativeMediaTest {
 
     private fun client(prefs: MediaPrefs, transport: MediaTransport) = TraktClient(prefs, "client", "tmdb", "https://example.com", transport) { 1_000_000 }
     private fun media(prefs: MediaPrefs, disk: MediaDisk, transport: MediaTransport = MediaTransport { response(200, "[]") }): NativeMedia =
-        NativeMedia(prefs, client(prefs, transport), disk, WatchNextFeed(prefs, FeedProvider(emptyList()), disk), transport, { 1_000_000 }, { it.isNotEmpty() })
+        NativeMedia(prefs, client(prefs, transport), disk, WatchNextFeed(prefs, FeedProvider(emptyList()), disk), TvChannelFeed(ChannelProvider(emptyList()), disk), transport, { 1_000_000 }, { it.isNotEmpty() })
     private fun connectedPrefs(expired: Boolean = false) = MediaPrefs().apply {
         putString("trakt_token", """{"access_token":"existing","refresh_token":"refresh","expires_at":${if (expired) 1 else 5000}}""")
     }

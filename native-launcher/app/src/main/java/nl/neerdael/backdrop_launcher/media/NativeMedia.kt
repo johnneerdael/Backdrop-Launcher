@@ -2,6 +2,7 @@ package nl.neerdael.backdrop_launcher.media
 
 import android.content.Context
 import nl.neerdael.backdrop_launcher.core.Backdrop
+import nl.neerdael.backdrop_launcher.core.ChannelProgram
 import nl.neerdael.backdrop_launcher.core.DeviceAuthorization
 import nl.neerdael.backdrop_launcher.core.MediaAccess
 import nl.neerdael.backdrop_launcher.core.PreferenceAccess
@@ -12,13 +13,14 @@ import java.util.concurrent.atomic.AtomicLong
 
 /** Blocking service. Lifecycle scheduling belongs to the controller, never this object. */
 class NativeMedia internal constructor(private val prefs: PreferenceAccess, private val trakt: TraktClient,
-    private val disk: MediaDisk, private val feed: WatchNextFeed,
+    private val disk: MediaDisk, private val feed: WatchNextFeed, private val channels: TvChannelFeed,
     private val transport: MediaTransport = UrlMediaTransport,
     private val now: () -> Long = System::currentTimeMillis,
     private val imageValidator: (ByteArray) -> Boolean = ::validMediaImage) : MediaAccess {
     constructor(context: Context, prefs: PreferenceAccess, clientId: String, tmdbApiKey: String, redirectUri: String) : this(
         prefs, TraktClient(prefs, clientId, tmdbApiKey, redirectUri), MediaDisk(context.cacheDir),
-        WatchNextFeed(prefs, AndroidWatchNextProvider(context.applicationContext), MediaDisk(context.cacheDir)))
+        WatchNextFeed(prefs, AndroidWatchNextProvider(context.applicationContext), MediaDisk(context.cacheDir)),
+        TvChannelFeed(AndroidTvChannelProvider(context.applicationContext), MediaDisk(context.cacheDir)))
 
     private val generation = AtomicLong()
     private val wallpaperLock = Any()
@@ -43,6 +45,10 @@ class NativeMedia internal constructor(private val prefs: PreferenceAccess, priv
     override fun restoredWatchNext() = feed.restore()
     override fun prepareWatchNextImage(item: ResumeItem) = feed.prepare(item)
     override fun selectWatchNext(item: ResumeItem) = feed.select(item)
+    override fun tvChannels() = channels.published()
+    override fun restoredChannelPrograms(keys: Set<String>) = channels.restore(keys)
+    override fun channelPrograms(keys: Set<String>) = channels.refresh(keys)
+    override fun prepareChannelArt(key: String, ready: (List<ChannelProgram>) -> Unit) = channels.prepare(key, ready)
 
     override fun restoredBackdrop(): Backdrop = synchronized(wallpaperLock) {
         current?.let { return@synchronized it }

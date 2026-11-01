@@ -12,21 +12,21 @@ class HomeSelection {
     var resumeIndex = 0
     var rowId: Long? = null
         private set
-    private val rowPackages = mutableMapOf<Long, String>()
+    private val rowTiles = mutableMapOf<Long, String>()
     private var resumeIdentity: String? = null
 
     fun remember(scene: Scene, row: Int, tile: Int) {
         val entry = scene.rows.getOrNull(row) ?: return
         val selected = entry.apps.getOrNull(tile) ?: return
         rowId = entry.id
-        rowPackages[entry.id] = selected.packageName
-        app = AppFocus(row, tile, selected.packageName)
+        rowTiles[entry.id] = selected.key
+        app = AppFocus(row, tile, selected.key)
         area = Area.APPS
     }
     fun focusForRow(scene: Scene, row: Int): AppFocus? {
         val entry = scene.rows.getOrNull(row) ?: return null
-        val tile = entry.apps.indexOfFirst { it.packageName == rowPackages[entry.id] }.takeIf { it >= 0 } ?: 0
-        return entry.apps.getOrNull(tile)?.let { AppFocus(row, tile, it.packageName) }
+        val tile = entry.apps.indexOfFirst { it.key == rowTiles[entry.id] }.takeIf { it >= 0 } ?: 0
+        return entry.apps.getOrNull(tile)?.let { AppFocus(row, tile, it.key) }
     }
     fun reconcile(scene: Scene) {
         val previousArea = area

@@ -22,7 +22,7 @@ interface PreferenceAccess {
 data class LauncherApp(val packageName: String, val label: String, val version: String,
     val androidApp: Boolean, val hidden: Boolean, val lastLaunchedAt: Long?, val artwork: String?)
 data class LauncherRow(val id: Long, val name: String, val hidden: Boolean, val sort: Int,
-    val source: Int, val height: Int, val order: Int, val apps: List<LauncherApp>)
+    val source: Int, val height: Int, val order: Int, val apps: List<LauncherApp>, val channel: String? = null)
 data class LibrarySnapshot(val apps: List<LauncherApp>, val rows: List<LauncherRow>)
 
 /** Blocking operations: call on the data worker or Dispatchers.IO. Preserve schema12 identities. */
@@ -36,6 +36,7 @@ interface LibraryAccess {
     fun setRowApps(id: Long, packages: List<String>)
     fun rowPackages(id: Long): List<String>
     fun moveApp(rowId: Long, packageName: String, delta: Int)
+    fun setChannelRow(key: String, name: String, shown: Boolean) {}
     fun setHidden(packageName: String, hidden: Boolean)
     fun setArtwork(packageName: String, asset: String?)
     fun recordLaunch(packageName: String)
@@ -51,6 +52,10 @@ data class DeviceAuthorization(val deviceCode: String, val userCode: String, val
 enum class AuthorizationResult { PENDING, APPROVED, SLOW_DOWN, DENIED, EXPIRED, INVALID, ALREADY_USED, CANCELLED }
 data class CatalogOption(val key: String, val title: String, val itemCount: Int = 0)
 data class Backdrop(val image: String, val title: String? = null)
+data class TvChannel(val key: String, val name: String, val packageName: String, val appName: String)
+data class ChannelProgram(val item: ResumeItem, val aspect: Float) {
+    fun tile() = AppTile(item.packageName.orEmpty(), item.title, item.image, item, aspect)
+}
 
 /** Network/provider operations are blocking; UI must dispatch them off the main thread. */
 interface MediaAccess {
@@ -71,6 +76,10 @@ interface MediaAccess {
     fun restoredWatchNext(): List<ResumeItem> = emptyList()
     fun prepareWatchNextImage(item: ResumeItem): ResumeItem = item
     fun selectWatchNext(item: ResumeItem) {}
+    fun tvChannels(): List<TvChannel> = emptyList()
+    fun restoredChannelPrograms(keys: Set<String>): Map<String, List<ChannelProgram>> = emptyMap()
+    fun channelPrograms(keys: Set<String>): Map<String, List<ChannelProgram>> = emptyMap()
+    fun prepareChannelArt(key: String, ready: (List<ChannelProgram>) -> Unit) {}
     fun checkWatchNextPermission(): Boolean
 }
 

@@ -29,30 +29,32 @@ internal class AndroidWatchNextProvider(private val context: Context) : WatchNex
             "lastEngagementDate" to TvContract.WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS,
             "intentUri" to TvContract.WatchNextPrograms.COLUMN_INTENT_URI,
             "watchNextType" to TvContract.WatchNextPrograms.COLUMN_WATCH_NEXT_TYPE)
-        val result = mutableListOf<JSONObject>()
         val cursor = context.contentResolver.query(TvContract.WatchNextPrograms.CONTENT_URI,
             fields.values.toTypedArray(), null, null, "${TvContract.WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS} DESC")
             ?: throw IOException("Continue Watching provider is unavailable")
-        cursor.use {
-            var scanned = 0
-            while (it.moveToNext() && scanned++ < 150 && result.size < 50) {
-                val row = JSONObject()
-                fields.forEach { (key, column) ->
-                    val index = it.getColumnIndex(column)
-                    if (index >= 0 && !it.isNull(index)) {
-                        row.put(key, if (it.getType(index) == Cursor.FIELD_TYPE_INTEGER) it.getLong(index) else it.getString(index))
-                    }
-                }
-                if (row.textOrNull("title") != null) result.add(row)
-            }
-        }
-        return result
+        return cursor.use { it.rows(fields, 150).filter { row -> row.textOrNull("title") != null }.take(50) }
     }
 
-    override fun contentImage(uri: String, maxBytes: Int): ByteArray {
-        val parsed = Uri.parse(uri)
-        require(parsed.scheme == "content") { "Unsupported poster URI" }
-        val input = context.contentResolver.openInputStream(parsed) ?: throw IOException("Poster is unavailable")
-        return input.use { readBounded(it, maxBytes) }
+    override fun contentImage(uri: String, maxBytes: Int): ByteArray = context.providerImage(uri, maxBytes)
+}
+
+/** Reads at most limit provider rows; columns the provider leaves empty are left out. */
+internal fun Cursor.rows(fields: Map<String, String>, limit: Int): List<JSONObject> {
+    val result = mutableListOf<JSONObject>()
+    while (result.size < limit && moveToNext()) {
+        val row = JSONObject()
+        fields.forEach { (key, column) ->
+            val index = getColumnIndex(column)
+            if (index >= 0 && !isNull(index)) row.put(key, if (getType(index) == Cursor.FIELD_TYPE_INTEGER) getLong(index) else getString(index))
+        }
+        result.add(row)
     }
+    return result
+}
+
+internal fun Context.providerImage(uri: String, maxBytes: Int): ByteArray {
+    val parsed = Uri.parse(uri)
+    require(parsed.scheme in PROVIDER_IMAGE_SCHEMES) { "Unsupported poster URI" }
+    val input = contentResolver.openInputStream(parsed) ?: throw IOException("Poster is unavailable")
+    return input.use { readBounded(it, maxBytes) }
 }

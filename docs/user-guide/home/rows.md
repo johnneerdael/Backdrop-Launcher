@@ -42,6 +42,24 @@ In the editor, check an app to add it and uncheck it to remove it from this row.
 
 A globally hidden app may remain checked and show **Hidden on home screen**. It stays absent from all Home rows until you [show it again](apps.md#hide-an-app-and-bring-it-back).
 
+## Show a TV channel as a row
+
+Many apps publish channels for the Android TV home screen, such as recommendations or a list of new films. Backdrop can show those channels as rows next to your apps.
+
+1. Open **Settings → Applications → TV channels**.
+2. If **Grant TV listings permission** appears, select it and accept Android's prompt.
+3. Check the channels you want. Each one is listed with the app that publishes it, and Home updates behind the settings panel.
+
+A selected channel becomes a row at the bottom of Home. Move it, rename it or hide it in **Applications** like any other row. No channel is shown until you select it.
+
+Select a program to open it in its app. Hold Select on a program to open the row's settings.
+
+Channel rows use the same card height as your app rows. Posters are preferred over still images from the program, so a card is as wide as its artwork: a film poster is narrow and a wide image is wider. A still image is used when an app has no poster or its poster cannot be loaded, and a card without any artwork shows the title.
+
+A channel with nothing to show stays out of Home, and it returns when the app publishes programs again. To stop showing a channel, uncheck it under **TV channels**, or select **Remove channel** in its row editor.
+
+Live TV channels from a tuner are not listed. Apps decide what they publish, so an app that has no channels will not appear here.
+
 ## Delete a row
 
 Select **Delete row** in its editor. **Deletion is immediate, with no confirmation.** It removes the row and its memberships. The apps themselves stay installed, and their membership in other rows is preserved.

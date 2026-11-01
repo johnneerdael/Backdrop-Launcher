@@ -201,6 +201,60 @@ class LegacyLibraryTest {
         assertEquals(listOf("tv.one"), access.snapshot(true).apps.map { it.packageName })
         assertEquals(listOf("tv.one"), access.snapshot().rows.single { it.id == first }.apps.map { it.packageName })
     }
+    @Test fun `selected channel is a real row that survives reopening and moves among app rows`() {
+        val access = open()
+        access.snapshot(true)
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        val added = access.snapshot().rows.last()
+        assertEquals("Movies", added.name)
+        assertEquals("tv.one|movies", added.channel)
+        access.moveRow(added.id, -1)
+        access.renameRow(added.id, "Films")
+        access.updateRow(added.id, true, 0, 110)
+        access.close()
+        val reopened = open().snapshot().rows
+        assertEquals(listOf("TV Apps", "Films", "Android Apps"), reopened.map { it.name })
+        assertEquals("tv.one|movies", reopened[1].channel)
+        assertTrue(reopened[1].hidden)
+        assertTrue(reopened.filter { it.id != added.id }.all { it.channel == null })
+    }
+
+    @Test fun `channel row is added once and removal forgets it`() {
+        val access = open()
+        access.snapshot(true)
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        assertEquals(1, access.snapshot().rows.count { it.channel != null })
+        access.setChannelRow("tv.one|movies", "Movies", false)
+        assertTrue(access.snapshot().rows.none { it.channel != null })
+        assertEquals(listOf("TV Apps", "Android Apps"), access.snapshot().rows.map { it.name })
+        access.setChannelRow("tv.one|movies", "Movies", false)
+        assertEquals(2, access.snapshot().rows.size)
+    }
+
+    @Test fun `deleting a channel row deselects its channel`() {
+        val access = open()
+        access.snapshot(true)
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        access.setChannelRow("tv.two|news", "News", true)
+        val movies = access.snapshot().rows.first { it.channel == "tv.one|movies" }
+        access.deleteRow(movies.id)
+        assertEquals(listOf("tv.two|news"), access.snapshot().rows.mapNotNull { it.channel })
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        assertEquals(2, access.snapshot().rows.count { it.channel != null })
+    }
+
+    @Test fun `channel rows never take installed apps from the built in rows`() {
+        val access = open()
+        access.snapshot(true)
+        access.setChannelRow("tv.one|movies", "Movies", true)
+        apps += InstalledApp("tv.three", "Three", "1", false)
+        installed += "tv.three"
+        val rows = access.snapshot(true).rows
+        assertTrue(rows.first { it.channel != null }.apps.isEmpty())
+        assertTrue(rows.first { it.name == "TV Apps" }.apps.any { it.packageName == "tv.three" })
+    }
+
     @Test fun `row packages retain hidden memberships in manual order across sorting and restart`() {
         schema {
             seedApps(); row(81, "Alphabetical", sort = 1)

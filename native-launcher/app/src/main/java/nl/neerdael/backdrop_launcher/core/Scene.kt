@@ -5,9 +5,15 @@ import org.json.JSONObject
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-data class AppTile(val packageName: String, val label: String, val artwork: String?)
+const val HOME_TILE_ASPECT = 16f / 9f
+
+data class AppTile(val packageName: String, val label: String, val artwork: String?,
+    val program: ResumeItem? = null, val aspect: Float = HOME_TILE_ASPECT) {
+    /** Unique within a row, which can hold several programs from one app. */
+    val key: String get() = program?.let { "program:${it.id}" } ?: packageName
+}
 data class AppRow(val name: String, val apps: List<AppTile>, val id: Long = 0)
-data class AppFocus(val row: Int, val tile: Int, val packageName: String)
+data class AppFocus(val row: Int, val tile: Int, val key: String)
 data class ResumeItem(
     val title: String, val description: String, val image: String?, val progress: Int,
     val intentUri: String?, val packageName: String?, val id: Long = 0, val contentId: String? = null,
@@ -22,10 +28,10 @@ data class Scene(
 
     fun restoreAppFocus(saved: AppFocus?): AppFocus? {
         if (saved == null) return null
-        if (rows.getOrNull(saved.row)?.apps?.getOrNull(saved.tile)?.packageName == saved.packageName) return saved
+        if (rows.getOrNull(saved.row)?.apps?.getOrNull(saved.tile)?.key == saved.key) return saved
         rows.forEachIndexed { row, entry ->
-            val tile = entry.apps.indexOfFirst { it.packageName == saved.packageName }
-            if (tile >= 0) return AppFocus(row, tile, saved.packageName)
+            val tile = entry.apps.indexOfFirst { it.key == saved.key }
+            if (tile >= 0) return AppFocus(row, tile, saved.key)
         }
         return null
     }
