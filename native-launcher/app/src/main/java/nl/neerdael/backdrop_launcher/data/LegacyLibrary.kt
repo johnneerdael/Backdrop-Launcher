@@ -257,6 +257,7 @@ class LegacyLibrary internal constructor(
         initialize(refreshInstalled)
         val apps = readApps().sortedBy { it.label }
         val byPackage = apps.associateBy { it.packageName }
+        val channels = channelRows()
         val rows = readRows().map { row ->
             val members = membership(row.id)
             val entries = members.keys.mapNotNull { byPackage[it] }.filter { !it.hidden }
@@ -265,10 +266,16 @@ class LegacyLibrary internal constructor(
                 2 -> entries.sortedByDescending { it.lastLaunchedAt ?: 0L }
                 else -> entries.sortedBy { members[it.packageName] ?: 0 }
             }
-            row.copy(apps = sorted)
+            row.copy(apps = sorted, channel = channels[row.id])
         }
         LibrarySnapshot(apps, rows)
     }
+    private fun channelRows(): Map<Long, String> = runCatching {
+        val saved = JSONObject(prefs.string(CHANNEL_ROWS, "{}"))
+        saved.keys().asSequence().associate { it.toLong() to saved.getString(it) }
+    }.getOrDefault(emptyMap())
+    private fun writeChannelRows(rows: Map<Long, String>) =
+        prefs.putString(CHANNEL_ROWS, JSONObject(rows.mapKeys { it.key.toString() }).toString())
     private fun insertRow(name: String, source: Int, order: Int): Long = db.insertOrThrow("categories", null, ContentValues().apply {
         put("name", name); put("source", source); put("\"order\"", order)
     })
@@ -299,7 +306,17 @@ class LegacyLibrary internal constructor(
         if (index >= 0) { val destination = (index.toLong() + delta).coerceIn(0L, rows.lastIndex.toLong()).toInt(); rows.add(destination, rows.removeAt(index)); transaction { writeRowOrder(rows) } }
     }
     override fun deleteRow(id: Long) = synchronized(this) {
-        initialize(false); transaction { db.delete("categories", "id=?", arrayOf(id.toString())); writeRowOrder(readRows()) }; Unit
+        initialize(false); transaction { db.delete("categories", "id=?", arrayOf(id.toString())); writeRowOrder(readRows()) }
+        channelRows().let { rows -> if (id in rows) writeChannelRows(rows - id) }
+    }
+    override fun setChannelRow(key: String, name: String, shown: Boolean) = synchronized(this) {
+        initialize(false)
+        val rows = channelRows()
+        val existing = rows.entries.firstOrNull { it.value == key }?.key
+        if (shown && existing == null) {
+            require(name.isNotBlank()) { "Row name is required" }
+            writeChannelRows(rows + (insertRow(name.trim(), CHANNEL_SOURCE, (readRows().maxOfOrNull { it.order } ?: -1) + 1) to key))
+        } else if (!shown && existing != null) deleteRow(existing)
     }
     override fun rowPackages(id: Long): List<String> = synchronized(this) {
         initialize(false)
@@ -342,6 +359,9 @@ class LegacyLibrary internal constructor(
     companion object {
         private const val ROWS_VERSION = "application_rows_layout_version"
         private const val CLASSIFICATIONS = "application_rows_native_classifications"
+        // Schema12 has no column for a channel identity, and older builds must keep opening this database.
+        private const val CHANNEL_ROWS = "native.channel_rows"
+        private const val CHANNEL_SOURCE = 3
         private fun quote(identifier: String) = "\"${identifier.replace("\"", "\"\"")}\""
     }
 }

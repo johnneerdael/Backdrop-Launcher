@@ -16,16 +16,38 @@ class UiStateTest {
         val selection = HomeSelection()
         selection.remember(before, 0, 1)
         selection.remember(before, 1, 1)
-        assertEquals("b", selection.focusForRow(before, 0)?.packageName)
+        assertEquals("b", selection.focusForRow(before, 0)?.key)
         val reordered = scene(listOf(before.rows[1].copy(apps = listOf(a, b)), before.rows[0]))
         selection.reconcile(reordered)
         assertEquals(20L, selection.rowId)
         assertEquals(AppFocus(0, 0, "a"), selection.app)
         val removed = scene(listOf(reordered.rows[0].copy(apps = listOf(b))))
         selection.reconcile(removed)
-        assertEquals("b", selection.app?.packageName)
+        assertEquals("b", selection.app?.key)
         selection.reconcile(scene(emptyList()))
         assertEquals(HomeSelection.Area.SETTINGS, selection.area)
+    }
+
+    @Test fun programsInARowKeepTheirOwnFocusEvenFromTheSameApp() {
+        fun program(id: Long, image: String? = null) = ChannelProgram(ResumeItem("p$id", "", image, 0, "intent:$id", "tv.one", id), 2f / 3f).tile()
+        val before = scene(listOf(AppRow("Movies", listOf(program(1), program(2)), 30)))
+        val selection = HomeSelection()
+        selection.remember(before, 0, 1)
+        assertEquals("program:2", selection.app?.key)
+        selection.reconcile(scene(listOf(AppRow("Movies", listOf(program(9), program(1), program(2, "cache:poster")), 30))))
+        assertEquals(AppFocus(0, 2, "program:2"), selection.app)
+    }
+
+    @Test fun programTileCarriesItsArtShapeAndPlaybackTarget() {
+        val item = ResumeItem("Film", "", "cache:poster", 0, "intent:film", "tv.one", 7)
+        val tile = ChannelProgram(item, 2f / 3f).tile()
+        assertEquals("tv.one", tile.packageName)
+        assertEquals("Film", tile.label)
+        assertEquals("cache:poster", tile.artwork)
+        assertEquals(item, tile.program)
+        assertEquals(2f / 3f, tile.aspect, .001f)
+        assertEquals(16f / 9f, a.aspect, .001f)
+        assertEquals("a", a.key)
     }
 
     @Test fun providerIdKeepsResumeSelectionWhenAnotherItemIsInserted() {
@@ -50,8 +72,8 @@ class UiStateTest {
         selection.remember(initial, 1, 0)
         val hidden = scene(listOf(initial.rows[0].copy(apps = listOf(a)), initial.rows[1]))
         selection.reconcile(hidden)
-        assertEquals("a", selection.focusForRow(hidden, 0)?.packageName)
-        assertEquals("a", selection.focusForRow(hidden, 1)?.packageName)
+        assertEquals("a", selection.focusForRow(hidden, 0)?.key)
+        assertEquals("a", selection.focusForRow(hidden, 1)?.key)
         selection.area = HomeSelection.Area.SETTINGS
         selection.reconcile(hidden)
         assertEquals(HomeSelection.Area.SETTINGS, selection.area)

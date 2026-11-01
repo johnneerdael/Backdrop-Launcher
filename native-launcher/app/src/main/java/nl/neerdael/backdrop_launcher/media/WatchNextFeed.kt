@@ -128,15 +128,7 @@ internal class WatchNextFeed(private val prefs: PreferenceAccess, private val pr
             }
             try {
                 disk.cachedImage(NAMESPACE, uri, MAX_IMAGE_BYTES)?.let { images[uri] = it; trimImages(); return }
-                val parsed = URI(uri)
-                val bytes = if (parsed.scheme == "content") provider.contentImage(uri, MAX_IMAGE_BYTES)
-                    else {
-                        require(parsed.scheme in setOf("https", "http") && parsed.host != null && parsed.userInfo == null) { "Unsupported poster URI" }
-                        val response = transport.execute(MediaRequest(uri, maxBytes = MAX_IMAGE_BYTES, timeoutMillis = 10_000, followImageRedirects = true))
-                        if (response.status != 200) throw IOException("Poster download failed")
-                        response.bytes
-                    }
-                require(bytes.size in 1..MAX_IMAGE_BYTES) { "Invalid poster size" }
+                val bytes = programImage(uri, MAX_IMAGE_BYTES, transport, provider::contentImage)
                 ensureMediaActive()
                 val path = disk.writeImage(NAMESPACE, uri, bytes) ?: throw IOException("Invalid poster image")
                 images[uri] = path
@@ -183,4 +175,20 @@ internal class WatchNextFeed(private val prefs: PreferenceAccess, private val pr
         }
         fun uris(row: JSONObject): List<String> = listOfNotNull(row.textOrNull("backdropUri"), row.textOrNull("posterUri")).distinct()
     }
+}
+
+internal val PROVIDER_IMAGE_SCHEMES = setOf("content", "android.resource")
+
+/** Art a TV app published: read through its provider, or downloaded with no credentials in the URL. */
+internal fun programImage(uri: String, maxBytes: Int, transport: MediaTransport, content: (String, Int) -> ByteArray): ByteArray {
+    val parsed = URI(uri)
+    val bytes = if (parsed.scheme in PROVIDER_IMAGE_SCHEMES) content(uri, maxBytes)
+        else {
+            require(parsed.scheme in setOf("https", "http") && parsed.host != null && parsed.userInfo == null) { "Unsupported poster URI" }
+            val response = transport.execute(MediaRequest(uri, maxBytes = maxBytes, timeoutMillis = 10_000, followImageRedirects = true))
+            if (response.status != 200) throw IOException("Poster download failed")
+            response.bytes
+        }
+    require(bytes.size in 1..maxBytes) { "Invalid poster size" }
+    return bytes
 }

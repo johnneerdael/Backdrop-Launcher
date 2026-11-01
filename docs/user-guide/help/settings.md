@@ -12,6 +12,7 @@ Settings opens as a compact pane on the right, with the typography, charcoal sur
 | --- | --- |
 | Existing row | **Select** to move; **Right / hold Select** to edit. |
 | **Add row** | Name and create a row. |
+| **TV channels** | Choose which channels your apps publish, and show them as rows on Home. See [Show a TV channel as a row](../home/rows.md#show-a-tv-channel-as-a-row). |
 | **Installed apps** | View TV and Android apps, including hidden apps. Open an app for its details. |
 
 In the row editor:

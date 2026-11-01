@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -162,7 +163,9 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
         if (next != activeRow) scope.launch { focusRow(next, true) }
     }
     fun appsFocus() { scope.launch { focusRow(selection.app?.row ?: activeRow) } }
-    fun openApp(app: AppTile, row: AppRow) { settings = SettingsRoute("app", rowId = row.id, packageName = app.packageName) }
+    fun openApp(app: AppTile, row: AppRow) {
+        settings = if (app.program != null) SettingsRoute("row", rowId = row.id) else SettingsRoute("app", rowId = row.id, packageName = app.packageName)
+    }
     fun moveApp(direction: Int) {
         val target = moving ?: return
         if (moveBusy) return
@@ -173,7 +176,9 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
             finally { moveBusy = false }
         }
     }
-    LaunchedEffect(scene.rows, scene.watchNext, active, settings) {
+    // Keyed on identities: posters filling in must not pull focus or scroll a row back.
+    val rowIdentity = remember(scene.rows) { scene.rows.map { row -> row.id to row.apps.map { it.key } } }
+    LaunchedEffect(rowIdentity, scene.watchNext, active, settings) {
         selection.reconcile(scene)
         resumeIndex = selection.resumeIndex
         if (!active || settings != null) return@LaunchedEffect
@@ -272,9 +277,7 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                         val horizontal = rememberLazyListState(initialFirstVisibleItemIndex = selection.focusForRow(scene, rowIndex)?.tile ?: 0)
                         DisposableEffect(row.id, horizontal) { rowStates.put(row.id, horizontal); onDispose { rowStates.remove(row.id) } }
                         val height = tileHeight.dp
-                        val width = height * (16f / 9f)
                         val decodeHeight = homeDecodeHeight(tileHeight).dp
-                        val imageSize = with(density) { IntSize((decodeHeight * (16f / 9f)).roundToPx(), decodeHeight.roundToPx()) }
                         Column(Modifier.height(rowExtents[rowIndex].dp).graphicsLayer {
                             // Scroll position, read here, drives opacity without recomposing each frame.
                             val page = homeRowPage(rowExtents, rowList.firstVisibleItemIndex, rowList.firstVisibleItemScrollOffset / density.density)
@@ -301,14 +304,19 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                                 } else false
                                             }) { Text("${row.name} · Add apps", Modifier.padding(20.dp)) }
                                 }
-                                itemsIndexed(row.apps, key = { _, app -> app.packageName }, contentType = { _, _ -> "app" }) { tileIndex, app ->
+                                itemsIndexed(row.apps, key = { _, app -> app.key }, contentType = { _, app -> if (app.program != null) "program" else "app" }) { tileIndex, app ->
                                     val focus = remember { FocusRequester() }
+                                    val width = height * app.aspect
+                                    val imageSize = with(density) { IntSize((decodeHeight * app.aspect).roundToPx(), decodeHeight.roundToPx()) }
                                     val slot = packInts(rowIndex, tileIndex)
                                     DisposableEffect(slot, focus) { requesters.put(slot, focus); onDispose { if (requesters.get(slot) === focus) requesters.remove(slot) } }
                                     Column(Modifier.width(width)) {
                                         AppCardSurface(onClick = {
                                             if (settings == null) {
-                                                if (moving != null) moving = null else { if (style.clickSound) view.playSoundEffect(SoundEffectConstants.CLICK); actions.launch(app.packageName) }
+                                                if (moving != null) moving = null else {
+                                                    if (style.clickSound) view.playSoundEffect(SoundEffectConstants.CLICK)
+                                                    if (app.program != null) actions.play(app.program) else actions.launch(app.packageName)
+                                                }
                                             }
                                         }, onLongClick = { if (settings == null) { if (moving != null) moving = null else openApp(app, row) } },
                                             color = Color(style.accent).copy(alpha = style.opacity), borderColor = Color(style.indicator),
@@ -329,7 +337,11 @@ fun LauncherScreen(home: HomeData, library: LibrarySnapshot, prefs: PreferenceAc
                                                         else -> false
                                                     }
                                                 }.semantics { contentDescription = app.label }) {
-                                            Artwork(app.artwork ?: "package:${app.packageName}", artwork, active, artworkRevision,
+                                            if (app.program != null) {
+                                                if (app.artwork == null) Text(app.label, Modifier.padding(8.dp), fontSize = 13.sp, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                                                else Artwork(app.artwork, artwork, active, artworkRevision, Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                                    ContentScale.Crop, decodeSize = imageSize, viewport = viewport)
+                                            } else Artwork(app.artwork ?: "package:${app.packageName}", artwork, active, artworkRevision,
                                                 Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp), ContentScale.Fit,
                                                 decodeSize = imageSize, viewport = viewport)
                                         }

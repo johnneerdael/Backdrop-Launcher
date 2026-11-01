@@ -53,6 +53,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     var memberships by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
     var catalogs by remember { mutableStateOf<List<CatalogOption>>(emptyList()) }
     var selectedCatalogs by remember { mutableStateOf<List<String>>(emptyList()) }
+    var channels by remember { mutableStateOf<List<TvChannel>?>(null) }
     var auth by remember { mutableStateOf<DeviceAuthorization?>(null) }
     var authStatus by remember { mutableStateOf("") }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -152,6 +153,13 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         } catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
         catch (failure: Exception) { error = failure.message ?: "Unable to load these settings" }
     }
+    // Keyed on active so the list fills in when returning from the permission prompt.
+    LaunchedEffect(page.section, version, active) {
+        if (page.section != "channels") return@LaunchedEffect
+        try { channels = withContext(Dispatchers.IO) { media.tvChannels() } }
+        catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
+        catch (failure: Exception) { channels = emptyList(); error = failure.message ?: "Unable to load these settings" }
+    }
     LaunchedEffect(auth, active) {
         val pending = auth ?: return@LaunchedEffect
         if (!active) return@LaunchedEffect
@@ -201,7 +209,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             title = "Applications"
             model.rows.sortedBy { it.order }.forEach { item ->
                 entries += SettingsEntry("row:${item.id}", item.name, localize = false,
-                    subtitle = if (movingRow == item.id) "Up/Down to move · Select to finish" else "${item.apps.size} apps · ${if (item.hidden) "Hidden · " else ""}Select to move · Hold/Right to edit",
+                    subtitle = if (movingRow == item.id) "Up/Down to move · Select to finish" else "${if (item.channel != null) "TV channel" else "${item.apps.size} apps"} · ${if (item.hidden) "Hidden · " else ""}Select to move · Hold/Right to edit",
                     onHold = { movingRow = null; go("row", rowId = item.id) }, onKey = { event ->
                         if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown) false
                         else if (event.key == androidx.compose.ui.input.key.Key.DirectionRight) { movingRow = null; go("row", rowId = item.id); true }
@@ -211,22 +219,39 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
                     }) { movingRow = if (movingRow == item.id) null else item.id }
             }
             entries += SettingsEntry("add", "Add row") { prompt = TextPrompt("Add row") { name -> execute("Creating row…", reload = true, task = { actions.library.createRow(name) }) { go("row", rowId = it) } } }
+            entries += SettingsEntry("channels", "TV channels", subtitle = "Show channels from your apps as rows") { go("channels") }
             entries += SettingsEntry("inventory", "Installed apps", subtitle = "Show, hide and manage TV and Android applications") { go("inventory") }
+        }
+        "channels" -> {
+            title = "TV channels"
+            val shown = model.rows.mapNotNull { it.channel }.toSet()
+            fun channel(key: String, name: String, packageName: String?, subtitle: String) = SettingsEntry("channel:$key", name, localize = false, subtitle = subtitle,
+                artwork = packageName?.let { "package:$it" }, checked = key in shown) { mutate { actions.library.setChannelRow(key, name, key !in shown) } }
+            if (!media.checkWatchNextPermission()) entries += SettingsEntry("permission", "Grant TV listings permission", subtitle = "Allows reading the channels your apps publish", onClick = actions::requestWatchNextPermission)
+            val published = channels.orEmpty().sortedWith(compareBy({ it.appName }, { it.name }))
+            published.forEach { entries += channel(it.key, it.name, it.packageName, it.appName) }
+            model.rows.filter { row -> channels != null && row.channel != null && published.none { it.key == row.channel } }
+                .forEach { entries += channel(it.channel!!, it.name, null, "Not publishing right now") }
+            note = if (channels == null) "Loading channels…"
+                else if (entries.none { it.id.startsWith("channel:") } && media.checkWatchNextPermission()) "No app on this TV publishes channels right now."
+                else "Selected channels become rows on Home. Move them in Applications."
         }
         "row" -> {
             title = row?.name ?: "Row no longer exists"
             if (row != null) {
                 entries += choice("rename", "Row name", row.name) { prompt = TextPrompt("Row name", row.name) { name -> mutate { actions.library.renameRow(row.id, name) } } }
-                entries += choice("sort", "App order", listOf("Manual", "Alphabetical", "Last used").getOrElse(row.sort) { "Manual" }) {
+                if (row.channel == null) entries += choice("sort", "App order", listOf("Manual", "Alphabetical", "Last used").getOrElse(row.sort) { "Manual" }) {
                     mutate { actions.library.updateRow(row.id, row.hidden, (row.sort + 1) % 3, row.height) }
                 }
                 entries += SettingsEntry("visible", "Show on home screen", checked = !row.hidden, control = SettingsControl.SWITCH) { mutate { actions.library.updateRow(row.id, !row.hidden, row.sort, row.height) } }
                 entries += SettingsEntry("up", "Move row up") { mutate { actions.library.moveRow(row.id, -1) } }
                 entries += SettingsEntry("down", "Move row down") { mutate { actions.library.moveRow(row.id, 1) } }
-                entries += SettingsEntry("delete", "Delete row") { confirmation = Confirmation("Delete ${row.name}?", "Applications stay installed. Only this row and its membership are removed.", "Delete") {
+                if (row.channel != null) entries += SettingsEntry("delete", "Remove channel") { confirmation = Confirmation("Remove ${row.name}?", "The app keeps publishing this channel. You can add it back under TV channels.", "Remove") {
+                    execute("Removing channel…", reload = true, task = { actions.library.deleteRow(row.id) }) { back() }
+                } } else entries += SettingsEntry("delete", "Delete row") { confirmation = Confirmation("Delete ${row.name}?", "Applications stay installed. Only this row and its membership are removed.", "Delete") {
                     execute("Deleting row…", reload = true, task = { actions.library.deleteRow(row.id) }) { back() }
                 } }
-                model.apps.forEach { member -> entries += SettingsEntry("member:${member.packageName}", member.label, localize = false,
+                if (row.channel == null) model.apps.forEach { member -> entries += SettingsEntry("member:${member.packageName}", member.label, localize = false,
                     subtitle = (if (member.androidApp) "Android app" else "TV app") + if (member.hidden) " · Hidden on home screen" else "",
                     artwork = member.artwork ?: "package:${member.packageName}", checked = member.packageName in memberships[row.id].orEmpty(),
                     enabled = row.id in memberships) { mutate { toggleRowMembership(actions.library, row.id, member.packageName) } } }

@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity(), UiActions {
     private lateinit var artwork: ComposeArtwork
     private val dataWorker = Executors.newSingleThreadExecutor()
     private val mediaWorker = Executors.newSingleThreadExecutor()
+    private val channelWorker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private val selection = HomeSelection()
     private var home by mutableStateOf<HomeData?>(null)
@@ -43,6 +44,8 @@ class MainActivity : ComponentActivity(), UiActions {
     private var artworkRevision by mutableIntStateOf(0)
     private var backdrop: Backdrop? = null
     private var watchNext = emptyList<ResumeItem>()
+    private var channelKeys = emptySet<String>()
+    private var channelPrograms = emptyMap<String, List<ChannelProgram>>()
     private var packageDirty = true
     private var initialized = false
     private var sourceDirty = false
@@ -56,11 +59,15 @@ class MainActivity : ComponentActivity(), UiActions {
     private var pendingMedia = false
     private var pendingRotation = false
     private var pairTask: Future<*>? = null
+    private var channelTask: Future<*>? = null
     private var unsubscribe: (() -> Unit)? = null
     private var pendingInstall: File? = null
     private var observerRegistered = false
     private val provider = object : ContentObserver(handler) {
         override fun onChange(selfChange: Boolean) { if (resumed) scheduleProviderRefresh() }
+    }
+    private val channelProvider = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean) { if (resumed) scheduleChannelRefresh() }
     }
     private val packages = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -73,6 +80,7 @@ class MainActivity : ComponentActivity(), UiActions {
     }
     private val localRefresh = Runnable { if (resumed) { refresh(); scheduleRotation() } }
     private val providerRefresh = Runnable { refreshMedia(false) }
+    private val channelRefresh = Runnable { refreshChannels() }
     private val rotate = Runnable { refreshMedia(true) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,10 +128,12 @@ class MainActivity : ComponentActivity(), UiActions {
         artwork.setActive(true)
         artworkRevision++
         refresh()
-        if (initialized) refreshMedia(sourceDirty || prefs.bool("backdrop_refresh_on_resume", true))
+        if (initialized) { refreshMedia(sourceDirty || prefs.bool("backdrop_refresh_on_resume", true)); refreshChannels() }
         scheduleRotation()
         if (!observerRegistered && Build.VERSION.SDK_INT >= 26) try {
             contentResolver.registerContentObserver(Uri.parse("content://android.media.tv/watch_next_program"), true, provider)
+            contentResolver.registerContentObserver(Uri.parse("content://android.media.tv/preview_program"), true, channelProvider)
+            contentResolver.registerContentObserver(Uri.parse("content://android.media.tv/channel"), true, channelProvider)
             observerRegistered = true
         } catch (_: SecurityException) { /* Permission control stays available in settings. */ }
         pendingInstall?.let { if (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()) { pendingInstall = null; installApk(it) } }
@@ -132,12 +142,16 @@ class MainActivity : ComponentActivity(), UiActions {
     override fun onPause() {
         resumed = false
         generation++
-        handler.removeCallbacks(localRefresh); handler.removeCallbacks(providerRefresh); handler.removeCallbacks(rotate)
-        dataTask?.cancel(true); mediaTask?.cancel(true); pairTask?.cancel(true)
-        dataTask = null; mediaTask = null; pairTask = null
+        handler.removeCallbacks(localRefresh); handler.removeCallbacks(providerRefresh); handler.removeCallbacks(channelRefresh); handler.removeCallbacks(rotate)
+        dataTask?.cancel(true); mediaTask?.cancel(true); pairTask?.cancel(true); channelTask?.cancel(true)
+        dataTask = null; mediaTask = null; pairTask = null; channelTask = null
         mediaBusy = false; pendingMedia = false; pendingRotation = false
         artwork.setActive(false)
-        if (observerRegistered) { contentResolver.unregisterContentObserver(provider); observerRegistered = false }
+        if (observerRegistered) {
+            contentResolver.unregisterContentObserver(provider)
+            contentResolver.unregisterContentObserver(channelProvider)
+            observerRegistered = false
+        }
         super.onPause()
     }
 
@@ -155,6 +169,8 @@ class MainActivity : ComponentActivity(), UiActions {
                 val loaded = library.snapshot(discover)
                 val restored = if (first) media.restoredBackdrop() else null
                 val restoredFeed = if (first) media.restoredWatchNext() else null
+                val keys = loaded.rows.mapNotNullTo(linkedSetOf()) { it.channel }
+                val restoredChannels = if (first) media.restoredChannelPrograms(keys) else null
                 handler.post {
                     if (!resumed || generation != request || dataVersion != version) return@post
                     snapshot = loaded
@@ -164,11 +180,15 @@ class MainActivity : ComponentActivity(), UiActions {
                         watchNext = restoredFeed.orEmpty()
                         val saved = prefs.long("native.watch_next_selected_id", 0)
                         selection.resumeIndex = watchNext.indexOfFirst { it.id == saved }.coerceAtLeast(0)
+                        channelPrograms = restoredChannels.orEmpty()
                     }
+                    val channelsChanged = first || keys != channelKeys
+                    channelKeys = keys
                     initialized = true
                     error = null
                     render()
                     if (first) refreshMedia(prefs.bool("backdrop_refresh_on_resume", true))
+                    if (channelsChanged) refreshChannels()
                 }
             } catch (failure: Exception) {
                 Log.e("Backdrop", "Library unavailable; retained original data", failure)
@@ -180,7 +200,8 @@ class MainActivity : ComponentActivity(), UiActions {
     private fun render() {
         val image = backdrop?.image ?: NativeMedia.BUNDLED_BACKDROPS.first()
         val visibleRows = snapshot.rows.filter { !it.hidden }.map { row ->
-            AppRow(row.name, row.apps.filter { !it.hidden }.map { AppTile(it.packageName, it.label, it.artwork ?: "package:${it.packageName}") }, row.id)
+            AppRow(row.name, row.channel?.let { key -> channelPrograms[key].orEmpty().map { it.tile() } }
+                ?: row.apps.filter { !it.hidden }.map { AppTile(it.packageName, it.label, it.artwork ?: "package:${it.packageName}") }, row.id)
         }.filter { it.apps.isNotEmpty() }
         val accent = prefs.string("accent_color", "FFFFFF").removePrefix("#").toLongOrNull(16)?.toInt() ?: 0xffffff
         val scene = Scene("Backdrop", image, visibleRows,
@@ -237,6 +258,33 @@ class MainActivity : ComponentActivity(), UiActions {
                     pendingMedia = false; pendingRotation = false
                     refreshMedia(rotateNext)
                 }
+            }
+        }
+    }
+
+    private fun scheduleChannelRefresh() {
+        handler.removeCallbacks(channelRefresh)
+        // Apps publish programs one at a time, so wait for a batch to settle.
+        if (resumed && channelKeys.isNotEmpty()) handler.postDelayed(channelRefresh, 1000)
+    }
+
+    /** Has its own worker: posters can take a while and must not hold up backdrops or Continue Watching. */
+    private fun refreshChannels() {
+        if (!resumed || !initialized || (channelKeys.isEmpty() && channelPrograms.isEmpty())) return
+        channelTask?.cancel(true)
+        val request = generation
+        val keys = channelKeys
+        fun show(programs: Map<String, List<ChannelProgram>>, replace: Boolean = false) = handler.post {
+            if (!resumed || request != generation || keys != channelKeys) return@post
+            channelPrograms = if (replace) programs else channelPrograms + programs
+            render()
+        }
+        channelTask = channelWorker.submit {
+            try {
+                show(media.channelPrograms(keys), replace = true)
+                keys.forEach { key -> media.prepareChannelArt(key) { show(mapOf(key to it)) } }
+            } catch (_: Exception) {
+                if (!Thread.currentThread().isInterrupted) Log.w("Backdrop", "TV channels unavailable; retained cached data")
             }
         }
     }
@@ -329,7 +377,7 @@ class MainActivity : ComponentActivity(), UiActions {
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001) scheduleProviderRefresh()
+        if (requestCode == 1001) { scheduleProviderRefresh(); scheduleChannelRefresh() }
     }
     override fun installApk(file: File) {
         if (!BuildConfig.SELF_UPDATER || !file.canonicalPath.startsWith(cacheDir.canonicalPath + File.separator)) return
@@ -350,7 +398,7 @@ class MainActivity : ComponentActivity(), UiActions {
         unregisterReceiver(packages)
         handler.removeCallbacksAndMessages(null)
         artwork.close()
-        dataWorker.shutdownNow(); mediaWorker.shutdownNow()
+        dataWorker.shutdownNow(); mediaWorker.shutdownNow(); channelWorker.shutdownNow()
         // Avoid racing a still-finishing SQLite snapshot with close().
         Thread { synchronized(library) { library.close() } }.start()
         super.onDestroy()
