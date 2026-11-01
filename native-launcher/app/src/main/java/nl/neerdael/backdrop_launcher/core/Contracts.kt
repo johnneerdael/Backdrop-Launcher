@@ -84,10 +84,14 @@ interface MediaAccess {
 }
 
 data class UpdateInfo(val version: String, val code: Long, val url: String, val notes: String)
+data class PendingUpdate(val info: UpdateInfo, val file: File)
+const val AUTO_UPDATE_KEY = "native.auto_update"
 interface UpdateAccess {
     val enabled: Boolean
     fun check(): UpdateInfo?
     fun download(update: UpdateInfo): File
+    /** Blocking. A verified download that is newer than the installed app. */
+    fun pending(): PendingUpdate? = null
 }
 
 interface UiActions {

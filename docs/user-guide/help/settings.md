@@ -128,6 +128,7 @@ Turning off focus borders also disables highlight animation. See [Colours, cards
 | **Screensaver Clock Style** | **Minimal**, **Bold**, **Retro**, **Elegant**, **Neon**, **Pixel**, **Digital**. Default: Minimal. |
 | **Date and time format** | Six date presets and five time presets, with a preview. Defaults: full weekday and day (`EEEE d`), 24-hour time (`H:mm`). |
 | **Back button action** | **Do nothing**, **Show clock**, **Show screensaver**. Default: Do nothing. Home behaviour requires Android’s effective default launcher. |
+| **Install updates automatically** | On or off. Default: on. Present only in builds with the self-updater enabled. See [Automatic updates](updates.md#automatic-updates). |
 
 See [Date formats](../personalise/status-and-time.md#choose-a-date-or-time-format) and [Clock, screensaver and Back](../personalise/clock-and-back.md).
 
@@ -136,6 +137,7 @@ See [Date formats](../personalise/status-and-time.md#choose-a-date-or-time-forma
 | Control | Action |
 | --- | --- |
 | **System settings** | Open Android’s general device settings. |
+| **Install update {version}** | Install a downloaded update. Appears only while one is waiting. |
 | **Check for updates** | Check published GitHub releases. Present only in builds with the self-updater enabled. |
 | **About Backdrop Launcher** | View the installed version/build, project credits and **View licenses**. |
 

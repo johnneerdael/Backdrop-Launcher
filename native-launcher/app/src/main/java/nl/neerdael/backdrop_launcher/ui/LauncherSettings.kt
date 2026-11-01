@@ -57,7 +57,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     var auth by remember { mutableStateOf<DeviceAuthorization?>(null) }
     var authStatus by remember { mutableStateOf("") }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var downloaded by remember { mutableStateOf<File?>(null) }
+    var pending by remember { mutableStateOf<PendingUpdate?>(null) }
     var updateStatus by remember { mutableStateOf("") }
     var appVersion by remember { mutableStateOf("") }
     var appCode by remember { mutableLongStateOf(0) }
@@ -123,8 +123,10 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             }
         }
     fun choice(id: String, title: String, value: String, action: () -> Unit) = SettingsEntry(id, title, value = value, onClick = action)
+    fun installEntry(waiting: PendingUpdate) = SettingsEntry("install", "Install update ${waiting.info.version}", subtitle = "Downloaded and ready to install",
+        localize = false, icon = SettingsIcon.UPDATE) { actions.installApk(waiting.file) }
     fun checkUpdates() = execute("Checking for updates…", refresh = false, task = { updates.check() }) {
-        update = it; downloaded = null
+        update = it
         updateStatus = if (it == null) "No newer published release is available." else "Latest release: ${it.version}"
         go("update")
     }
@@ -159,6 +161,10 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         try { channels = withContext(Dispatchers.IO) { media.tvChannels() } }
         catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
         catch (failure: Exception) { channels = emptyList(); error = failure.message ?: "Unable to load these settings" }
+    }
+    LaunchedEffect(page.section, version, active) {
+        if (page.section !in setOf("settings", "update")) return@LaunchedEffect
+        pending = runCatching { withContext(Dispatchers.IO) { updates.pending() } }.getOrNull()
     }
     LaunchedEffect(auth, active) {
         val pending = auth ?: return@LaunchedEffect
@@ -197,6 +203,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             entries += SettingsEntry("interface", "Interface", icon = SettingsIcon.INTERFACE) { go("interface") }
             entries += SettingsEntry("system", "System", icon = SettingsIcon.SYSTEM) { go("system") }
             entries += SettingsEntry("android", "System settings", icon = SettingsIcon.SETTINGS) { close(); actions.systemSettings() }
+            pending?.let { entries += installEntry(it) }
             if (updates.enabled) entries += SettingsEntry("check", "Check for updates", icon = SettingsIcon.UPDATE, onClick = ::checkUpdates)
             entries += SettingsEntry("about", "About Backdrop Launcher", icon = SettingsIcon.INFO) { go("about") }
         }
@@ -358,6 +365,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             entries += SettingsEntry("formats", "Date and time formats") { go("formats") }
             entries += SettingsEntry("back", "Back button action") { go("back") }
             entries += SettingsEntry("network", "Network settings", onClick = actions::openNetworkSettings)
+            if (updates.enabled) entries += toggle(AUTO_UPDATE_KEY, "Install updates automatically", true)
         }
         "clockstyle" -> {
             title = "Screensaver clock style"
@@ -434,14 +442,11 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
             title = "Updates"
             note = updateStatus
             entries += SettingsEntry("check", "Check again", enabled = updates.enabled, onClick = ::checkUpdates)
-            update?.let { latest ->
-                if (latest.code > appCode) entries += SettingsEntry("download", "Download ${latest.version}", subtitle = "Read the release notes below before downloading") {
-                    execute("Downloading and verifying update…", refresh = false, task = { updates.download(latest) }) { file ->
-                        downloaded = file
-                        confirmation = Confirmation("Install ${latest.version}?", "Android will ask for any required permission and installation confirmation. Your launcher data stays in place.", "Continue to Android installer") { actions.installApk(file) }
-                    }
+            pending?.let { entries += installEntry(it) }
+            update?.takeIf { it.code > appCode && it.code != pending?.info?.code }?.let { latest ->
+                entries += SettingsEntry("download", "Download ${latest.version}", subtitle = "Read the release notes below before downloading") {
+                    execute("Downloading and verifying update…", refresh = false, task = { updates.download(latest); updates.pending() }) { pending = it }
                 }
-                downloaded?.let { file -> entries += SettingsEntry("install", "Open Android installer") { confirmation = Confirmation("Install update?", "Continue to Android's installer to review and confirm this update.", "Continue") { actions.installApk(file) } } }
             }
         }
         "about" -> {
@@ -461,7 +466,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
                     artworkGrid = page.section == "artwork",
                     lead = if (page.section == "auth") { { TraktActivation(auth, authStatus) } } else null) {
                     if (!note.isNullOrBlank()) Text(note, Modifier.padding(top = 10.dp), style = NativeSettingsStyle.summaryStyle)
-                    if (page.section == "update" && !update?.notes.isNullOrBlank()) ReadableText(update!!.notes, Modifier.padding(top = 10.dp))
+                    if (page.section == "update") (update ?: pending?.info)?.notes?.takeIf { it.isNotBlank() }?.let { ReadableText(it, Modifier.padding(top = 10.dp)) }
                 }
             }
         }
