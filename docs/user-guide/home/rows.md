@@ -62,6 +62,6 @@ Live TV channels from a tuner are not listed. Apps decide what they publish, so 
 
 ## Delete a row
 
-Select **Delete row** in its editor. **Deletion is immediate, with no confirmation.** It removes the row and its memberships. The apps themselves stay installed, and their membership in other rows is preserved.
+Select **Delete row** in its editor, then confirm. It removes the row and its memberships. The apps themselves stay installed, and their membership in other rows is preserved.
 
 For a temporary change, use **Show on home screen** instead of deleting the row.
