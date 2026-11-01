@@ -295,7 +295,7 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
         }
         "artwork", "bundled" -> {
             title = if (page.section == "artwork") "Choose app icon / banner" else "Included backdrops"
-            assets.forEach { asset -> entries += SettingsEntry(asset, asset.substringAfterLast('/').substringBeforeLast('.').replace('-', ' '), artwork = asset, localize = false) {
+            assets.forEach { asset -> entries += SettingsEntry(asset, assetLabel(asset), artwork = asset, localize = false) {
                 if (page.section == "artwork" && app != null) execute("Saving artwork…", reload = true, task = { actions.library.setArtwork(app.packageName, asset) }) { back() }
                 else execute("Setting backdrop…", task = { media.chooseBundledBackdrop(asset) }) { actions.showBackdrop(it); back() }
             } }
@@ -475,6 +475,8 @@ internal fun LauncherSettings(initial: SettingsRoute, library: LibrarySnapshot, 
     prompt?.let { value -> PromptDialog(value) { prompt = null } }
     confirmation?.let { value -> ConfirmationDialog(value) { confirmation = null } }
 }
+
+internal fun assetLabel(path: String) = path.substringAfterLast('/').substringBeforeLast('.').replace('-', ' ').replace('_', ' ')
 
 /** Read raw ordered membership before changing it; globally hidden entries must survive edits. */
 internal fun toggleRowMembership(library: LibraryAccess, rowId: Long, packageName: String) {
