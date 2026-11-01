@@ -2,21 +2,46 @@
 
 Open **Settings → About Backdrop Launcher** to see the installed version and build number. Compare it with the release notes on the [project’s Releases page](https://github.com/johnneerdael/Backdrop-Launcher/releases).
 
+## Automatic updates
+
+Backdrop keeps itself up to date. Automatic updates are on unless you turn them off under **Settings → System → Install updates automatically**, and builds without the updater do not show this switch.
+
+Every six hours, Backdrop asks the project's GitHub release feed whether there is a new stable release. It downloads a new release in the background and checks it before use: the version, the published checksum and the signing certificate must all match. A download that fails these checks is thrown away.
+
+The update installs while Home is on screen, never while you are watching something. Installing restarts Backdrop, so the screen returns to your default Home. If Backdrop is your default Home, it opens again by itself.
+
+### The first update
+
+Android must allow Backdrop to install apps once. The first time an update is ready, Android may say your TV isn't allowed to install unknown apps from this source:
+
+1. Select **Settings** in that message.
+2. Turn on **Backdrop Launcher**.
+3. Press Back until you return to Backdrop.
+
+The waiting update then installs by itself. You can also turn this on ahead of time in Android's **Install unknown apps** settings.
+
+With that allowed, updates on Android 14 and later install without asking. Android 12 and 13 can ask for the first update, and older versions ask for every update.
+
+### If you turn an update down
+
+Choose **Cancel** on Android's prompt and the update is kept on your TV. Backdrop will not ask about that version again. A newer release is offered as usual and replaces the kept one.
+
+To install a kept update later, open **Settings** and select **Install update {version}**. The same action appears on the Updates page.
+
+If you selected Cancel on the message about installing unknown apps, you do not need to do anything else in Backdrop: turn on the permission in Android and the kept update installs the next time Home opens.
+
 ## Check inside the launcher
 
-If your build includes it, select **Settings → Check for updates**. The launcher contacts the project’s GitHub release feed.
+To check right away, select **Settings → Check for updates**. This works with automatic updates on or off.
 
 | Result | Meaning and next step |
 | --- | --- |
-| **No release available yet** | The request succeeded, but there is no stable published release with a usable APK. Check the Releases page later. This message does not claim your app is up to date. |
-| **No updates available** | A published usable release was checked and no newer version was found. Review any displayed release notes. |
-| **Update available** | Review the version and release notes, then choose **Download** if you want it. |
-| **Ready to install** | Choose **Install** to open Android’s installer, then follow Android’s prompts. |
-| **Update check failed. Please try again.** | The request or response failed. Check connectivity and retry. |
+| **No newer published release is available** | The check succeeded and your version is current, or no usable release has been published. |
+| **Latest release** | A newer release is available. Review the release notes, then choose **Download {version}**. |
+| **Install update {version}** | The update is downloaded and checked. Select it to install. |
+| An error message | The check or download failed. Check your connection and try again. |
 
-If Android blocks installation, the launcher may offer a shortcut to allow **Install unknown apps** for Backdrop Launcher. Enable the permission in Android and retry the installation. Device settings and installer labels vary by firmware.
-
-The download/install steps are available only when a real release supplies a compatible APK. The guide’s screenshots do not simulate an available update.
+If a check fails, Backdrop tries again automatically after about half an hour.
 
 ## Update manually
 

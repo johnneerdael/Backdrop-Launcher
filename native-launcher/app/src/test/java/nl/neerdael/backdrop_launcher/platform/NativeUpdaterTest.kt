@@ -95,7 +95,7 @@ class NativeUpdaterTest {
         assertTrue(inspectedPart)
         assertEquals("backdrop-launcher-5000.apk", downloaded.name)
         assertArrayEquals(byteArrayOf(1, 2, 3), downloaded.readBytes())
-        assertEquals(listOf(downloaded.name), cache.listFiles()!!.map { it.name })
+        assertEquals(setOf(downloaded.name, "pending.json"), cache.listFiles()!!.map { it.name }.toSet())
     }
 
     @Test fun checksumFailureOrArchiveFailureNeverLeavesInstallableFile() = withDirectory { cache ->
@@ -144,6 +144,64 @@ class NativeUpdaterTest {
         assertThrows(IllegalStateException::class.java) { updater.download(old) }
         assertEquals(0, network.downloads)
         assertTrue(cache.listFiles()!!.isEmpty())
+    }
+
+    @Test fun verifiedDownloadIsStillPendingAfterARestart() = withDirectory { cache ->
+        val network = FakeUpdateNetwork(release(), manifest(cache))
+        val updater = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() })
+        val file = updater.download(updater.check()!!)
+        val pending = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() }).pending()!!
+        assertEquals(file, pending.file)
+        assertEquals("1.3.6", pending.info.version)
+        assertEquals(5000L, pending.info.code)
+        assertEquals("- Faster startup", pending.info.notes)
+    }
+
+    @Test fun nothingIsPendingBeforeADownload() = withDirectory { cache ->
+        assertNull(NativeUpdater(true, { 4999 }, cache, FakeUpdateNetwork(release(), manifest(cache)), { goodArchive() }).pending())
+    }
+
+    @Test fun alteredDownloadIsDiscardedInsteadOfOffered() = withDirectory { cache ->
+        val network = FakeUpdateNetwork(release(), manifest(cache))
+        val updater = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() })
+        val file = updater.download(updater.check()!!)
+        file.writeBytes(file.readBytes().also { it[0] = (it[0] + 1).toByte() })
+        assertNull(NativeUpdater(true, { 4999 }, cache, network, { goodArchive() }).pending())
+        assertFalse(file.exists())
+    }
+
+    @Test fun downloadSignedByAnotherKeyIsDiscarded() = withDirectory { cache ->
+        val network = FakeUpdateNetwork(release(), manifest(cache))
+        val updater = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() })
+        val file = updater.download(updater.check()!!)
+        val forged = goodArchive().copy(certificates = setOf("00"))
+        assertNull(NativeUpdater(true, { 4999 }, cache, network, { forged }).pending())
+        assertFalse(file.exists())
+    }
+
+    @Test fun installedUpdateIsRemoved() = withDirectory { cache ->
+        val network = FakeUpdateNetwork(release(), manifest(cache))
+        val updater = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() })
+        val file = updater.download(updater.check()!!)
+        assertNull(NativeUpdater(true, { 5000 }, cache, network, { goodArchive() }).pending())
+        assertFalse(file.exists())
+        assertFalse(File(cache, "pending.json").exists())
+    }
+
+    @Test fun pendingIsNotReverifiedWhileTheFileIsUnchanged() = withDirectory { cache ->
+        var reads = 0
+        val updater = NativeUpdater(true, { 4999 }, cache, FakeUpdateNetwork(release(), manifest(cache)), { reads++; goodArchive() })
+        updater.download(updater.check()!!)
+        val afterDownload = reads
+        repeat(3) { assertNotNull(updater.pending()) }
+        assertEquals(afterDownload, reads)
+    }
+
+    @Test fun disabledBuildHasNothingPending() = withDirectory { cache ->
+        val network = FakeUpdateNetwork(release(), manifest(cache))
+        val updater = NativeUpdater(true, { 4999 }, cache, network, { goodArchive() })
+        updater.download(updater.check()!!)
+        assertNull(NativeUpdater(false, { 4999 }, cache, network, { goodArchive() }).pending())
     }
 
     private fun goodArchive() = UpdateArchive(NativeUpdater.PACKAGE, "1.3.6", 5000, setOf(NativeUpdater.CERTIFICATE))

@@ -46,7 +46,7 @@ It opens directly to Home without an intentional splash or startup delay. Saved 
 
 ## What works without an internet connection?
 
-Your installed app rows, saved preferences and included backdrops are available locally. Trakt login, online backdrop discovery, public-list fetching and update checks need a connection. An external streaming app has its own network requirements. Previously saved artwork may be reused; cached content is not a guarantee that an external programme can play offline.
+Your installed app rows, saved preferences and included backdrops are available locally. Trakt login, online backdrop discovery, public-list fetching and update checks need a connection. Backdrop contacts GitHub about every six hours to look for updates unless you turn [automatic updates](updates.md#automatic-updates) off. An external streaming app has its own network requirements. Previously saved artwork may be reused; cached content is not a guarantee that an external programme can play offline.
 
 ## Where is the source code?
 

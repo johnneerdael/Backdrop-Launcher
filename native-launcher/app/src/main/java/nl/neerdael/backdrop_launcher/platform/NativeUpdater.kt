@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import nl.neerdael.backdrop_launcher.BuildConfig
+import nl.neerdael.backdrop_launcher.core.PendingUpdate
 import nl.neerdael.backdrop_launcher.core.UpdateAccess
 import nl.neerdael.backdrop_launcher.core.UpdateInfo
 import org.json.JSONObject
@@ -30,10 +31,11 @@ class NativeUpdater internal constructor(override val enabled: Boolean, private 
     constructor(context: Context) : this(BuildConfig.SELF_UPDATER, {
         val installed = context.packageManager.getPackageInfo(context.packageName, 0)
         if (Build.VERSION.SDK_INT >= 28) installed.longVersionCode else @Suppress("DEPRECATION") installed.versionCode.toLong()
-    }, File(context.cacheDir, "updates"), GitHubUpdateNetwork, { file -> readArchive(context, file) })
+    }, File(context.filesDir, "updates"), GitHubUpdateNetwork, { file -> readArchive(context, file) })
 
     private data class Expected(val code: Long, val sha256: String, val size: Long)
     @Volatile private var expected: Pair<String, Expected>? = null
+    @Volatile private var verified: Pair<PendingUpdate, Long>? = null
 
     override fun check(): UpdateInfo? {
         if (!enabled) return null
@@ -92,9 +94,39 @@ class NativeUpdater internal constructor(override val enabled: Boolean, private 
             val final = File(cache, "backdrop-launcher-${update.code}.apk")
             check(temporary.renameTo(final)) { "Cannot save verified update." }
             cache.listFiles()?.filter { it != final && it.name.startsWith("backdrop-launcher-") && it.extension == "apk" }?.forEach { it.delete() }
+            check(savePending(update, metadata)) { "Cannot save verified update." }
+            verified = PendingUpdate(update, final) to final.lastModified()
             return final
         } finally { temporary.delete() }
     }
+
+    /** A saved file is checked again before use: it may have been waiting since an earlier run. */
+    override fun pending(): PendingUpdate? {
+        if (!enabled) return null
+        val saved = runCatching { JSONObject(File(cache, PENDING).readText()) }.getOrNull() ?: return null
+        val update = UpdateInfo(saved.optString("version"), saved.optLong("code"), saved.optString("url"), saved.optString("notes"))
+        val file = File(cache, "backdrop-launcher-${update.code}.apk")
+        try {
+            require(update.code > installedCode()) { "Update is installed." }
+            verified?.takeIf { it.first.info == update && it.second == file.lastModified() }?.let { return it.first }
+            require(file.length() == saved.optLong("size") && sha256(file) == saved.optString("sha256")) { "Update file changed." }
+            verifyArchive(archive(file), update, installedCode())
+        } catch (cancelled: InterruptedIOException) { throw cancelled }
+        catch (_: Exception) {
+            verified = null
+            file.delete()
+            File(cache, PENDING).delete()
+            return null
+        }
+        return PendingUpdate(update, file).also { verified = it to file.lastModified() }
+    }
+
+    private fun savePending(update: UpdateInfo, metadata: Expected): Boolean = runCatching {
+        val temporary = File(cache, "$PENDING.part")
+        temporary.writeText(JSONObject().put("version", update.version).put("code", update.code).put("url", update.url)
+            .put("notes", update.notes).put("sha256", metadata.sha256).put("size", metadata.size).toString())
+        temporary.renameTo(File(cache, PENDING))
+    }.getOrDefault(false)
 
     companion object {
         internal const val REPOSITORY = "johnneerdael/Backdrop-Launcher"
@@ -102,6 +134,7 @@ class NativeUpdater internal constructor(override val enabled: Boolean, private 
         internal const val CERTIFICATE = "18a076c8f5666fb103184caf1a98c753a044cc54ffc8ddc54cdd13ccc339f93d"
         internal const val RELEASE_API = "https://api.github.com/repos/$REPOSITORY/releases/latest"
         internal const val APK_NAME = "backdrop-launcher.apk"
+        private const val PENDING = "pending.json"
         internal const val MAX_APK_BYTES = 128L * 1024 * 1024
         private const val MAX_CODE = 2_100_000_000L
         internal fun stableVersion(tag: String): String? = tag.removePrefix("v").takeIf { Regex("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$").matches(it) }

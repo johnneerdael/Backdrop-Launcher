@@ -1,6 +1,7 @@
 package nl.neerdael.backdrop_launcher
 
 import android.content.*
+import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.database.ContentObserver
 import android.net.Uri
@@ -13,16 +14,19 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.core.content.FileProvider
 import androidx.tv.material3.MaterialTheme
 import nl.neerdael.backdrop_launcher.core.*
 import nl.neerdael.backdrop_launcher.data.*
 import nl.neerdael.backdrop_launcher.media.NativeMedia
+import nl.neerdael.backdrop_launcher.platform.AutoUpdate
 import nl.neerdael.backdrop_launcher.platform.NativeUpdater
+import nl.neerdael.backdrop_launcher.platform.UpdateInstaller
 import nl.neerdael.backdrop_launcher.ui.*
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+
+private const val UPDATE_DELAY_MILLIS = 5000L
 
 /** Production Home. Data and network work are event driven and never run on the UI thread. */
 class MainActivity : ComponentActivity(), UiActions {
@@ -31,10 +35,13 @@ class MainActivity : ComponentActivity(), UiActions {
     private lateinit var prefs: PreferenceAccess
     private lateinit var media: MediaAccess
     private lateinit var updater: UpdateAccess
+    private lateinit var autoUpdate: AutoUpdate
+    private lateinit var installer: UpdateInstaller
     private lateinit var artwork: ComposeArtwork
     private val dataWorker = Executors.newSingleThreadExecutor()
     private val mediaWorker = Executors.newSingleThreadExecutor()
     private val channelWorker = Executors.newSingleThreadExecutor()
+    private val updateWorker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private val selection = HomeSelection()
     private var home by mutableStateOf<HomeData?>(null)
@@ -61,7 +68,8 @@ class MainActivity : ComponentActivity(), UiActions {
     private var pairTask: Future<*>? = null
     private var channelTask: Future<*>? = null
     private var unsubscribe: (() -> Unit)? = null
-    private var pendingInstall: File? = null
+    private var updateRunning = false
+    private var installPrompt: Intent? = null
     private var observerRegistered = false
     private val provider = object : ContentObserver(handler) {
         override fun onChange(selfChange: Boolean) { if (resumed) scheduleProviderRefresh() }
@@ -78,9 +86,22 @@ class MainActivity : ComponentActivity(), UiActions {
             if (resumed) refresh()
         }
     }
+    private val installResult = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
+                PackageInstaller.STATUS_SUCCESS -> Unit
+                PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                    @Suppress("DEPRECATION") val prompt = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                    if (resumed) prompt?.let { open(it) } else installPrompt = prompt
+                }
+                else -> message("Update saved. Install it from Settings.")
+            }
+        }
+    }
     private val localRefresh = Runnable { if (resumed) { refresh(); scheduleRotation() } }
     private val providerRefresh = Runnable { refreshMedia(false) }
     private val channelRefresh = Runnable { refreshChannels() }
+    private val updateCheck = Runnable { checkForUpdate() }
     private val rotate = Runnable { refreshMedia(true) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,6 +114,8 @@ class MainActivity : ComponentActivity(), UiActions {
         library = LegacyLibrary(applicationContext, prefs)
         media = NativeMedia(applicationContext, prefs, BuildConfig.TRAKT_CLIENT_ID, BuildConfig.TMDB_API_KEY, BuildConfig.TRAKT_REDIRECT_URI)
         updater = NativeUpdater(applicationContext)
+        autoUpdate = AutoUpdate(prefs, updater)
+        installer = UpdateInstaller(applicationContext)
         artwork = ComposeArtwork(applicationContext)
         unsubscribe = prefs.listen { key ->
             if (!key.startsWith("native.") && !key.startsWith("native_")) handler.post {
@@ -112,6 +135,7 @@ class MainActivity : ComponentActivity(), UiActions {
             addAction(Intent.ACTION_PACKAGE_CHANGED); addAction(Intent.ACTION_PACKAGE_REPLACED); addDataScheme("package")
         }
         androidx.core.content.ContextCompat.registerReceiver(this, packages, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
+        androidx.core.content.ContextCompat.registerReceiver(this, installResult, IntentFilter(installer.resultAction), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         setContent {
             MaterialTheme {
                 val data = home
@@ -136,13 +160,17 @@ class MainActivity : ComponentActivity(), UiActions {
             contentResolver.registerContentObserver(Uri.parse("content://android.media.tv/channel"), true, channelProvider)
             observerRegistered = true
         } catch (_: SecurityException) { /* Permission control stays available in settings. */ }
-        pendingInstall?.let { if (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()) { pendingInstall = null; installApk(it) } }
+        installPrompt?.let { installPrompt = null; open(it) }
+        // Waits for Home to settle, and for the moment anyone is back on it rather than watching.
+        handler.removeCallbacks(updateCheck)
+        handler.postDelayed(updateCheck, UPDATE_DELAY_MILLIS)
     }
 
     override fun onPause() {
         resumed = false
         generation++
         handler.removeCallbacks(localRefresh); handler.removeCallbacks(providerRefresh); handler.removeCallbacks(channelRefresh); handler.removeCallbacks(rotate)
+        handler.removeCallbacks(updateCheck)
         dataTask?.cancel(true); mediaTask?.cancel(true); pairTask?.cancel(true); channelTask?.cancel(true)
         dataTask = null; mediaTask = null; pairTask = null; channelTask = null
         mediaBusy = false; pendingMedia = false; pendingRotation = false
@@ -289,6 +317,24 @@ class MainActivity : ComponentActivity(), UiActions {
         }
     }
 
+    /** A download keeps going if Home is left, but installing waits until it is back on screen. */
+    private fun checkForUpdate() {
+        if (!resumed || updateRunning) return
+        updateRunning = true
+        updateWorker.execute {
+            val update = autoUpdate.next(canInstallUpdates())
+            handler.post {
+                updateRunning = false
+                if (!resumed) return@post
+                update?.let { installApk(it.file) }
+                handler.removeCallbacks(updateCheck)
+                handler.postDelayed(updateCheck, AutoUpdate.CHECK_MILLIS)
+            }
+        }
+    }
+
+    private fun canInstallUpdates() = Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()
+
     private fun scheduleRotation() {
         handler.removeCallbacks(rotate)
         val minutes = prefs.int("backdrop_interval_minutes", 10).takeIf { it in listOf(5, 10, 30, 60) } ?: 10
@@ -380,15 +426,13 @@ class MainActivity : ComponentActivity(), UiActions {
         if (requestCode == 1001) { scheduleProviderRefresh(); scheduleChannelRefresh() }
     }
     override fun installApk(file: File) {
-        if (!BuildConfig.SELF_UPDATER || !file.canonicalPath.startsWith(cacheDir.canonicalPath + File.separator)) return
-        if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-            pendingInstall = file
-            open(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
-            return
+        updateWorker.execute {
+            val update = updater.pending()?.takeIf { it.file == file } ?: return@execute
+            // Counted before Android answers: leaving the prompt unanswered reports nothing at all.
+            autoUpdate.offered(update, canInstallUpdates())
+            try { installer.install(update.file) }
+            catch (_: Exception) { message("Update saved. Install it from Settings.") }
         }
-        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-        open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
     }
     private fun open(intent: Intent, notify: Boolean = true): Boolean = try { startActivity(intent); true }
         catch (_: Exception) { if (notify) message("Application could not be opened"); false }
@@ -396,9 +440,10 @@ class MainActivity : ComponentActivity(), UiActions {
     override fun onDestroy() {
         unsubscribe?.invoke()
         unregisterReceiver(packages)
+        unregisterReceiver(installResult)
         handler.removeCallbacksAndMessages(null)
         artwork.close()
-        dataWorker.shutdownNow(); mediaWorker.shutdownNow(); channelWorker.shutdownNow()
+        dataWorker.shutdownNow(); mediaWorker.shutdownNow(); channelWorker.shutdownNow(); updateWorker.shutdownNow()
         // Avoid racing a still-finishing SQLite snapshot with close().
         Thread { synchronized(library) { library.close() } }.start()
         super.onDestroy()
