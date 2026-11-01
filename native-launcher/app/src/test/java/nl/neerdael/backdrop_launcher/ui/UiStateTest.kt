@@ -50,6 +50,12 @@ class UiStateTest {
         assertEquals("a", a.key)
     }
 
+    @Test fun artworkFileNamesReadAsNames() {
+        assertEquals("pluto tv", assetLabel("appicons/pluto_tv.png"))
+        assertEquals("the matrix 553be", assetLabel("backdrops/the-matrix-553be.jpg"))
+        assertEquals("hulu", assetLabel("appicons/hulu.png"))
+    }
+
     @Test fun providerIdKeepsResumeSelectionWhenAnotherItemIsInserted() {
         val selection = HomeSelection()
         val initial = scene(emptyList(), listOf(item(5), item(6)))
